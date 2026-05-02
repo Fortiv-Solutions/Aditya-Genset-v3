@@ -9,6 +9,7 @@ import Home from "./pages/Home";
 import Welcome from "./pages/Welcome";
 import Products from "./pages/Products";
 import ProductDetail from "./pages/ProductDetail";
+import DGSetsCategory from "./pages/DGSetsCategory";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
 import { useState, useEffect } from "react";
@@ -51,6 +52,7 @@ const App = () => {
                         <Route path="/" element={<Home />} />
                         <Route path="/welcome" element={<Welcome />} />
                         <Route path="/products" element={<Products />} />
+                        <Route path="/products/dg-sets" element={<DGSetsCategory />} />
                         <Route path="/products/:slug" element={<ProductDetail />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>

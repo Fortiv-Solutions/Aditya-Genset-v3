@@ -3,10 +3,12 @@ import { SEO } from "@/components/site/SEO";
 import { SHOWCASE } from "@/data/products";
 import { ScrollStory } from "@/components/site/ScrollStory";
 import { ArrowLeft, Monitor } from "lucide-react";
+import { useRef } from "react";
 
 export default function ProductDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
+  const scrollStoryRef = useRef<{ enterPresentMode: () => void }>(null);
 
   if (slug !== SHOWCASE.slug) {
     return (
@@ -56,7 +58,7 @@ export default function ProductDetail() {
           </div>
 
           <button
-            onClick={() => navigate("/products/silent-62-5")}
+            onClick={() => scrollStoryRef.current?.enterPresentMode()}
             className="inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-navy-deep hover:scale-[1.03] hover:shadow-lg active:scale-95 self-end"
           >
             <Monitor size={16} className="shrink-0" />
@@ -65,7 +67,7 @@ export default function ProductDetail() {
         </div>
       </section>
 
-      <ScrollStory product={SHOWCASE} />
+      <ScrollStory ref={scrollStoryRef} product={SHOWCASE} />
     </>
   );
 }

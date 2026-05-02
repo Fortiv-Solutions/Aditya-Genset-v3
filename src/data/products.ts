@@ -2,7 +2,7 @@ import dgOverview from "@/assets/brand/dg-real-1.png";
 import dgEngine from "@/assets/brand/engine-baudouin.jpg";
 import dgAlternator from "@/assets/dg-alternator.jpg";
 import dgEnclosure from "@/assets/brand/dg-product.jpg";
-import dgDimensions from "@/assets/brand/dg-real-2.jpg";
+import dgDimensions from "@/assets/genset-hero-CdfwbH8a.jpg";
 import dgThumb from "@/assets/brand/dg-product.jpg";
 import dgControl from "@/assets/brand/control-panel.jpg";
 import dgFuel from "@/assets/brand/fuel-tank.jpg";
@@ -181,22 +181,8 @@ export const SHOWCASE: ShowcaseProduct = {
       ],
     },
     {
-      id: "control",
-      number: "05",
-      title: "Smart Control Panel",
-      tagline: "Real-time telemetry. Auto-start. Remote monitoring ready.",
-      image: dgControl,
-      alt: "Digital generator control panel with LCD display",
-      specs: [
-        { label: "Display", value: "Backlit LCD" },
-        { label: "AMF", value: "Optional" },
-        { label: "Comms", value: "Modbus / RS-485" },
-        { label: "Protections", value: "OV, UV, OL, RYB" },
-      ],
-    },
-    {
       id: "dimensions",
-      number: "06",
+      number: "05",
       title: "Dimensions & Weight",
       tagline: "Compact footprint, easy to site and service.",
       image: dgDimensions,
@@ -207,6 +193,19 @@ export const SHOWCASE: ShowcaseProduct = {
         { label: "Height", value: "1550 mm" },
         { label: "Dry weight", value: "~1250 kg" },
         { label: "Wet weight", value: "~1450 kg" },
+      ],
+    },
+    {
+      id: "video",
+      number: "06",
+      title: "Product Video",
+      tagline: "See it in action.",
+      image: dgDimensions,
+      alt: "Product demonstration video",
+      specs: [
+        { label: "Duration", value: "2:30 min" },
+        { label: "Quality", value: "1080p HD" },
+        { label: "Format", value: "MP4" },
       ],
     },
   ],

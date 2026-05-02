@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import type { ShowcaseProduct } from "@/data/products";
 import { StickyImageStack } from "./StickyImageStack";
 import { ProgressRail } from "./ProgressRail";
@@ -11,10 +11,14 @@ import { SmoothImage } from "@/components/ui/SmoothImage";
 
 interface Props { product: ShowcaseProduct; }
 
-export function ScrollStory({ product }: Props) {
+export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>(({ product }, ref) => {
   const [active, setActive] = useState(0);
   const [isPresenting, setIsPresenting] = useState(false);
   const refs = useRef<(HTMLElement | null)[]>([]);
+
+  useImperativeHandle(ref, () => ({
+    enterPresentMode: () => setIsPresenting(true)
+  }));
 
   useEffect(() => {
     if (isPresenting) {
@@ -82,6 +86,7 @@ export function ScrollStory({ product }: Props) {
               count={product.sections.length}
               active={active}
               labels={product.sections.map((s) => s.number)}
+              images={product.sections.map((s) => s.image)}
               onJump={jumpTo}
             />
           </div>
@@ -116,49 +121,11 @@ export function ScrollStory({ product }: Props) {
           </article>
         ))}
       </div>
-
-      {/* Gallery & Present Mode Section */}
-      <div className="container-x py-16 border-t border-border mt-12 bg-muted/20">
-        <div className="mb-12">
-          <div className="font-display text-[10px] uppercase tracking-[0.3em] text-accent mb-6 text-center">Chapter Index</div>
-          <div className="flex flex-wrap justify-center gap-3">
-            {product.sections.map((s, i) => (
-              <button
-                key={s.id}
-                onClick={() => jumpTo(i)}
-                className="group relative h-16 w-24 overflow-hidden rounded-lg bg-muted transition-all duration-500 hover:ring-2 hover:ring-accent hover:ring-offset-2 active:scale-95"
-                title={s.title}
-              >
-                <SmoothImage 
-                  src={s.image} 
-                  alt={s.alt}
-                  wrapperClassName="absolute inset-0" 
-                  imageClassName="h-full w-full object-cover transition-transform duration-700 group-hover:scale-110 grayscale group-hover:grayscale-0 opacity-60 group-hover:opacity-100" 
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="font-display text-[10px] font-bold text-white drop-shadow-md">{s.number}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-center text-center gap-6">
-          <div>
-            <h3 className="font-display text-2xl font-semibold">Ready for a walkthrough?</h3>
-            <p className="text-muted-foreground mt-2 text-sm max-w-sm mx-auto">Enter the immersive presentation mode for a distraction-free experience.</p>
-          </div>
-          <button 
-            onClick={() => setIsPresenting(true)}
-            className="inline-flex items-center gap-2 px-8 py-3 bg-foreground text-background rounded-full font-display text-xs uppercase tracking-widest hover:bg-accent transition-all duration-300 active:scale-95 shadow-lg hover:shadow-accent/20"
-          >
-            <Play size={14} fill="currentColor" /> Enter Present Mode
-          </button>
-        </div>
-      </div>
     </section>
   );
-}
+});
+
+ScrollStory.displayName = 'ScrollStory';
 
 function SectionContent({ section, active }: { section: ShowcaseProduct["sections"][number]; active: boolean }) {
   return (

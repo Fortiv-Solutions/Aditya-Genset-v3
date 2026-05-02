@@ -10,7 +10,6 @@ import { SectionReveal } from "@/components/site/SectionReveal";
 // Imported new & updated sections
 import { CompanyOverview } from "@/components/site/CompanyOverview";
 import { MissionVision } from "@/components/site/MissionVision";
-import { ProductCategories } from "@/components/site/ProductCategories";
 import { OEMPartners } from "@/components/site/OEMPartners";
 import { DealerNetwork } from "@/components/site/DealerNetwork";
 import { TrustGainers } from "@/components/site/TrustGainers";
@@ -171,22 +170,19 @@ export default function Home() {
       <MissionVision />
 
       {/* Slide 4 */}
-      <ProductCategories />
-
-      {/* Slide 5 */}
       <OEMPartners />
       <DealerNetwork />
 
-      {/* Slide 6 */}
+      {/* Slide 5 */}
       <TrustGainers />
 
-      {/* Slide 7 */}
+      {/* Slide 6 */}
       <ManufacturingProcess />
 
-      {/* Slide 8 */}
+      {/* Slide 7 */}
       <HappyCustomers />
 
-      {/* Slide 9 */}
+      {/* Slide 8 */}
       <ContactCTA />
     </>
   );
