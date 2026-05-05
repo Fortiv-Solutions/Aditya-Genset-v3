@@ -102,7 +102,8 @@ export function SectionReveal({
 
   return (
     <MotionTag
-      className={cn("will-change-transform-opacity", className)}
+      className={className}
+      style={{ willChange: "transform, opacity" }}
       variants={variants[variant]}
       initial={isEditMode ? "visible" : "hidden"}
       whileInView="visible"
@@ -164,6 +165,7 @@ export function StaggerReveal({
     <MotionTag
       ref={ref}
       className={className}
+      style={{ willChange: "transform, opacity" }}
       variants={containerVariants(staggerMs)}
       initial={isEditMode ? "visible" : "hidden"}
       animate={(inView || isEditMode) ? "visible" : "hidden"}

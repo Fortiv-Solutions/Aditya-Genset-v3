@@ -23,16 +23,17 @@ export interface DGSet {
   noise: string;
   image: string;
   compliance: string;
+  isHidden?: boolean;
 }
 
 export const dgSets: DGSet[] = [
   // Escorts-Kubota (pinned first)
   { id: "18", model: "ATM EKL 15 (2 Cyl)-IV", kva: 15, engine: "Escorts", application: "Prime", fuel: "4.1 L/h", noise: "70 dB(A)", image: gensetImages[1], compliance: "CPCB IV" },
 
-  // Baudouin Generators
-  { id: "1", model: "ATMBD 250", kva: 250, engine: "Baudouin", application: "Prime", fuel: "52.5 L/h", noise: "73 dB(A)", image: gensetImages[0], compliance: "CPCB IV+" },
-  { id: "2", model: "ATMBD 320", kva: 320, engine: "Baudouin", application: "Prime", fuel: "67.2 L/h", noise: "74 dB(A)", image: gensetImages[1], compliance: "CPCB IV+" },
-  { id: "3", model: "ATMBD 400", kva: 400, engine: "Baudouin", application: "Prime", fuel: "84 L/h", noise: "74 dB(A)", image: gensetImages[2], compliance: "CPCB IV+" },
+  // Baudouin Generators (Hidden as per user request, but kept in data)
+  { id: "1", model: "ATMBD 250", kva: 250, engine: "Baudouin", application: "Prime", fuel: "52.5 L/h", noise: "73 dB(A)", image: gensetImages[0], compliance: "CPCB IV+", isHidden: true },
+  { id: "2", model: "ATMBD 320", kva: 320, engine: "Baudouin", application: "Prime", fuel: "67.2 L/h", noise: "74 dB(A)", image: gensetImages[1], compliance: "CPCB IV+", isHidden: true },
+  { id: "3", model: "ATMBD 400", kva: 400, engine: "Baudouin", application: "Prime", fuel: "84 L/h", noise: "74 dB(A)", image: gensetImages[2], compliance: "CPCB IV+", isHidden: true },
 ];
 
 const kvaRanges = [
@@ -73,7 +74,7 @@ export default function DGSetsCategory() {
     const matchesKva = set.kva >= selectedKvaRange.min && set.kva <= selectedKvaRange.max;
     const matchesApplication = selectedApplication === "All" || set.application === selectedApplication;
     
-    return matchesSearch && matchesEngine && matchesKva && matchesApplication;
+    return !set.isHidden && matchesSearch && matchesEngine && matchesKva && matchesApplication;
   });
 
   return (

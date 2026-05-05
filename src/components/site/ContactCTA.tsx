@@ -2,12 +2,12 @@ import { SectionReveal } from "./SectionReveal";
 import { Phone, Mail, Globe, MapPin } from "lucide-react";
 import { EditableText } from "@/components/cms/EditableText";
 
-export function ContactCTA() {
+export function ContactCTA({ id }: { id?: string }) {
   return (
-    <section className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-brand-navy-deep pt-16 text-white md:pt-0">
+    <section id={id} className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-brand-navy-deep pt-16 text-white md:pt-0">
       {/* Background decoration */}
       <div className="absolute inset-0 opacity-10">
-        <div className="absolute top-0 right-0 h-[40rem] w-[40rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-accent blur-[120px]" />
+        <div className="absolute top-0 right-0 h-[40rem] w-[40rem] -translate-y-1/2 translate-x-1/3 rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent/30 to-transparent" />
       </div>
 
       <div className="container-x relative z-10">
@@ -76,7 +76,7 @@ export function ContactCTA() {
           </SectionReveal>
 
           <SectionReveal variant="slideRight" delay={150}>
-            <div className="rounded-sm border border-white/10 bg-white/5 p-8 backdrop-blur-md lg:p-10">
+            <div className="rounded-sm border border-white/10 bg-white/10 shadow-inner p-8 lg:p-10">
               <div className="mb-8 font-display text-xl font-bold flex items-center gap-2">
                 <span>📍</span>
                 <EditableText section="contactCTA" contentKey="addressesTitle" />

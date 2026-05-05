@@ -2,9 +2,11 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft, Save, Eye, Package, Cpu, IndianRupee,
-  Image as ImageIcon, Search as SearchIcon, Tag, ChevronDown, Plus, Trash2, Upload,
+  Image as ImageIcon, Search as SearchIcon, Tag, ChevronDown, Plus, Trash2, Upload, Sparkles, FileText,
 } from "lucide-react";
 import { toast } from "sonner";
+import { PDFImportZone } from "@/components/admin/PDFImportZone";
+import type { ExtractedProduct } from "@/lib/pdfExtractor";
 
 // ─── Form Section Wrapper ────────────────────────────────────────────────────
 function FormSection({ title, icon: Icon, children }: {
@@ -114,9 +116,10 @@ const DEFAULT_SPECS = [
   { label: "Warranty", value: "12 months" },
 ];
 
-function SpecBuilder() {
-  const [specs, setSpecs] = useState(DEFAULT_SPECS);
-
+function SpecBuilder({ specs, setSpecs }: {
+  specs: { label: string; value: string }[];
+  setSpecs: React.Dispatch<React.SetStateAction<{ label: string; value: string }[]>>;
+}) {
   const updateSpec = (i: number, field: "label" | "value", val: string) => {
     setSpecs((prev) => prev.map((s, idx) => idx === i ? { ...s, [field]: val } : s));
   };
@@ -189,6 +192,7 @@ export default function AddProduct() {
   const [priceOnRequest, setPriceOnRequest] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [publishing, setPublishing] = useState(false);
+  const [specs, setSpecs] = useState(DEFAULT_SPECS);
 
   const [form, setForm] = useState({
     name: "",
@@ -208,6 +212,38 @@ export default function AddProduct() {
   });
 
   const updateForm = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
+
+  /** Called when admin clicks "Apply to Form" after PDF extraction */
+  const handleExtracted = (data: ExtractedProduct) => {
+    setForm((prev) => ({
+      ...prev,
+      name: data.name || prev.name,
+      model: data.model || prev.model,
+      kva: data.kva || prev.kva,
+      engineBrand: data.engineBrand || prev.engineBrand,
+      shortDesc: data.shortDesc || prev.shortDesc,
+      cpcb: data.cpcb === "ii" ? "ii" : "iv-plus",
+      seoTitle: data.name ? `${data.name} | Aditya Tech Mech` : prev.seoTitle,
+    }));
+
+    // Merge extracted specs into the spec builder
+    const extractedRows: { label: string; value: string }[] = [];
+    if (data.engineModel) extractedRows.push({ label: "Engine Model", value: data.engineModel });
+    if (data.alternatorBrand) extractedRows.push({ label: "Alternator Brand", value: data.alternatorBrand });
+    if (data.fuelConsumption) extractedRows.push({ label: "Fuel Consumption", value: data.fuelConsumption });
+    if (data.noiseLevel) extractedRows.push({ label: "Noise Level", value: data.noiseLevel });
+    if (data.dimensions) extractedRows.push({ label: "Dimensions (L×W×H)", value: data.dimensions });
+    if (data.dryWeight) extractedRows.push({ label: "Dry Weight", value: data.dryWeight });
+    if (data.voltage) extractedRows.push({ label: "Voltage Output", value: data.voltage });
+    if (data.frequency) extractedRows.push({ label: "Frequency", value: data.frequency });
+    if (data.specs?.length) extractedRows.push(...data.specs);
+
+    if (extractedRows.length > 0) {
+      setSpecs(extractedRows);
+    }
+
+    toast.success("AI extraction applied! Review the fields and publish when ready.");
+  };
 
   const handleSaveDraft = () => {
     setSavingDraft(true);
@@ -263,6 +299,22 @@ export default function AddProduct() {
             <Eye size={15} />
             {publishing ? "Publishing..." : "Publish"}
           </button>
+        </div>
+      </div>
+
+      {/* ── AI PDF Import Zone ── */}
+      <div className="bg-card shadow-sm border border-border rounded-xl overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-secondary">
+          <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
+            <Sparkles size={14} className="text-amber-400" />
+          </div>
+          <div>
+            <h3 className="text-sm font-semibold text-foreground">AI PDF Import</h3>
+            <p className="text-[11px] text-muted-foreground">Drop a client datasheet PDF — AI will auto-fill all fields below</p>
+          </div>
+        </div>
+        <div className="p-5">
+          <PDFImportZone onExtracted={handleExtracted} />
         </div>
       </div>
 
@@ -336,7 +388,7 @@ export default function AddProduct() {
               { value: "ii", label: "CPCB II" },
             ]} />
         </div>
-        <SpecBuilder />
+        <SpecBuilder specs={specs} setSpecs={setSpecs} />
       </FormSection>
 
       {/* ── Section C: Pricing & Availability ── */}

@@ -3,9 +3,9 @@ import { Target, Lightbulb, CheckCircle2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { EditableText } from "@/components/cms/EditableText";
 
-export function MissionVision() {
+export function MissionVision({ id }: { id?: string }) {
   return (
-    <section className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-secondary/40 pt-16 md:pt-0">
+    <section id={id} className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-secondary/40 pt-16 md:pt-0">
       <div className="container-x">
         <div className="grid gap-8 lg:grid-cols-2">
           

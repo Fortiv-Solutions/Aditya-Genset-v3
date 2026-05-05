@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import logo from "@/assets/brand/aditya-logo.png";
+import logo from "@/assets/brand/logo.png";
 import { Phone, Mail, MapPin, Facebook, Instagram, Linkedin } from "lucide-react";
 import { EditableText } from "@/components/cms/EditableText";
 

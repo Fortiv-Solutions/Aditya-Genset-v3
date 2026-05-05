@@ -10,9 +10,9 @@ const STEP_KEYS = [
   { titleKey: "step4Title", descKey: "step4Desc" },
 ] as const;
 
-export function ManufacturingProcess() {
+export function ManufacturingProcess({ id }: { id?: string }) {
   return (
-    <section className="relative flex min-h-screen snap-center flex-col justify-center bg-secondary/30 pt-16 md:pt-0">
+    <section id={id} className="relative flex min-h-screen snap-center flex-col justify-center bg-secondary/30 pt-16 md:pt-0">
       <div className="container-x">
         <SectionReveal className="text-center" variant="fadeUp">
           <div className="font-display text-xs uppercase tracking-[0.3em] text-accent">

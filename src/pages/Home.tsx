@@ -16,6 +16,7 @@ import { TrustGainers } from "@/components/site/TrustGainers";
 import { ManufacturingProcess } from "@/components/site/ManufacturingProcess";
 import { HappyCustomers } from "@/components/site/HappyCustomers";
 import { ContactCTA } from "@/components/site/ContactCTA";
+import { VerticalNav, HOME_SECTIONS } from "@/components/site/VerticalNav";
 
 import { ArrowRight, Play } from "lucide-react";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -45,13 +46,13 @@ export default function Home() {
       />
 
       {/* Slide 1 — Hero Section (Landing Screen) */}
-      <section className="relative flex min-h-screen snap-center flex-col overflow-hidden bg-white pt-16 md:pt-0">
+      <section id="hero" className="relative flex min-h-screen snap-center flex-col overflow-hidden bg-white pt-16 md:pt-0">
         
         {/* Floating decorative elements - Adjusted for light background */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-accent/20 blur-[100px] animate-float-slow mix-blend-multiply" />
-          <div className="absolute top-1/2 -right-32 h-[28rem] w-[28rem] rounded-full bg-accent/10 blur-[120px] animate-float-slower mix-blend-multiply" />
-          <div className="absolute bottom-20 left-1/4 h-72 w-72 rounded-full bg-brand-navy/5 blur-[100px] animate-float-slow" />
+          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent/20 to-transparent animate-float-slow mix-blend-multiply" />
+          <div className="absolute top-1/2 -right-32 h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent/10 to-transparent animate-float-slower mix-blend-multiply" />
+          <div className="absolute bottom-20 left-1/4 h-72 w-72 rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-brand-navy/10 to-transparent animate-float-slow" />
         </div>
 
         {/* Hero grid */}
@@ -163,26 +164,28 @@ export default function Home() {
       </section>
 
       {/* Slide 2 */}
-      <CompanyOverview />
+      <CompanyOverview id="overview" />
 
       {/* Slide 3 */}
-      <MissionVision />
+      <MissionVision id="mission" />
 
       {/* Slide 4 */}
-      <OEMPartners />
-      <DealerNetwork />
+      <OEMPartners id="oem" />
+      <DealerNetwork id="dealer" />
 
       {/* Slide 5 */}
-      <TrustGainers />
+      <TrustGainers id="trust" />
 
       {/* Slide 6 */}
-      <ManufacturingProcess />
+      <ManufacturingProcess id="manufacturing" />
 
       {/* Slide 7 */}
-      <HappyCustomers />
+      <HappyCustomers id="customers" />
 
       {/* Slide 8 */}
-      <ContactCTA />
+      <ContactCTA id="contact" />
+      
+      <VerticalNav sections={HOME_SECTIONS} />
     </>
   );
 }

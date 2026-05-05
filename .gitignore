@@ -22,3 +22,18 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Caches
+.eslintcache
+
+# OS generated files
+Thumbs.db
+Desktop.ini
+
+# Raw unoptimized asset folders to prevent repo bloat
+"DG set ESCORTS/"

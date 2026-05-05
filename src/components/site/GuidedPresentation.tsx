@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { Minimize2, ChevronDown, Info, Settings, Shield, Zap, Droplets } from "lucide-react";
+import { X, ChevronDown, Info, Settings, Shield, Zap, Droplets } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { fadeIn, fadeUp, scaleIn, durations, easings } from "@/lib/animations";
 import { EditableText } from "@/components/cms/EditableText";
+import { EditableImage } from "@/components/cms/EditableImage";
+import type { CMSSection } from "@/lib/sanity";
+import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import type { CMSSection } from "@/lib/sanity";
 
 // Main image - always dg-real-1
@@ -11,7 +14,7 @@ import mainImage from "@/assets/brand/dg-real-1.png";
 
 // Sub-images from assets folder
 import subEngine from "@/assets/dg-engine.jpg";
-import subControl from "@/assets/brand/control-panel.jpg";
+import subControl from "@/assets/brand/control-panel.png";
 import subFuel from "@/assets/brand/fuel-tank.jpg";
 import subProduct from "@/assets/brand/dg-product.jpg";
 import subAlternator from "@/assets/brand/engine-baudouin.jpg";
@@ -120,19 +123,21 @@ const HOTSPOTS: Hotspot[] = [
 import type { ShowcaseProduct } from "@/data/products";
 
 export function GuidedPresentation({ onClose, sectionId = "showcaseData", product }: { onClose: () => void, sectionId?: string, product?: ShowcaseProduct }) {
+  const { isEditMode, content, updateContentLive, commitHistory } = useCMSState();
+  const cmsContent = content[sectionId as keyof typeof content] as Record<string, any>;
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const imageWrapperRef = useRef<HTMLDivElement>(null);
   
   const presentationHotspots = product?.hotspots && product.hotspots.length > 0 ? product.hotspots : HOTSPOTS;
-  const presentationImage = product?.hero || mainImage;
-
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    container: wrapperRef,
-    offset: ["start start", "end end"]
-  });
-
+  
   const [currentIndex, setCurrentIndex] = useState(0);
+
+  // Use EKL15 custom images, switching halfway through the 10 chapters
+  const imageKey = product?.slug === "ekl-15-2cyl" ? (currentIndex >= 5 ? "ekl15Main2" : "ekl15Main1") : "mainImage";
+  const defaultImage = product?.slug === "ekl-15-2cyl" 
+    ? (currentIndex >= 5 ? ekl15Main2 : ekl15Main1) 
+    : (product?.hero || mainImage);
 
   // Handle keyboard
   useEffect(() => {
@@ -155,6 +160,15 @@ export function GuidedPresentation({ onClose, sectionId = "showcaseData", produc
   }, [scrollYProgress, presentationHotspots.length]);
 
   const activeHotspot = presentationHotspots[currentIndex];
+  const eklData = product?.slug === "ekl-15-2cyl" ? EKL15_CHAPTER_DATA[activeHotspot.id as keyof typeof EKL15_CHAPTER_DATA] : null;
+
+  // Dynamically calculate camera pan offset so the camera perfectly centers on the active dot, even if the admin moves it
+  const activeDotX = cmsContent?.[`hotspot_${currentIndex}_x`] !== undefined ? Number(cmsContent[`hotspot_${currentIndex}_x`]) : activeHotspot.x;
+  const activeDotY = cmsContent?.[`hotspot_${currentIndex}_y`] !== undefined ? Number(cmsContent[`hotspot_${currentIndex}_y`]) : activeHotspot.y;
+  
+  // To center a coordinate (X, Y) using a CSS transform: translate(tx, ty), the formula is tx = 50 - X, ty = 50 - Y.
+  const cameraOffsetX = 50 - activeDotX;
+  const cameraOffsetY = 50 - activeDotY;
 
   return (
     <div ref={wrapperRef} className="fixed inset-0 z-[9999] overflow-y-auto bg-[#f8f9fa] pointer-events-auto">
@@ -167,40 +181,67 @@ export function GuidedPresentation({ onClose, sectionId = "showcaseData", produc
           <motion.div
             animate={{
               scale: activeHotspot.zoom || 1,
-              x: `${activeHotspot.offsetX || 0}%`,
-              y: `${activeHotspot.offsetY || 0}%`,
+              x: `${cameraOffsetX}%`,
+              y: `${cameraOffsetY}%`,
             }}
             transition={{ duration: 1, ease: [0.22, 1, 0.36, 1] }}
             className="h-full w-full flex items-center justify-center relative"
           >
-            <img
-              src={presentationImage}
-              alt="Diesel Generator"
-              className="max-h-[80vh] max-w-[80vw] object-contain"
-            />
+            {/* Tightly wrap the image so hotspot percentages perfectly align to the image surface */}
+            <div ref={imageWrapperRef} className="relative inline-block max-h-[80vh] max-w-[80vw]">
+              <EditableImage
+                section={sectionId}
+                contentKey={imageKey}
+                defaultSrc={defaultImage}
+                alt="Diesel Generator"
+                className="max-h-[80vh] max-w-[80vw] object-contain pointer-events-none"
+              />
 
-            {/* Hotspot Dots that move with the zoom */}
-            {presentationHotspots.map((h, i) => (
-              <motion.div
-                key={h.id}
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{ 
-                  opacity: (activeHotspot.zoom || 1) > 1.1 ? (currentIndex === i ? 1 : 0.1) : 0.8,
-                  scale: currentIndex === i ? 1.3 : 0.8,
-                  left: `${h.x}%`,
-                  top: `${h.y}%`,
-                }}
-                className={cn(
-                  "absolute h-4 w-4 rounded-full border-2 transition-all duration-300 flex items-center justify-center",
-                  currentIndex === i ? "bg-accent border-accent scale-150" : "bg-white/80 border-foreground/20"
-                )}
-              >
-                <div className={cn(
-                  "h-1.5 w-1.5 rounded-full",
-                  currentIndex === i ? "bg-white animate-pulse" : "bg-foreground/20"
-                )} />
-              </motion.div>
-            ))}
+              {/* Hotspot Dots that move with the zoom */}
+              {presentationHotspots.map((h, i) => {
+                const dotX = cmsContent?.[`hotspot_${i}_x`] !== undefined ? Number(cmsContent[`hotspot_${i}_x`]) : h.x;
+                const dotY = cmsContent?.[`hotspot_${i}_y`] !== undefined ? Number(cmsContent[`hotspot_${i}_y`]) : h.y;
+
+                return (
+                  <motion.div
+                    key={h.id}
+                    drag={isEditMode}
+                    dragMomentum={false}
+                    onDragEnd={(e, info) => {
+                      if (!isEditMode || !imageWrapperRef.current) return;
+                      const rect = imageWrapperRef.current.getBoundingClientRect();
+                      let newX = ((info.point.x - rect.left) / rect.width) * 100;
+                      let newY = ((info.point.y - rect.top) / rect.height) * 100;
+                      
+                      newX = Math.max(0, Math.min(100, newX));
+                      newY = Math.max(0, Math.min(100, newY));
+
+                      updateContentLive(sectionId as CMSSection, `hotspot_${i}_x`, newX.toFixed(2));
+                      updateContentLive(sectionId as CMSSection, `hotspot_${i}_y`, newY.toFixed(2));
+                      commitHistory();
+                    }}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ 
+                      opacity: (activeHotspot.zoom || 1) > 1.1 ? (currentIndex === i ? 1 : 0.1) : 0.8,
+                      scale: currentIndex === i ? 1.3 : 0.8,
+                      left: `${dotX}%`,
+                      top: `${dotY}%`,
+                    }}
+                    style={{ left: `${dotX}%`, top: `${dotY}%` }}
+                    className={cn(
+                      "absolute h-4 w-4 rounded-full border-2 transition-all duration-300 flex items-center justify-center -translate-x-1/2 -translate-y-1/2",
+                      currentIndex === i ? "bg-accent border-accent scale-150 z-10" : "bg-white/80 border-foreground/20 z-0",
+                      isEditMode && "cursor-move hover:scale-[2] hover:border-accent hover:bg-accent/80 active:scale-100 z-50"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-1.5 w-1.5 rounded-full pointer-events-none",
+                      currentIndex === i ? "bg-white animate-pulse" : "bg-foreground/20"
+                    )} />
+                  </motion.div>
+                );
+              })}
+            </div>
           </motion.div>
         </motion.div>
 
@@ -219,15 +260,14 @@ export function GuidedPresentation({ onClose, sectionId = "showcaseData", produc
           </motion.div>
           <motion.button
             onClick={onClose}
-            className="group flex items-center gap-3 px-5 py-2.5 bg-black/5 hover:bg-black/10 backdrop-blur-xl border border-black/5 rounded-full transition-all active:scale-95"
+            className="group flex h-12 w-12 items-center justify-center bg-white hover:bg-gray-50 shadow-md border border-border rounded-full transition-all active:scale-95"
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: durations.slow, ease: easings.cinematic, delay: 0.2 }}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
           >
-            <span className="text-xs uppercase tracking-widest font-medium text-foreground/60 group-hover:text-foreground transition-colors">Exit <kbd className="ml-2 px-1.5 py-0.5 rounded bg-black/5 border border-black/10 text-[10px]">ESC</kbd></span>
-            <Minimize2 size={18} className="text-accent" />
+            <X size={20} className="text-foreground transition-transform group-hover:rotate-90" />
           </motion.button>
         </header>
 
@@ -347,13 +387,12 @@ export function GuidedPresentation({ onClose, sectionId = "showcaseData", produc
                   className="bg-white border border-border shadow-2xl rounded-3xl p-2 relative overflow-hidden group"
                 >
                   <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted">
-                    <motion.img 
-                      src={activeHotspot.subImage}
+                    <EditableImage
+                      section={sectionId}
+                      contentKey={`hotspot_${currentIndex}_image`}
+                      defaultSrc={activeHotspot.subImage}
                       alt={activeHotspot.title}
                       className="w-full h-full object-cover mix-blend-multiply"
-                      initial={{ scale: 1.1 }}
-                      animate={{ scale: 1 }}
-                      transition={{ duration: durations.cinematic, ease: easings.cinematic }}
                     />
                     <div className="absolute inset-0 bg-black/10" />
                     <motion.div 

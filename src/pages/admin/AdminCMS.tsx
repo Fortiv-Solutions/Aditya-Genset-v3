@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Monitor, Layout, ShoppingBag, Building2, Target, Shield, Cog, Phone, ArrowRight, X } from "lucide-react";
 import { useState } from "react";
-import { SHOWCASE } from "@/data/products";
+import { SHOWCASE, EKL15_SHOWCASE } from "@/data/products";
 
 const pages = [
 
@@ -114,7 +114,6 @@ export default function AdminCMS() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-2">
-              {/* Only showing the 62.5 kVA Silent DG Set as requested */}
               <button
                 onClick={() => {
                   setShowProductSelect(false);
@@ -126,6 +125,22 @@ export default function AdminCMS() {
                   <div className="font-semibold text-foreground group-hover:text-accent transition-colors">{SHOWCASE.name}</div>
                   <div className="text-xs text-muted-foreground mt-1">
                     {SHOWCASE.kva} kVA · Prime
+                  </div>
+                </div>
+                <ArrowRight size={16} className="text-muted-foreground group-hover:text-accent transition-transform group-hover:translate-x-1" />
+              </button>
+              
+              <button
+                onClick={() => {
+                  setShowProductSelect(false);
+                  navigate(`/admin/cms/edit/ekl15ShowcaseData`);
+                }}
+                className="w-full flex items-center justify-between p-4 border border-border rounded-lg hover:border-accent hover:bg-accent/5 transition-all text-left group"
+              >
+                <div>
+                  <div className="font-semibold text-foreground group-hover:text-accent transition-colors">{EKL15_SHOWCASE.name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {EKL15_SHOWCASE.kva} kVA · Prime
                   </div>
                 </div>
                 <ArrowRight size={16} className="text-muted-foreground group-hover:text-accent transition-transform group-hover:translate-x-1" />

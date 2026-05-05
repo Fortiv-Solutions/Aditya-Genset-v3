@@ -107,6 +107,16 @@
     font-feature-settings: 'ss01', 'cv11';
   }
 
+  /* Hide default scrollbar — vertical dot nav is used instead */
+  html, body {
+    scrollbar-width: none;        /* Firefox */
+    -ms-overflow-style: none;     /* IE/Edge */
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none;                /* Chrome/Safari/Opera */
+  }
+
   h1, h2, h3, h4, .font-display {
     font-family: 'Poppins', 'Space Grotesk', system-ui, sans-serif;
     letter-spacing: -0.02em;
@@ -122,6 +132,9 @@
 @layer components {
   .container-x {
     @apply mx-auto w-full max-w-7xl px-6 md:px-10;
+  }
+  .container-showcase {
+    @apply mx-auto w-full max-w-[1440px] px-6 md:px-10 lg:pl-10 lg:pr-10;
   }
 
   .hairline {
@@ -241,8 +254,8 @@
   50% { transform: scale(1.5); opacity: 0; }
 }
 
-.animate-float-slow { animation: float-slow 9s ease-in-out infinite; }
-.animate-float-slower { animation: float-slower 12s ease-in-out infinite; }
+.animate-float-slow { animation: float-slow 9s ease-in-out infinite; will-change: transform; }
+.animate-float-slower { animation: float-slower 12s ease-in-out infinite; will-change: transform; }
 .animate-pulse-ring { animation: pulse-ring 2.4s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
 .animate-spin-slow { animation: spin-slow 28s linear infinite; }
 .animate-shimmer {

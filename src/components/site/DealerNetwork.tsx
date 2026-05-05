@@ -5,7 +5,7 @@ import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import { useState, useRef } from "react";
 
-export function DealerNetwork() {
+export function DealerNetwork({ id }: { id?: string }) {
   const { content, isEditMode, updateContent } = useCMSState();
   const [isAdding, setIsAdding] = useState(false);
   const [newCityName, setNewCityName] = useState("");
@@ -41,7 +41,7 @@ export function DealerNetwork() {
   };
 
   return (
-    <section className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-white pt-16 md:pt-0">
+    <section id={id} className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-white pt-16 md:pt-0">
       <div className="container-x grid gap-16 md:grid-cols-2 md:items-center">
         {/* Left — text + cities */}
         <SectionReveal variant="slideLeft">

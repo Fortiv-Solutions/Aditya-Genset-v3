@@ -13,9 +13,9 @@ const ITEM_KEYS = [
   { titleKey: "item6Title", bodyKey: "item6Body" },
 ] as const;
 
-export function TrustGainers() {
+export function TrustGainers({ id }: { id?: string }) {
   return (
-    <section className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-brand-navy pt-16 text-white md:pt-0">
+    <section id={id} className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-brand-navy pt-16 text-white md:pt-0">
       {/* ─── Premium Industrial Background ─── */}
       <div className="pointer-events-none absolute inset-0 select-none">
         {/* Animated Grid Overlay */}
@@ -32,16 +32,14 @@ export function TrustGainers() {
           EXCELLENCE
         </div>
 
-        {/* Cinematic Lighting Blobs */}
-        <motion.div 
-          animate={{ x: [0, 50, 0], y: [0, -30, 0], scale: [1, 1.1, 1] }}
-          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute top-1/4 -left-20 h-[500px] w-[500px] rounded-full bg-accent/20 blur-[120px]" 
+        {/* Cinematic Lighting Blobs — radial gradients, zero blur cost */}
+        <div 
+          className="absolute top-1/4 -left-20 h-[500px] w-[500px] rounded-full animate-float-slow"
+          style={{ background: "radial-gradient(circle at center, rgba(242,169,0,0.2) 0%, transparent 70%)" }}
         />
-        <motion.div 
-          animate={{ x: [0, -40, 0], y: [0, 60, 0], scale: [1, 1.05, 1] }}
-          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-          className="absolute bottom-1/4 -right-20 h-[600px] w-[600px] rounded-full bg-white/10 blur-[150px]" 
+        <div 
+          className="absolute bottom-1/4 -right-20 h-[600px] w-[600px] rounded-full animate-float-slower"
+          style={{ background: "radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, transparent 70%)" }}
         />
         
         {/* Noise Texture */}
@@ -75,7 +73,7 @@ export function TrustGainers() {
               >
                 <motion.div
                   whileHover={{ y: -12, scale: 1.01 }}
-                  className="group relative flex flex-col h-full overflow-hidden rounded-sm border border-white/10 bg-white/[0.03] p-8 backdrop-blur-md transition-all duration-500 hover:border-accent/40 hover:bg-white/[0.08] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
+                  className="group relative flex flex-col h-full overflow-hidden rounded-sm border border-white/10 bg-white/[0.06] p-8 shadow-md transition-all duration-500 hover:border-accent/40 hover:bg-white/[0.12] hover:shadow-[0_30px_60px_-15px_rgba(0,0,0,0.5)]"
                 >
                   {/* Corner Accent */}
                   <div className="absolute top-0 left-0 h-1 w-0 bg-accent transition-all duration-500 group-hover:w-full" />

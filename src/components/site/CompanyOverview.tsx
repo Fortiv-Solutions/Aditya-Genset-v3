@@ -2,9 +2,9 @@ import { SectionReveal } from "./SectionReveal";
 import { CheckCircle2 } from "lucide-react";
 import { EditableText } from "@/components/cms/EditableText";
 
-export function CompanyOverview() {
+export function CompanyOverview({ id }: { id?: string }) {
   return (
-    <section className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-white pt-16 md:pt-0">
+    <section id={id} className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-white pt-16 md:pt-0">
       <div className="container-x">
         <div className="grid gap-16 lg:grid-cols-2 lg:items-center">
           {/* Text Content */}

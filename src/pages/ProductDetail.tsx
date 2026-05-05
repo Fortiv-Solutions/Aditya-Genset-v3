@@ -3,26 +3,28 @@ import { SEO } from "@/components/site/SEO";
 import { SHOWCASE, EKL15_SHOWCASE } from "@/data/products";
 import { ScrollStory } from "@/components/site/ScrollStory";
 import { ArrowLeft, Monitor } from "lucide-react";
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 
-// Map of slug → showcase data
 const SHOWCASES = {
   [SHOWCASE.slug]: SHOWCASE,
   [EKL15_SHOWCASE.slug]: EKL15_SHOWCASE,
 };
+
+// Height of the absolute header overlay in px — used to offset first chapter
+export const SHOWCASE_HEADER_H = 230;
 
 export default function ProductDetail() {
   const { slug, pageId } = useParams();
   const navigate = useNavigate();
   const scrollStoryRef = useRef<{ enterPresentMode: () => void }>(null);
   const { content } = useCMSState();
+  const [activeChapter, setActiveChapter] = useState(0);
 
   const isCMSPreview = !!pageId?.startsWith("showcaseData") || !!pageId?.startsWith("ekl15ShowcaseData");
   const sectionId = isCMSPreview ? pageId : (slug === EKL15_SHOWCASE.slug ? "ekl15ShowcaseData" : "showcaseData");
 
-  // Find matching showcase
   const product = slug ? SHOWCASES[slug] : undefined;
 
   if (!isCMSPreview && !product) {
@@ -39,9 +41,7 @@ export default function ProductDetail() {
     );
   }
 
-  const activeProduct = product || SHOWCASE;
-
-  // Ensure type-safety for the section
+  const activeProduct = product || (pageId === "ekl15ShowcaseData" ? EKL15_SHOWCASE : SHOWCASE);
   const sectionKey = sectionId as "showcaseData" | "ekl15ShowcaseData";
   const productName = content?.[sectionKey]?.productName || activeProduct.name;
 
@@ -55,51 +55,66 @@ export default function ProductDetail() {
   };
 
   return (
-    <>
+    <div className="relative">
       <SEO title={`${productName} — Adityagenset`} description={`Explore the ${activeProduct.kva} kVA Silent DG Set: engine, power, sound, dimensions — a guided scroll story.`} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
 
-      <section className="container-x pt-12 pb-8">
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground story-link"
-        >
-          <ArrowLeft size={12} /> Back to category
-        </button>
-
-        <div className="mt-6 flex flex-wrap items-end justify-between gap-6">
-          <div>
-            <EditableText
-              section={sectionKey}
-              contentKey="pageLabel"
-              className="font-display text-xs uppercase tracking-[0.3em] text-accent block"
-              as="div"
-            />
-            <EditableText
-              section={sectionKey}
-              contentKey="productName"
-              className="mt-3 font-display text-5xl font-semibold leading-none md:text-6xl block"
-              as="h1"
-            />
-            <EditableText
-              section={sectionKey}
-              contentKey="pageSubtitle"
-              className="mt-3 max-w-xl text-muted-foreground block"
-              as="p"
-            />
-          </div>
+      {/* ── Header overlay — visible only on chapter 1 ── */}
+      <div
+        className="absolute top-0 left-0 right-0 z-30 container-showcase pt-8 pointer-events-none transition-all duration-500"
+        style={{
+          height: SHOWCASE_HEADER_H,
+          opacity: activeChapter === 0 ? 1 : 0,
+          transform: activeChapter === 0 ? "translateY(0)" : "translateY(-14px)",
+          pointerEvents: activeChapter === 0 ? undefined : "none",
+        }}
+      >
+        {/* Row 1 — Navigation: back ← ............... → Present Mode */}
+        <div className="flex items-start justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="pointer-events-auto inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors story-link mt-1"
+          >
+            <ArrowLeft size={12} /> Back to category
+          </button>
 
           <button
             onClick={() => scrollStoryRef.current?.enterPresentMode()}
-            className="cms-clickable inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-navy-deep hover:scale-[1.03] hover:shadow-lg active:scale-95 self-end"
+            className="pointer-events-auto cms-clickable inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-navy-deep hover:scale-[1.03] hover:shadow-lg active:scale-95 mt-3"
           >
-            <Monitor size={16} className="shrink-0" />
+            <Monitor size={15} className="shrink-0" />
             <EditableText section={sectionKey} contentKey="presentModeBtn" as="span" />
           </button>
         </div>
-      </section>
 
-      <ScrollStory ref={scrollStoryRef} product={activeProduct} sectionId={sectionKey} />
-    </>
+        {/* Row 2 — Product identity */}
+        <div className="mt-5">
+          <div className="font-display text-[10px] uppercase tracking-[0.4em] text-accent">
+            {activeProduct.sections[0]?.number} / {activeProduct.sections[0]?.id}
+          </div>
+          <EditableText
+            section={sectionKey}
+            contentKey="productName"
+            className="mt-1.5 font-display text-3xl font-semibold leading-tight md:text-4xl block"
+            as="h1"
+          />
+          <EditableText
+            section={sectionKey}
+            contentKey="pageSubtitle"
+            className="mt-1.5 max-w-xl text-sm text-muted-foreground block"
+            as="p"
+          />
+        </div>
+      </div>
+
+
+      {/* ── Full-height scroll story — first chapter respects header height ── */}
+      <ScrollStory
+        ref={scrollStoryRef}
+        product={activeProduct}
+        sectionId={sectionKey}
+        onChapterChange={setActiveChapter}
+      />
+    </div>
   );
 }

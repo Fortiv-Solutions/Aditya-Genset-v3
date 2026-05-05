@@ -7,17 +7,17 @@ interface Props {
   active: number;
   labels?: string[];
   images?: string[];
+  videoUrls?: (string | undefined)[];
   onJump?: (i: number) => void;
 }
 
-export function ProgressRail({ count, active, labels, images, onJump }: Props) {
+export function ProgressRail({ count, active, labels, images, videoUrls, onJump }: Props) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   return (
     <div className={cn("hidden lg:flex flex-col gap-3", mounted ? "opacity-100" : "opacity-0", "transition-opacity duration-500")}>
       {Array.from({ length: count }).map((_, i) => {
         const isActive = i === active;
-        const isVideo = i === 5; // 6th position (index 5)
         return (
           <button
             key={i}
@@ -40,9 +40,9 @@ export function ProgressRail({ count, active, labels, images, onJump }: Props) {
                     isActive ? "grayscale-0" : "grayscale group-hover:grayscale-0"
                   )}
                 />
-                {isVideo && (
+                {videoUrls?.[i] && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                    <Play size={16} className="text-white fill-white" />
+                    <Play size={14} className="text-white fill-white" />
                   </div>
                 )}
               </div>

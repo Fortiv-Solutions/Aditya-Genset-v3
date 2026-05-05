@@ -9,7 +9,7 @@ import dgProduct from "@/assets/brand/dg-product.jpg";
 import dgReal1 from "@/assets/brand/dg-real-1.png";
 import dgReal2 from "@/assets/brand/dg-real-2.jpg";
 import dgRealistic from "@/assets/brand/dg-realistic.png";
-import controlPanel from "@/assets/brand/control-panel.jpg";
+import controlPanel from "@/assets/brand/control-panel.png";
 
 // Non-Standard Images
 import containerImg from "@/assets/brand/container.png";

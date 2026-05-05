@@ -55,12 +55,12 @@ export default function Login() {
 
         {/* Floating decorative elements */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-accent/20 blur-[100px] animate-float-slow" />
-          <div className="absolute top-1/2 -right-32 h-[28rem] w-[28rem] rounded-full bg-accent/10 blur-[120px] animate-float-slower" />
+          <div className="absolute -top-32 -left-32 h-96 w-96 rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent/20 to-transparent animate-float-slow" />
+          <div className="absolute top-1/2 -right-32 h-[28rem] w-[28rem] rounded-full bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-accent/10 to-transparent animate-float-slower" />
         </div>
 
         {/* Premium Login Card with Entrance Animation */}
-        <div className="relative z-10 w-full max-w-[420px] p-8 md:p-12 rounded-xl border border-white/10 bg-brand-navy/60 backdrop-blur-xl shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-1000 ease-brand">
+        <div className="relative z-10 w-full max-w-[420px] p-8 md:p-12 rounded-xl border border-white/10 bg-brand-navy/95 shadow-[0_0_50px_rgba(0,0,0,0.5)] animate-in fade-in zoom-in-95 slide-in-from-bottom-8 duration-1000 ease-brand">
           
           {/* Subtle top highlight */}
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />

@@ -56,6 +56,7 @@ export default function CMSEditor() {
     if (pageId === "products") return "/products";
     if (pageId === "dgSetsCategory") return "/products/dg-sets";
     if (pageId?.startsWith("showcaseData")) return "/products/silent-62-5";
+    if (pageId === "ekl15ShowcaseData") return "/products/ekl-15-2cyl";
     return "/";
   };
 
@@ -63,7 +64,7 @@ export default function CMSEditor() {
   let ContentComponent = Home;
   if (pageId === "products") ContentComponent = Products;
   if (pageId === "dgSetsCategory") ContentComponent = DGSetsCategory;
-  if (pageId?.startsWith("showcaseData")) ContentComponent = ProductDetail;
+  if (pageId?.startsWith("showcaseData") || pageId === "ekl15ShowcaseData") ContentComponent = ProductDetail;
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col">
