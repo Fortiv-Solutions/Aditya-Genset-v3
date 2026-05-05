@@ -4,7 +4,7 @@ import dgAlternator from "@/assets/dg-alternator.jpg";
 import dgEnclosure from "@/assets/brand/dg-product.jpg";
 import dgDimensions from "@/assets/genset-hero-CdfwbH8a.jpg";
 import dgThumb from "@/assets/brand/dg-product.jpg";
-import dgControl from "@/assets/brand/control-panel.png";
+import dgControl from "@/assets/ekl15-electrical.png";
 import dgFuel from "@/assets/brand/fuel-tank.jpg";
 import escortVideo from "@/assets/brand/Escort_DG_SET.mp4";
 
@@ -312,10 +312,10 @@ export const PRODUCTS: ProductSummary[] = [
 
 // ── EKL 15 (2 Cyl)-IV Showcase ──────────────────────────────────────────────
 import ekl15Engine    from "@/assets/brand/engine-escorts.jpg";
-import ekl15Control   from "@/assets/brand/control-panel.png";
+import ekl15Control   from "@/assets/ekl15-electrical.png";
 import ekl15Overview  from "@/assets/genset-small-C07x-piZ.jpg";
 import ekl15Alternator from "@/assets/dg-alternator.jpg";
-import ekl15Dimensions from "@/assets/dg-dimensions.jpg";
+import ekl15Dimensions from "@/assets/escorts/40KVA.jpg";
 import ekl15Enclosure  from "@/assets/brand/dg-product.jpg";
 import ekl15Supply     from "@/assets/genset-open-tU4whFeg.jpg";
 
