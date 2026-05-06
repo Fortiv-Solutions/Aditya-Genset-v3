@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -8,10 +8,9 @@ import { RouteFade } from "@/components/site/RouteFade";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import {
   AuthenticatedRoute,
-  LoginRedirect,
   RoleRoute,
 } from "@/components/auth/AuthRoutes";
-import { ADMIN_ROLES, SALES_ROLES } from "@/lib/auth";
+import { ADMIN_ROLES } from "@/lib/auth";
 import { CMSEditorProvider } from "./components/cms/CMSEditorProvider";
 
 // Site Pages
@@ -21,7 +20,6 @@ import ProductDetail from "./pages/ProductDetail";
 import DGSetsCategory from "./pages/DGSetsCategory";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
-import SalesDashboard from "./pages/SalesDashboard";
 
 // Admin Layout
 import AdminLayout from "./components/admin/AdminLayout";
@@ -47,12 +45,6 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => (
   </RoleRoute>
 );
 
-const SalesRoute = ({ children }: { children: React.ReactNode }) => (
-  <RoleRoute allowedRoles={SALES_ROLES}>
-    <SiteLayout>{children}</SiteLayout>
-  </RoleRoute>
-);
-
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -63,8 +55,8 @@ const App = () => {
           <AuthProvider>
             <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Routes>
-                <Route path="/login" element={<LoginRedirect><Login /></LoginRedirect>} />
-                <Route path="/sales" element={<SalesRoute><SalesDashboard /></SalesRoute>} />
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/login" element={<Login />} />
 
                 <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                 <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
@@ -104,7 +96,7 @@ const App = () => {
                       <SiteLayout>
                         <RouteFade>
                           <Routes>
-                            <Route path="/" element={<Home />} />
+                            <Route path="/home" element={<Home />} />
                             <Route path="/products" element={<Products />} />
                             <Route path="/products/dg-sets" element={<DGSetsCategory />} />
                             <Route path="/products/:slug" element={<ProductDetail />} />

@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useAuth } from "@/components/auth/AuthContext";
-import { getRoleHomePath, isAdminRole } from "@/lib/auth";
+import { getRoleHomePath } from "@/lib/auth";
 import type { AppRole } from "@/lib/supabase";
 
 function AuthLoading() {
@@ -46,7 +46,7 @@ export function LoginRedirect({ children }: { children: ReactNode }) {
 
   if (loading) return <AuthLoading />;
   if (user && profile?.role) {
-    return <Navigate to={isAdminRole(profile.role) ? "/admin" : "/sales"} replace />;
+    return <Navigate to={getRoleHomePath(profile.role)} replace />;
   }
 
   return <>{children}</>;

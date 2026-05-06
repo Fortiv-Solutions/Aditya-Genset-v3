@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft, Save, Eye, Package, Cpu, IndianRupee,
   Image as ImageIcon, Search as SearchIcon, Tag, ChevronDown, Plus, Trash2, Upload, Sparkles, FileText,
@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { PDFImportZone } from "@/components/admin/PDFImportZone";
 import type { ExtractedProduct } from "@/lib/pdfExtractor";
 import { generateShowcaseFromTemplate, saveDynamicProduct } from "@/lib/productGenerator";
+import { supabase } from "@/lib/supabase";
 
 // ─── Form Section Wrapper ────────────────────────────────────────────────────
 function FormSection({ title, icon: Icon, children }: {
@@ -79,21 +80,28 @@ function Select({
 }
 
 // ─── Textarea ────────────────────────────────────────────────────────────────
-function Textarea({ label, placeholder, rows = 3, maxLen, hint }: {
+function Textarea({ label, placeholder, rows = 3, maxLen, hint, value, onChange }: {
   label: string; placeholder?: string; rows?: number; maxLen?: number; hint?: string;
+  value?: string; onChange?: (value: string) => void;
 }) {
-  const [val, setVal] = useState("");
+  const [internalValue, setInternalValue] = useState("");
+  const currentValue = value ?? internalValue;
+  const handleChange = (nextValue: string) => {
+    if (onChange) onChange(nextValue);
+    else setInternalValue(nextValue);
+  };
+
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-        {maxLen && <span className={`text-[11px] ${val.length > maxLen * 0.9 ? "text-accent" : "text-muted-foreground"}`}>{val.length}/{maxLen}</span>}
+        {maxLen && <span className={`text-[11px] ${currentValue.length > maxLen * 0.9 ? "text-accent" : "text-muted-foreground"}`}>{currentValue.length}/{maxLen}</span>}
       </div>
       <textarea
         placeholder={placeholder}
         rows={rows}
-        value={val}
-        onChange={(e) => setVal(e.target.value)}
+        value={currentValue}
+        onChange={(e) => handleChange(e.target.value)}
         maxLength={maxLen}
         className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition-all resize-none"
       />
@@ -190,6 +198,8 @@ function ImageUploadZone({ label, hint }: { label: string; hint?: string }) {
 // ─── Main Add Product Page ─────────────────────────────────────────────────
 export default function AddProduct() {
   const navigate = useNavigate();
+  const { id } = useParams<{ id: string }>();
+  const isEditing = Boolean(id);
   const [priceOnRequest, setPriceOnRequest] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
   const [publishing, setPublishing] = useState(false);
@@ -201,6 +211,7 @@ export default function AddProduct() {
     model: "",
     category: "silent-dg-sets",
     shortDesc: "",
+    fullDesc: "",
     engineBrand: "baudouin",
     type: "silent",
     kva: "",
@@ -214,6 +225,59 @@ export default function AddProduct() {
   });
 
   const updateForm = (key: string, val: string) => setForm((f) => ({ ...f, [key]: val }));
+
+  const slugify = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+
+  useEffect(() => {
+    if (!id) return;
+
+    async function loadProduct() {
+      try {
+        const { data: product, error } = await supabase
+          .from("products")
+          .select("*, product_categories(slug), product_specs(spec_label, spec_value, display_order)")
+          .eq("id", id)
+          .single();
+
+        if (error) throw error;
+
+        setPriceOnRequest(Boolean(product.price_on_request));
+        setForm({
+          name: product.name || "",
+          model: product.model || "",
+          category: product.product_categories?.slug || "silent-dg-sets",
+          shortDesc: product.short_desc || "",
+          fullDesc: product.full_desc || "",
+          engineBrand: product.engine_brand || "baudouin",
+          type: product.type || "silent",
+          kva: product.kva ? String(product.kva) : "",
+          cpcb: product.cpcb === "II" || product.cpcb === "ii" ? "ii" : "iv-plus",
+          price: product.price ? String(product.price) : "",
+          moq: product.moq ? String(product.moq) : "1",
+          leadTime: product.lead_time_days ? String(product.lead_time_days) : "21",
+          stock: product.stock || "in_stock",
+          seoTitle: product.seo_title || "",
+          metaDesc: product.meta_desc || "",
+        });
+
+        const loadedSpecs = [...(product.product_specs || [])]
+          .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+          .map((spec) => ({ label: spec.spec_label || "", value: spec.spec_value || "" }));
+        if (loadedSpecs.length) setSpecs(loadedSpecs);
+      } catch (error) {
+        console.error(error);
+        toast.error("Unable to load product for editing");
+        navigate("/admin/products");
+      }
+    }
+
+    loadProduct();
+  }, [id, navigate]);
 
   /** Called when admin clicks "Apply to Form" after PDF extraction */
   const handleExtracted = (data: ExtractedProduct) => {
@@ -248,37 +312,91 @@ export default function AddProduct() {
     toast.success("AI extraction applied! Review the fields and publish when ready.");
   };
 
-  const handleSaveDraft = () => {
-    setSavingDraft(true);
-    setTimeout(() => {
-      setSavingDraft(false);
-      toast.success("Product saved as draft");
-    }, 800);
-  };
-
-  const handlePublish = () => {
+  const saveProduct = async (status: "draft" | "published") => {
     if (!form.name || !form.model || !form.kva) {
       toast.error("Please fill in all required fields");
       return;
     }
-    setPublishing(true);
-    setTimeout(() => {
-      // If it's an Escort product, generate and save the dynamic showcase data
+
+    const setLoading = status === "draft" ? setSavingDraft : setPublishing;
+    setLoading(true);
+
+    try {
+      const { data: category } = await supabase
+        .from("product_categories")
+        .select("id")
+        .eq("slug", form.category)
+        .maybeSingle();
+
+      const payload = {
+        category_id: category?.id || null,
+        status,
+        type: form.type,
+        name: form.name.trim(),
+        model: form.model.trim(),
+        slug: slugify(form.model || form.name),
+        kva: Number(form.kva),
+        engine_brand: form.engineBrand,
+        cpcb: form.cpcb === "ii" ? "II" : "IV+",
+        price: priceOnRequest || !form.price ? null : Number(form.price),
+        price_on_request: priceOnRequest,
+        moq: Number(form.moq || 1),
+        lead_time_days: Number(form.leadTime || 21),
+        stock: form.stock,
+        short_desc: form.shortDesc || null,
+        full_desc: form.fullDesc || null,
+        tags: [],
+        seo_title: form.seoTitle || null,
+        meta_desc: form.metaDesc || null,
+        published_at: status === "published" ? new Date().toISOString() : null,
+      };
+
+      const query = id
+        ? supabase.from("products").update(payload).eq("id", id).select("id").single()
+        : supabase.from("products").insert(payload).select("id").single();
+
+      const { data: savedProduct, error } = await query;
+      if (error) throw error;
+
+      const productId = savedProduct.id;
+      await supabase.from("product_specs").delete().eq("product_id", productId);
+
+      const cleanSpecs = specs
+        .filter((spec) => spec.label.trim() && spec.value.trim())
+        .map((spec, index) => ({
+          product_id: productId,
+          spec_label: spec.label.trim(),
+          spec_value: spec.value.trim(),
+          display_order: index,
+        }));
+
+      if (cleanSpecs.length) {
+        const { error: specsError } = await supabase.from("product_specs").insert(cleanSpecs);
+        if (specsError) throw specsError;
+      }
+
       if (extractedData) {
         try {
           const dynamicShowcase = generateShowcaseFromTemplate(extractedData);
           saveDynamicProduct(dynamicShowcase);
-          console.log("Generated dynamic showcase:", dynamicShowcase);
         } catch (err) {
           console.error("Failed to generate dynamic showcase:", err);
         }
       }
 
-      setPublishing(false);
-      toast.success("Product published successfully! Showcase generated.");
+      toast.success(status === "published" ? "Product published successfully" : "Product saved as draft");
       navigate("/admin/products");
-    }, 1000);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to save product");
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const handleSaveDraft = () => saveProduct("draft");
+
+  const handlePublish = () => saveProduct("published");
 
   return (
     <div className="space-y-5 animate-fade-in max-w-5xl">
@@ -292,8 +410,8 @@ export default function AddProduct() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground font-display">Add New Product</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">Create a new generator listing for the catalogue</p>
+            <h1 className="text-2xl font-bold text-foreground font-display">{isEditing ? "Edit Product" : "Add New Product"}</h1>
+            <p className="text-sm text-muted-foreground mt-0.5">{isEditing ? "Update generator listing details" : "Create a new generator listing for the catalogue"}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -355,11 +473,13 @@ export default function AddProduct() {
         </div>
         <div className="mt-4">
           <Textarea label="Short Description" placeholder="Industrial-grade reliability, whisper-quiet by design."
-            maxLen={160} hint="Used for product cards and meta description (max 160 chars)" />
+            maxLen={160} hint="Used for product cards and meta description (max 160 chars)"
+            value={form.shortDesc} onChange={(v) => updateForm("shortDesc", v)} />
         </div>
         <div className="mt-4">
           <Textarea label="Full Description" placeholder="Write a detailed product description..."
-            rows={5} hint="Supports rich text. Describe the key features, applications, and advantages." />
+            rows={5} hint="Supports rich text. Describe the key features, applications, and advantages."
+            value={form.fullDesc} onChange={(v) => updateForm("fullDesc", v)} />
         </div>
 
         {/* Tags */}

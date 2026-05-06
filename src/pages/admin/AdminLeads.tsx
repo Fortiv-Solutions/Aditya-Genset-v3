@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { Lead, LeadStage } from "@/data/adminData";
 import { supabase } from "@/lib/supabase";
+import { toast } from "sonner";
+import type { LeadSource } from "@/data/adminData";
 
 // ─── Stage Config ────────────────────────────────────────────────────────────
 const STAGES: { key: LeadStage; label: string; color: string; border: string }[] = [
@@ -40,6 +42,106 @@ const SOURCE_LABELS: Record<string, string> = {
   trade_show: "Trade Show",
   dealer: "Dealer",
 };
+
+function AddLeadModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
+  const [saving, setSaving] = useState(false);
+  const [form, setForm] = useState({
+    customer_name: "",
+    company: "",
+    phone: "",
+    email: "",
+    city: "",
+    state: "",
+    kva_required: "",
+    application: "",
+    source: "website_form",
+  });
+
+  const update = (key: string, value: string) => setForm((current) => ({ ...current, [key]: value }));
+
+  const handleSubmit = async () => {
+    if (!form.customer_name.trim() || !form.company.trim()) {
+      toast.error("Customer name and company are required");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const { error } = await supabase.from("leads").insert({
+        customer_name: form.customer_name.trim(),
+        company: form.company.trim(),
+        phone: form.phone || null,
+        email: form.email || null,
+        city: form.city || null,
+        state: form.state || null,
+        kva_required: form.kva_required || null,
+        application: form.application || null,
+        source: form.source,
+        stage: "new",
+        score: 50,
+        created_by_user_id: auth.user?.id || null,
+        last_activity_at: new Date().toISOString(),
+      });
+
+      if (error) throw error;
+      toast.success("Lead created successfully");
+      onCreated();
+      onClose();
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to create lead");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 w-full max-w-xl bg-card border border-border rounded-2xl shadow-2xl p-6 animate-scale-in">
+        <h3 className="text-lg font-bold text-foreground mb-4">Add Lead</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {[
+            ["customer_name", "Customer Name *"],
+            ["company", "Company *"],
+            ["phone", "Phone"],
+            ["email", "Email"],
+            ["city", "City"],
+            ["state", "State"],
+            ["kva_required", "kVA Required"],
+            ["application", "Application"],
+          ].map(([key, label]) => (
+            <input
+              key={key}
+              value={form[key as keyof typeof form]}
+              onChange={(e) => update(key, e.target.value)}
+              placeholder={label}
+              className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/60"
+            />
+          ))}
+          <select
+            value={form.source}
+            onChange={(e) => update("source", e.target.value)}
+            className="sm:col-span-2 w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
+          >
+            {Object.entries(SOURCE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+        </div>
+        <div className="flex gap-2 pt-5">
+          <button onClick={onClose} className="flex-1 py-2.5 bg-secondary border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors">
+            Cancel
+          </button>
+          <button onClick={handleSubmit} disabled={saving} className="flex-1 py-2.5 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors disabled:opacity-70">
+            {saving ? "Creating..." : "Create Lead"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ─── Score Bar ────────────────────────────────────────────────────────────────
 function ScoreBar({ score }: { score: number }) {
@@ -214,18 +316,19 @@ function LeadModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
 export default function AdminLeads() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showAddLead, setShowAddLead] = useState(false);
   const [search, setSearch] = useState("");
   const [filterStage, setFilterStage] = useState<string>("all");
   const [filterState, setFilterState] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "pipeline">("table");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
 
-  useEffect(() => {
-    async function fetchLeads() {
+  const fetchLeads = async () => {
       try {
+        setLoading(true);
         const { data, error } = await supabase
           .from('leads')
-          .select('*, profiles(full_name)')
+          .select('*, profiles!leads_assigned_to_user_id_fkey(full_name)')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -233,7 +336,7 @@ export default function AdminLeads() {
         // Map Supabase data to Lead interface
         const mappedLeads: Lead[] = (data || []).map(l => ({
           id: l.id,
-          name: l.name,
+          name: l.customer_name || "Unnamed lead",
           company: l.company || '',
           designation: l.designation || '',
           email: l.email || '',
@@ -242,12 +345,12 @@ export default function AdminLeads() {
           state: l.state || '',
           kvaRequired: l.kva_required || '',
           application: l.application || '',
-          source: l.source as any || 'website_form',
+          source: (l.source || 'website_form') as LeadSource,
           stage: l.stage as LeadStage || 'new',
           score: l.score || 50,
-          assignedTo: l.profiles?.full_name || 'Unassigned',
+          assignedTo: l.profiles?.full_name || l.assigned_to_name || 'Unassigned',
           createdAt: new Date(l.created_at).toLocaleDateString(),
-          lastActivity: new Date(l.last_activity).toLocaleDateString()
+          lastActivity: l.last_activity_at ? new Date(l.last_activity_at).toLocaleDateString() : 'No activity'
         }));
 
         setLeads(mappedLeads);
@@ -256,8 +359,9 @@ export default function AdminLeads() {
       } finally {
         setLoading(false);
       }
-    }
+    };
 
+  useEffect(() => {
     fetchLeads();
   }, []);
 
@@ -281,6 +385,7 @@ export default function AdminLeads() {
 
   return (
     <div className="space-y-5 animate-fade-in">
+      {showAddLead && <AddLeadModal onClose={() => setShowAddLead(false)} onCreated={fetchLeads} />}
       {selectedLead && <LeadModal lead={selectedLead} onClose={() => setSelectedLead(null)} />}
 
       {/* Header */}
@@ -293,7 +398,7 @@ export default function AdminLeads() {
             {leads.length} total
           </p>
         </div>
-        <button className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors">
+        <button onClick={() => setShowAddLead(true)} className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors">
           <Plus size={16} /> Add Lead
         </button>
       </div>

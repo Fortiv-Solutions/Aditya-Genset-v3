@@ -22,5 +22,5 @@ export function isSalesRole(role?: AppRole | null) {
 }
 
 export function getRoleHomePath(role?: AppRole | null) {
-  return isAdminRole(role) ? "/admin" : "/sales";
+  return isAdminRole(role) ? "/admin" : "/home";
 }

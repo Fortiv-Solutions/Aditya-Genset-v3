@@ -10,10 +10,24 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
-const PIPELINE_DATA: any[] = [];
-const LEAD_SOURCE_DATA: any[] = [];
-const LEAD_TREND_DATA: any[] = [];
-const REVENUE_FORECAST: any[] = [];
+type PipelineItem = { stage: string; count: number; color: string };
+type LeadSourceItem = { name: string; value: number; color: string };
+type LeadTrendItem = { label: string; value: number };
+type RevenueForecastItem = { month: string; revenue: number; weighted: number };
+type RecentLead = {
+  id: string;
+  customer_name: string | null;
+  company: string | null;
+  city: string | null;
+  kva_required: string | null;
+  application: string | null;
+  stage: string | null;
+};
+
+const PIPELINE_DATA: PipelineItem[] = [];
+const LEAD_SOURCE_DATA: LeadSourceItem[] = [];
+const LEAD_TREND_DATA: LeadTrendItem[] = [];
+const REVENUE_FORECAST: RevenueForecastItem[] = [];
 // ─── Mini Chart (SVG Sparkline) ────────────────────────────────────────────
 function Sparkline({ data, color = "#D97706" }: { data: number[]; color?: string }) {
   const max = Math.max(...data);
@@ -202,7 +216,7 @@ export default function AdminDashboard() {
     totalLeads: 0,
     openQuotes: 0,
     revenuePipeline: 0,
-    recentLeads: [] as any[],
+    recentLeads: [] as RecentLead[],
     isLoading: true
   });
 
@@ -232,7 +246,7 @@ export default function AdminDashboard() {
         // 3. Fetch Recent Leads
         const { data: recent } = await supabase
           .from('leads')
-          .select('*')
+          .select('id, customer_name, company, city, kva_required, application, stage')
           .order('created_at', { ascending: false })
           .limit(5);
 
@@ -617,17 +631,17 @@ export default function AdminDashboard() {
               <div
                 key={lead.id}
                 className="flex items-center gap-4 px-5 py-3 hover:bg-secondary transition-colors cursor-pointer group"
-                onClick={() => navigate(`/admin/leads/${lead.id}`)}
+                onClick={() => navigate("/admin/leads")}
               >
                 <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <span className="text-xs font-bold text-muted-foreground">{lead.name.slice(0, 2)}</span>
+                  <span className="text-xs font-bold text-muted-foreground">{(lead.customer_name || "NA").slice(0, 2)}</span>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors truncate">{lead.name}</p>
+                  <p className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors truncate">{lead.customer_name || "Unnamed lead"}</p>
                   <p className="text-xs text-muted-foreground truncate">{lead.company || 'Private'} · {lead.city || 'Unknown'}</p>
                 </div>
                 <div className="hidden sm:block text-right flex-shrink-0">
-                  <p className="text-xs font-semibold text-accent">{lead.kva_required || lead.kvaRequired || 'N/A'}</p>
+                  <p className="text-xs font-semibold text-accent">{lead.kva_required || 'N/A'}</p>
                   <p className="text-xs text-muted-foreground">{lead.application || 'General'}</p>
                 </div>
                 <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex-shrink-0 ${STAGE_COLORS[lead.stage] || 'bg-slate-700/50 text-slate-300'}`}>

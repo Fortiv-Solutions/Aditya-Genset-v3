@@ -6,7 +6,6 @@ import {
 } from "lucide-react";
 import { AdminProduct } from "@/data/adminData";
 import { supabase } from "@/lib/supabase";
-import { getDynamicSummaries } from "@/data/products";
 import { toast } from "sonner";
 import { 
   FileSpreadsheet, History, FilterX, MoreVertical
@@ -43,38 +42,41 @@ export default function AdminProducts() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    async function fetchProducts() {
-      try {
-        const { data, error } = await supabase
-          .from('products')
-          .select('*')
-          .order('kva', { ascending: true });
+  const fetchProducts = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("products")
+        .select("id, name, model, slug, kva, engine_brand, type, cpcb, price, stock, inquiries, status, product_categories(name)")
+        .order("kva", { ascending: true });
 
-        if (error) throw error;
+      if (error) throw error;
 
-        const mapped: AdminProduct[] = (data || []).map(p => ({
-          id: p.id,
-          name: p.name,
-          model: p.slug,
-          kva: p.kva,
-          engineBrand: p.engine_brand || "Escorts",
-          type: (p.type as any) || "silent",
-          cpcb: (p.cpcb_rating as any) || "IV+",
-          price: p.price || 0,
-          stock: (p.stock_status as any) || "in_stock",
-          inquiries: 0,
-          status: (p.status as any) || "published",
-          category: p.category || "DG Sets"
-        }));
+      const mapped: AdminProduct[] = (data || []).map((p) => ({
+        id: p.id,
+        name: p.name,
+        model: p.model || p.slug,
+        kva: Number(p.kva || 0),
+        engineBrand: p.engine_brand || "N/A",
+        type: p.type || "silent",
+        cpcb: p.cpcb === "ii" || p.cpcb === "II" ? "II" : "IV+",
+        price: p.price ? Number(p.price) : null,
+        stock: p.stock || "in_stock",
+        inquiries: p.inquiries || 0,
+        status: p.status || "draft",
+        category: p.product_categories?.name || "DG Sets",
+      }));
 
-        setProducts(mapped);
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setLoading(false);
-      }
+      setProducts(mapped);
+    } catch (e) {
+      console.error(e);
+      toast.error("Unable to load products");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     fetchProducts();
   }, []);
 
@@ -107,7 +109,8 @@ export default function AdminProducts() {
 
   const toggleSelect = (id: string) => {
     const next = new Set(selected);
-    next.has(id) ? next.delete(id) : next.add(id);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
     setSelected(next);
   };
 
@@ -116,35 +119,93 @@ export default function AdminProducts() {
     else setSelected(new Set(filtered.map((p) => p.id)));
   };
 
-  const toggleStatus = (id: string) => {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id
-          ? { ...p, status: p.status === "published" ? "draft" : "published" }
-          : p
-      )
-    );
+  const updateProductStatus = async (ids: string[], status: AdminProduct["status"]) => {
+    const { error } = await supabase.from("products").update({ status }).in("id", ids);
+    if (error) throw error;
+    setProducts((prev) => prev.map((p) => (ids.includes(p.id) ? { ...p, status } : p)));
   };
 
-  const duplicateProduct = (product: AdminProduct) => {
-    const newProduct = {
-      ...product,
-      id: `P${Math.floor(Math.random() * 10000)}`,
-      name: `${product.name} (Copy)`,
-      model: `${product.model}-copy`,
-      inquiries: 0,
-    };
-    setProducts([newProduct, ...products]);
-    toast.success("Product duplicated successfully");
+  const toggleStatus = async (id: string) => {
+    const product = products.find((p) => p.id === id);
+    if (!product) return;
+
+    const nextStatus = product.status === "published" ? "draft" : "published";
+    try {
+      await updateProductStatus([id], nextStatus);
+      toast.success(`Product marked as ${nextStatus}`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to update product status");
+    }
   };
 
-  const archiveProduct = (id: string) => {
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, status: "archived" as const } : p
-      )
-    );
-    toast.info("Product moved to archives");
+  const duplicateProduct = async (product: AdminProduct) => {
+    try {
+      const slug = `${product.model.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}-copy-${Date.now()}`;
+      const { error } = await supabase.from("products").insert({
+        name: `${product.name} (Copy)`,
+        model: `${product.model}-copy`,
+        slug,
+        kva: product.kva,
+        engine_brand: product.engineBrand,
+        type: product.type,
+        cpcb: product.cpcb,
+        price: product.price,
+        price_on_request: !product.price,
+        stock: product.stock,
+        status: "draft",
+        inquiries: 0,
+      });
+
+      if (error) throw error;
+      toast.success("Product duplicated as draft");
+      fetchProducts();
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to duplicate product");
+    }
+  };
+
+  const archiveProduct = async (id: string) => {
+    try {
+      await updateProductStatus([id], "archived");
+      toast.info("Product moved to archives");
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to archive product");
+    }
+  };
+
+  const deleteProducts = async (ids: string[]) => {
+    if (!window.confirm(`Delete ${ids.length} product${ids.length === 1 ? "" : "s"} permanently?`)) return;
+    try {
+      const { error } = await supabase.from("products").delete().in("id", ids);
+      if (error) throw error;
+      setProducts((prev) => prev.filter((p) => !ids.includes(p.id)));
+      setSelected(new Set());
+      toast.success("Product deleted");
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to delete product");
+    }
+  };
+
+  const handleBulkAction = async (action: "Publish" | "Draft" | "Delete") => {
+    const ids = Array.from(selected);
+    if (ids.length === 0) return;
+
+    try {
+      if (action === "Delete") {
+        await deleteProducts(ids);
+        return;
+      }
+      await updateProductStatus(ids, action === "Publish" ? "published" : "draft");
+      setSelected(new Set());
+      toast.success(`${ids.length} product${ids.length === 1 ? "" : "s"} updated`);
+    } catch (error) {
+      console.error(error);
+      toast.error("Bulk update failed");
+    }
   };
 
   const SortIcon = ({ field }: { field: SortField }) => (
@@ -250,9 +311,10 @@ export default function AdminProducts() {
         <div className="flex items-center gap-3 px-4 py-2.5 bg-accent/10 border border-accent/30 rounded-lg">
           <span className="text-sm font-medium text-accent">{selected.size} selected</span>
           <div className="flex gap-2 ml-auto">
-            {["Publish", "Draft", "Delete"].map((action) => (
+            {(["Publish", "Draft", "Delete"] as const).map((action) => (
               <button
                 key={action}
+                onClick={() => handleBulkAction(action)}
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
                   action === "Delete"
                     ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
@@ -393,6 +455,7 @@ export default function AdminProducts() {
                       <button
                         className="p-1.5 rounded-md text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
                         title="Preview"
+                        onClick={() => navigate(`/products/${product.model}`)}
                       >
                         <Eye size={14} />
                       </button>
@@ -413,6 +476,7 @@ export default function AdminProducts() {
                       <button
                         className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"
                         title="Delete"
+                        onClick={() => deleteProducts([product.id])}
                       >
                         <Trash2 size={14} />
                       </button>

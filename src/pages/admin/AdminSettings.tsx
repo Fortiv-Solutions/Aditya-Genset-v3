@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Settings, Globe, Mail, Phone, MapPin, Instagram,
   Youtube, Linkedin, Facebook, Twitter, Save,
@@ -6,6 +6,7 @@ import {
   Plus, Trash2, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 function SettingSection({ title, icon: Icon, children }: {
   title: string; icon: React.ElementType; children: React.ReactNode;
@@ -71,6 +72,11 @@ function Toggle({ enabled, onChange, label }: {
 export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState<"site" | "notifications" | "security" | "integrations" | "email">("site");
   const [saving, setSaving] = useState(false);
+  const [recordIds, setRecordIds] = useState({
+    site: "",
+    notifications: "",
+    security: "",
+  });
 
   // Site config state
   const [site, setSite] = useState({
@@ -112,12 +118,129 @@ export default function AdminSettings() {
     loginAttempts: "5",
   });
 
-  const handleSave = () => {
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const [{ data: siteData }, { data: notifData }, { data: securityData }] = await Promise.all([
+          supabase.from("site_settings").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+          supabase.from("notification_settings").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+          supabase.from("security_settings").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        ]);
+
+        if (siteData) {
+          setRecordIds((current) => ({ ...current, site: siteData.id }));
+          setSite({
+            companyName: siteData.company_name || "",
+            tagline: siteData.tagline || "",
+            website: siteData.website || "",
+            phone1: siteData.phone1 || "",
+            phone2: siteData.phone2 || "",
+            email: siteData.email || "",
+            adminEmail: siteData.admin_email || "",
+            whatsapp: siteData.whatsapp || "",
+            address: siteData.address || "",
+            linkedin: siteData.linkedin || "",
+            facebook: siteData.facebook || "",
+            instagram: siteData.instagram || "",
+            youtube: siteData.youtube || "",
+            twitter: siteData.twitter || "",
+            gmapsKey: siteData.gmaps_key || "",
+          });
+        }
+
+        if (notifData) {
+          setRecordIds((current) => ({ ...current, notifications: notifData.id }));
+          setNotifs({
+            newLead: Boolean(notifData.new_lead),
+            leadAssigned: Boolean(notifData.lead_assigned),
+            quoteSent: Boolean(notifData.quote_sent),
+            followupDue: Boolean(notifData.followup_due),
+            amcRenewal: Boolean(notifData.amc_renewal),
+            serviceTicket: Boolean(notifData.service_ticket),
+            weeklyReport: Boolean(notifData.weekly_report),
+            monthlyReport: Boolean(notifData.monthly_report),
+          });
+        }
+
+        if (securityData) {
+          setRecordIds((current) => ({ ...current, security: securityData.id }));
+          setSecurity({
+            twoFactor: Boolean(securityData.two_factor),
+            ipWhitelist: Boolean(securityData.ip_whitelist),
+            auditLog: Boolean(securityData.audit_log),
+            sessionTimeout: String(securityData.session_timeout_minutes || 480),
+            loginAttempts: String(securityData.login_attempts || 5),
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Unable to load settings");
+      }
+    }
+
+    loadSettings();
+  }, []);
+
+  const upsertSingleton = async (table: string, id: string, payload: Record<string, unknown>) => {
+    if (id) {
+      const { error } = await supabase.from(table).update(payload).eq("id", id);
+      if (error) throw error;
+      return id;
+    }
+
+    const { data, error } = await supabase.from(table).insert(payload).select("id").single();
+    if (error) throw error;
+    return data.id as string;
+  };
+
+  const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
+    try {
+      const [siteId, notifId, securityId] = await Promise.all([
+        upsertSingleton("site_settings", recordIds.site, {
+          company_name: site.companyName,
+          tagline: site.tagline,
+          website: site.website,
+          phone1: site.phone1,
+          phone2: site.phone2,
+          email: site.email,
+          admin_email: site.adminEmail,
+          whatsapp: site.whatsapp,
+          address: site.address,
+          linkedin: site.linkedin,
+          facebook: site.facebook,
+          instagram: site.instagram,
+          youtube: site.youtube,
+          twitter: site.twitter,
+          gmaps_key: site.gmapsKey,
+        }),
+        upsertSingleton("notification_settings", recordIds.notifications, {
+          new_lead: notifs.newLead,
+          lead_assigned: notifs.leadAssigned,
+          quote_sent: notifs.quoteSent,
+          followup_due: notifs.followupDue,
+          amc_renewal: notifs.amcRenewal,
+          service_ticket: notifs.serviceTicket,
+          weekly_report: notifs.weeklyReport,
+          monthly_report: notifs.monthlyReport,
+        }),
+        upsertSingleton("security_settings", recordIds.security, {
+          two_factor: security.twoFactor,
+          ip_whitelist: security.ipWhitelist,
+          audit_log: security.auditLog,
+          session_timeout_minutes: Number(security.sessionTimeout || 480),
+          login_attempts: Number(security.loginAttempts || 5),
+        }),
+      ]);
+
+      setRecordIds({ site: siteId, notifications: notifId, security: securityId });
       setSaving(false);
       toast.success("Settings saved successfully");
-    }, 800);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to save settings");
+      setSaving(false);
+    }
   };
 
   const TABS = [
