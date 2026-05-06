@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   TrendingUp, TrendingDown, Users, Package, FileText,
@@ -7,16 +7,13 @@ import {
   BarChart3, UserCheck, Briefcase, IndianRupee, BellRing,
   MoreVertical, Search, Filter, Share2, Printer, FileSpreadsheet,
 } from "lucide-react";
-import {
-  MOCK_LEADS, ADMIN_PRODUCTS, LEAD_TREND_DATA, LEAD_SOURCE_DATA,
-  KVA_DEMAND_DATA, PIPELINE_DATA, TOP_PRODUCTS_DATA,
-  MOCK_DEALERS, MOCK_SALES_REPS, QUOTE_METRICS,
-  REVENUE_FORECAST, MOCK_NOTIFICATIONS,
-} from "@/data/adminData";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
-import { useEffect } from "react";
 
+const PIPELINE_DATA: any[] = [];
+const LEAD_SOURCE_DATA: any[] = [];
+const LEAD_TREND_DATA: any[] = [];
+const REVENUE_FORECAST: any[] = [];
 // ─── Mini Chart (SVG Sparkline) ────────────────────────────────────────────
 function Sparkline({ data, color = "#D97706" }: { data: number[]; color?: string }) {
   const max = Math.max(...data);
@@ -281,9 +278,7 @@ export default function AdminDashboard() {
               className={`p-2.5 rounded-lg border border-border bg-card transition-all relative ${showNotifications ? 'bg-secondary ring-2 ring-accent/20' : 'hover:bg-secondary'}`}
             >
               <Bell size={18} className="text-muted-foreground" />
-              {MOCK_NOTIFICATIONS.some(n => n.unread) && (
-                <span className="absolute top-2 right-2 w-2 h-2 bg-accent rounded-full border-2 border-card" />
-              )}
+              {/* No unread notifications logic for now */}
             </button>
 
             {/* Notification Center Panel */}
@@ -293,31 +288,9 @@ export default function AdminDashboard() {
                 <div className="absolute right-0 mt-2 w-80 bg-card border border-border shadow-2xl rounded-xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-secondary/50">
                     <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">Notifications</h3>
-                    <button className="text-[10px] text-accent font-semibold hover:underline">Mark all as read</button>
                   </div>
-                  <div className="max-h-[400px] overflow-y-auto divide-y divide-border">
-                    {MOCK_NOTIFICATIONS.map(notif => (
-                      <div key={notif.id} className={`p-4 hover:bg-secondary/40 transition-colors cursor-pointer ${notif.unread ? 'bg-accent/5' : ''}`}>
-                        <div className="flex gap-3">
-                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                            notif.type === 'lead' ? 'bg-blue-500/10 text-blue-400' :
-                            notif.type === 'quote' ? 'bg-green-500/10 text-green-400' :
-                            notif.type === 'dealer' ? 'bg-purple-500/10 text-purple-400' :
-                            'bg-slate-500/10 text-slate-400'
-                          }`}>
-                            {notif.type === 'lead' ? <Users size={14} /> :
-                             notif.type === 'quote' ? <FileText size={14} /> :
-                             notif.type === 'dealer' ? <Briefcase size={14} /> :
-                             <Bell size={14} />}
-                          </div>
-                          <div className="min-w-0">
-                            <p className="text-xs font-bold text-foreground mb-0.5">{notif.title}</p>
-                            <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2">{notif.message}</p>
-                            <p className="text-[10px] text-muted-foreground/60 mt-1.5">{notif.time}</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
+                  <div className="p-10 text-center text-muted-foreground italic text-[11px]">
+                    No new notifications
                   </div>
                   <div className="px-4 py-2 bg-secondary/30 border-t border-border text-center">
                     <button className="text-[11px] font-bold text-muted-foreground hover:text-foreground transition-colors">View All Activities</button>
@@ -439,25 +412,12 @@ export default function AdminDashboard() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {TOP_PRODUCTS_DATA.map((p) => (
-                  <tr key={p.name} className="hover:bg-secondary/40 transition-colors">
-                    <td className="px-5 py-3.5 font-medium text-foreground">{p.name}</td>
-                    <td className="px-5 py-3.5 text-right text-muted-foreground">{p.views.toLocaleString()}</td>
-                    <td className="px-5 py-3.5 text-right text-muted-foreground">{p.comparisons}</td>
-                    <td className="px-5 py-3.5 text-right font-bold text-accent">{p.quotes}</td>
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center justify-center gap-2">
-                        <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-green-500 rounded-full" 
-                            style={{ width: `${(p.quotes / p.views) * 1000}%` }}
-                          />
-                        </div>
-                        <span className="text-[10px] text-muted-foreground">{((p.quotes / p.views) * 100).toFixed(1)}%</span>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {/* No products performance data yet */}
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground italic">
+                    Waiting for product engagement data...
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -479,7 +439,7 @@ export default function AdminDashboard() {
             </div>
             <div className="text-right">
               <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Total Leads</p>
-              <p className="text-sm font-bold text-accent">142</p>
+              <p className="text-sm font-bold text-accent">{stats.totalLeads}</p>
             </div>
           </div>
         </div>
@@ -497,23 +457,9 @@ export default function AdminDashboard() {
             <UserCheck size={16} className="text-blue-400" />
           </div>
           <div className="space-y-4">
-            {MOCK_SALES_REPS.map((rep) => (
-              <div key={rep.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 border border-border/50 hover:border-accent/20 transition-all cursor-pointer group">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-[10px] font-bold text-blue-400">
-                    {rep.name.split(' ').map(n => n[0]).join('')}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground group-hover:text-accent transition-colors">{rep.name}</p>
-                    <p className="text-[10px] text-muted-foreground">Last active: {rep.lastActive}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-[11px] font-bold text-foreground">{rep.presentations} <span className="text-[10px] text-muted-foreground font-normal">Presentations</span></p>
-                  <p className="text-[10px] text-green-400 font-semibold">{rep.conversionRate}% Conv. Rate</p>
-                </div>
-              </div>
-            ))}
+            <div className="p-10 text-center text-muted-foreground italic text-[11px]">
+              No sales activity recorded yet.
+            </div>
           </div>
           <button className="mt-4 w-full py-2.5 bg-secondary text-[11px] font-bold text-muted-foreground hover:text-foreground rounded-lg border border-border transition-all">
             View All Sales Metrics
@@ -534,34 +480,34 @@ export default function AdminDashboard() {
             <div>
               <div className="flex justify-between items-end mb-1.5">
                 <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Total Value Sent</p>
-                <p className="text-lg font-bold text-foreground">₹{(QUOTE_METRICS.totalQuotedValue / 10000000).toFixed(2)} Cr</p>
+                <p className="text-lg font-bold text-foreground">₹0.00 Cr</p>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-accent rounded-full transition-all duration-1000" 
-                  style={{ width: `${(QUOTE_METRICS.totalQuotedValue / QUOTE_METRICS.targetValue) * 100}%` }}
+                  style={{ width: `0%` }}
                 />
               </div>
               <div className="flex justify-between mt-1 text-[10px] text-muted-foreground">
                 <span>Monthly Target</span>
-                <span>₹{(QUOTE_METRICS.targetValue / 10000000).toFixed(1)} Cr</span>
+                <span>₹2.5 Cr</span>
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/10">
                 <p className="text-[10px] font-bold text-green-400 uppercase mb-1">Acceptance</p>
-                <p className="text-xl font-bold text-foreground">{QUOTE_METRICS.acceptanceRate}%</p>
+                <p className="text-xl font-bold text-foreground">0%</p>
               </div>
               <div className="p-3 rounded-lg bg-blue-500/5 border border-blue-500/10">
                 <p className="text-[10px] font-bold text-blue-400 uppercase mb-1">Avg Deal</p>
-                <p className="text-xl font-bold text-foreground">₹{(QUOTE_METRICS.averageDealSize / 1000).toFixed(0)}k</p>
+                <p className="text-xl font-bold text-foreground">₹0k</p>
               </div>
             </div>
           </div>
 
           <div className="mt-4 pt-4 border-t border-border flex items-center justify-between">
-            <span className="text-[11px] text-muted-foreground">Pending approvals: <span className="text-foreground font-bold">12</span></span>
+            <span className="text-[11px] text-muted-foreground">Pending approvals: <span className="text-foreground font-bold">0</span></span>
             <button className="text-[11px] font-bold text-accent hover:underline">Review Quotes</button>
           </div>
         </div>
@@ -643,25 +589,9 @@ export default function AdminDashboard() {
             <Briefcase size={16} className="text-amber-400" />
           </div>
           <div className="space-y-3">
-            {MOCK_DEALERS.map((dealer) => (
-              <div key={dealer.id} className="flex items-center justify-between p-2.5 hover:bg-secondary/30 rounded-lg transition-colors border-b border-border/50 last:border-none">
-                <div>
-                  <p className="text-xs font-bold text-foreground">{dealer.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{dealer.region}</p>
-                </div>
-                <div className="flex items-center gap-6">
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-foreground">{dealer.activeLeads}</p>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Leads</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-[10px] font-bold text-accent">₹{dealer.totalSales}L</p>
-                    <p className="text-[9px] text-muted-foreground uppercase tracking-wider">Sales</p>
-                  </div>
-                  <div className={`w-1.5 h-1.5 rounded-full ${dealer.status === 'active' ? 'bg-green-500' : 'bg-slate-500'}`} title={dealer.status} />
-                </div>
-              </div>
-            ))}
+            <div className="p-10 text-center text-muted-foreground italic text-[11px]">
+              No active dealer partners found.
+            </div>
           </div>
           <button className="mt-4 w-full py-2.5 bg-secondary text-[11px] font-bold text-muted-foreground hover:text-foreground rounded-lg border border-border transition-all">
             Manage Partner Network

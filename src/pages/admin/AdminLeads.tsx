@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, Filter, Phone, Mail, MapPin,
   TrendingUp, Users, ChevronRight, X, Star,
   MessageSquare, Calendar, Paperclip, ArrowRight,
 } from "lucide-react";
-import { MOCK_LEADS, Lead, LeadStage } from "@/data/adminData";
+import { Lead, LeadStage } from "@/data/adminData";
+import { supabase } from "@/lib/supabase";
 
 // ─── Stage Config ────────────────────────────────────────────────────────────
 const STAGES: { key: LeadStage; label: string; color: string; border: string }[] = [
@@ -211,12 +212,54 @@ function LeadModal({ lead, onClose }: { lead: Lead; onClose: () => void }) {
 
 // ─── Main Leads Page ─────────────────────────────────────────────────────────
 export default function AdminLeads() {
-  const [leads] = useState<Lead[]>(MOCK_LEADS);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStage, setFilterStage] = useState<string>("all");
   const [filterState, setFilterState] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"table" | "pipeline">("table");
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
+
+  useEffect(() => {
+    async function fetchLeads() {
+      try {
+        const { data, error } = await supabase
+          .from('leads')
+          .select('*, profiles(full_name)')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+
+        // Map Supabase data to Lead interface
+        const mappedLeads: Lead[] = (data || []).map(l => ({
+          id: l.id,
+          name: l.name,
+          company: l.company || '',
+          designation: l.designation || '',
+          email: l.email || '',
+          phone: l.phone || '',
+          city: l.city || '',
+          state: l.state || '',
+          kvaRequired: l.kva_required || '',
+          application: l.application || '',
+          source: l.source as any || 'website_form',
+          stage: l.stage as LeadStage || 'new',
+          score: l.score || 50,
+          assignedTo: l.profiles?.full_name || 'Unassigned',
+          createdAt: new Date(l.created_at).toLocaleDateString(),
+          lastActivity: new Date(l.last_activity).toLocaleDateString()
+        }));
+
+        setLeads(mappedLeads);
+      } catch (error) {
+        console.error("Error fetching leads:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLeads();
+  }, []);
 
   const filtered = leads.filter((l) => {
     const matchSearch =

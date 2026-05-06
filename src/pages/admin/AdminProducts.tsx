@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Search, Plus, Filter, Edit2, Copy, Trash2, Eye,
   ChevronUp, ChevronDown, Package, ArrowLeft,
 } from "lucide-react";
-import { ADMIN_PRODUCTS, AdminProduct } from "@/data/adminData";
+import { AdminProduct } from "@/data/adminData";
+import { supabase } from "@/lib/supabase";
 import { getDynamicSummaries } from "@/data/products";
-import { useEffect } from "react";
 import { toast } from "sonner";
 import { 
   FileSpreadsheet, History, FilterX, MoreVertical
@@ -34,7 +34,8 @@ type SortField = "name" | "kva" | "price" | "inquiries" | "status";
 
 export default function AdminProducts() {
   const navigate = useNavigate();
-  const [products, setProducts] = useState<AdminProduct[]>(ADMIN_PRODUCTS);
+  const [products, setProducts] = useState<AdminProduct[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [filterType, setFilterType] = useState<string>("all");
@@ -43,20 +44,38 @@ export default function AdminProducts() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const dynamic = getDynamicSummaries().map(s => ({
-      id: s.slug,
-      name: s.name,
-      model: s.slug,
-      kva: s.kva,
-      engineBrand: "Escorts",
-      type: "silent" as const,
-      cpcb: "IV+" as const,
-      price: 0,
-      stock: "in_stock" as const,
-      inquiries: 0,
-      status: "published" as const,
-    }));
-    setProducts([...ADMIN_PRODUCTS, ...dynamic]);
+    async function fetchProducts() {
+      try {
+        const { data, error } = await supabase
+          .from('products')
+          .select('*')
+          .order('kva', { ascending: true });
+
+        if (error) throw error;
+
+        const mapped: AdminProduct[] = (data || []).map(p => ({
+          id: p.id,
+          name: p.name,
+          model: p.slug,
+          kva: p.kva,
+          engineBrand: p.engine_brand || "Escorts",
+          type: (p.type as any) || "silent",
+          cpcb: (p.cpcb_rating as any) || "IV+",
+          price: p.price || 0,
+          stock: (p.stock_status as any) || "in_stock",
+          inquiries: 0,
+          status: (p.status as any) || "published",
+          category: p.category || "DG Sets"
+        }));
+
+        setProducts(mapped);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
   }, []);
 
   const filtered = products

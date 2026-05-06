@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   ShieldCheck, Plus, Trash2, Edit2, Eye,
   Mail, Lock, Globe, AlertTriangle, CheckCircle,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface AdminUser {
   id: string;
@@ -59,13 +60,7 @@ const PERMISSION_MATRIX = [
   { module: "Settings",     superAdmin: true, admin: false, salesMgr: false, salesExec: false, mediaEd: false },
 ];
 
-const MOCK_USERS: AdminUser[] = [
-  { id: "U001", name: "Aditya Patel", email: "aditya@adityagenset.com", role: "Super Admin", status: "active", lastLogin: "Today, 10:42 AM", initials: "AP", color: "bg-red-500/20 text-red-400" },
-  { id: "U002", name: "Vikram Shah", email: "vikram@adityagenset.com", role: "Sales Manager", status: "active", lastLogin: "Today, 09:15 AM", initials: "VS", color: "bg-accent/20 text-accent" },
-  { id: "U003", name: "Priya Joshi", email: "priya@adityagenset.com", role: "Sales Executive", status: "active", lastLogin: "Yesterday, 5:30 PM", initials: "PJ", color: "bg-blue-500/20 text-blue-400" },
-  { id: "U004", name: "Arjun Singh", email: "arjun@adityagenset.com", role: "Sales Executive", status: "active", lastLogin: "Today, 11:00 AM", initials: "AS", color: "bg-purple-500/20 text-purple-400" },
-  { id: "U005", name: "Meera Desai", email: "meera@adityagenset.com", role: "Media Editor", status: "active", lastLogin: "2 days ago", initials: "MD", color: "bg-green-500/20 text-green-400" },
-];
+
 
 function Check({ yes }: { yes: boolean }) {
   return yes
@@ -74,10 +69,41 @@ function Check({ yes }: { yes: boolean }) {
 }
 
 export default function AdminUsers() {
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"users" | "roles" | "matrix" | "activity">("users");
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("Sales Executive");
+
+  useEffect(() => {
+    async function fetchUsers() {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('*');
+
+        if (error) throw error;
+
+        const mapped: AdminUser[] = (data || []).map(u => ({
+          id: u.id,
+          name: u.full_name || 'Anonymous',
+          email: u.email || '',
+          role: u.role || 'Sales Executive',
+          status: 'active',
+          lastLogin: u.last_login ? new Date(u.last_login).toLocaleString() : 'Never',
+          initials: (u.full_name || 'A').split(' ').map((n: string) => n[0]).join(''),
+          color: 'bg-accent/20 text-accent'
+        }));
+        setUsers(mapped);
+      } catch (e) {
+        console.error("Error fetching users:", e);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUsers();
+  }, []);
 
   const handleInvite = () => {
     if (!inviteEmail) { toast.error("Please enter an email address"); return; }
@@ -136,7 +162,7 @@ export default function AdminUsers() {
         <div>
           <h1 className="text-2xl font-bold text-foreground font-display">Users & Roles</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {MOCK_USERS.filter((u) => u.status === "active").length} active · {MOCK_USERS.length} total users
+            {users.filter((u) => u.status === "active").length} active · {users.length} total users
           </p>
         </div>
         <button
@@ -179,7 +205,7 @@ export default function AdminUsers() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
-                {MOCK_USERS.map((user) => {
+                {users.map((user) => {
                   const role = ROLES.find((r) => r.name === user.role);
                   return (
                     <tr key={user.id} className="hover:bg-secondary transition-colors">
@@ -264,9 +290,7 @@ export default function AdminUsers() {
                 ))}
               </div>
               <div className="mt-4 pt-3 border-t border-border">
-                <p className="text-xs text-muted-foreground">
-                  {MOCK_USERS.filter((u) => u.role === role.name).length} user(s) with this role
-                </p>
+                  {users.filter((u) => u.role === role.name).length} user(s) with this role
               </div>
             </div>
           ))}
@@ -305,27 +329,11 @@ export default function AdminUsers() {
         </div>
       )}
 
-      {/* ── ACTIVITY TAB ── */}
-      {activeTab === "activity" && (
         <div className="bg-card shadow-sm border border-border rounded-xl divide-y divide-border">
-          {[
-            { user: "Vikram Shah", action: "Updated lead L004 stage to Won", time: "2 min ago", icon: "✏️" },
-            { user: "Priya Joshi", action: "Sent quotation to Kulkarni IT Park", time: "15 min ago", icon: "📄" },
-            { user: "Meera Desai", action: "Published blog: 'Top 5 DG Sets for Hospitals'", time: "1 hr ago", icon: "📝" },
-            { user: "Arjun Singh", action: "Added new lead from IndiaMart: Suresh Patel", time: "2 hr ago", icon: "👤" },
-            { user: "Aditya Patel", action: "Added product: 1000 kVA Industrial DG Set", time: "Yesterday", icon: "📦" },
-            { user: "Raju Kumar", action: "Resolved service ticket #ST-0042", time: "2 days ago", icon: "🔧" },
-          ].map((item, i) => (
-            <div key={i} className="flex items-start gap-4 px-5 py-4">
-              <span className="text-xl flex-shrink-0">{item.icon}</span>
-              <div className="flex-1">
-                <p className="text-sm text-foreground"><span className="font-semibold text-foreground">{item.user}</span> {item.action}</p>
-              </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap flex-shrink-0">{item.time}</span>
-            </div>
-          ))}
+          <div className="p-10 text-center text-muted-foreground italic text-sm">
+            No recent activity recorded.
+          </div>
         </div>
-      )}
     </div>
   );
 }
