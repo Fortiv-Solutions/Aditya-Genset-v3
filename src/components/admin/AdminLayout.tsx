@@ -7,6 +7,7 @@ import {
   Menu, X, Zap, Globe
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthContext";
 
 interface NavItem {
   label: string;
@@ -72,18 +73,23 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile, user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [expandedNav, setExpandedNav] = useState<string | null>("Products");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const userEmail = "Admin";
-  const userInitials = "AD";
+  const userName = profile?.full_name || user?.email || "Admin";
+  const userInitials = (profile?.full_name || user?.email || "AD")
+    .split(/[ @.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "AD";
 
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userEmail");
+  const handleLogout = async () => {
+    await signOut();
     toast.success("Logged out successfully");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   const isActive = (path: string) => {
@@ -185,8 +191,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <span className="text-xs font-bold text-accent">{userInitials}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-foreground truncate">{userEmail}</p>
-              <p className="text-[10px] text-muted-foreground">Super Admin</p>
+              <p className="text-xs font-semibold text-foreground truncate">{userName}</p>
+              <p className="text-[10px] text-muted-foreground">{profile?.role || "Admin"}</p>
             </div>
             <button onClick={handleLogout} className="text-muted-foreground hover:text-red-400 transition-colors" title="Logout">
               <LogOut size={15} />
