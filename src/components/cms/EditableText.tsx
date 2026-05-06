@@ -7,14 +7,16 @@ interface EditableTextProps {
   section: CMSSection;
   className?: string;
   as?: React.ElementType;
+  fallback?: string;
 }
 
-export function EditableText({ contentKey, section, className = "", as: Component = "span" }: EditableTextProps) {
+export function EditableText({ contentKey, section, className = "", as: Component = "span", fallback }: EditableTextProps) {
   const context = useCMSState();
   const { content, isEditMode, updateContent } = context;
 
   // Always derive the raw string value from the single source of truth
-  const value = content[section]?.[contentKey as keyof typeof content[typeof section]] as string || "";
+  const rawValue = content[section]?.[contentKey as keyof typeof content[typeof section]] as string | undefined;
+  const value = rawValue !== undefined ? rawValue : (fallback || "");
   const ref = useRef<HTMLElement>(null);
 
   // The Empty-DOM Effect Pattern:

@@ -171,8 +171,8 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
                   <div className="relative aspect-square w-full overflow-hidden rounded-sm">
                     <div className="relative w-full h-full flex items-center justify-center">
                       <SmoothImage
-                        src={product.sections[0].image}
-                        alt={product.sections[0].alt}
+                        src={product.sections[0]?.image}
+                        alt={product.sections[0]?.alt}
                         wrapperClassName="w-full h-full absolute inset-0 bg-transparent"
                         imageClassName="w-[120%] h-[120%] object-contain transition-all duration-700"
                       />
@@ -229,7 +229,8 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
         >
           {product.sections.map((s, i) => {
             const isEscorts = product.engineBrand === "Escorts";
-            const ekl15Data = EKL15_CHAPTER_DATA[s.id];
+            // Use the section data from the CMS instead of the hardcoded TS file
+            const ekl15Data = isEscorts ? (s as any) : null;
             return (
               <article
                 key={s.id}

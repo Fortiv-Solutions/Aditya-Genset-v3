@@ -84,7 +84,11 @@ export default function ProductDetail() {
   // Decide which CMS section to use for editing (dynamic products use showcaseData as base)
   const sectionId = isCMSPreview ? pageId : "showcaseData";
   const sectionKey = sectionId as "showcaseData";
-  const productName = content?.[sectionKey]?.productName || activeProduct.name;
+  
+  // If the DB CMS row is missing, content[sectionKey] falls back to global default (which says 62.5 kVA).
+  // We want to ignore that fallback for all other products.
+  const isFallback = content?.[sectionKey]?.productName === "62.5 kVA Silent DG Set" && activeProduct.slug !== "silent-62-5";
+  const productName = isFallback ? activeProduct.name : (content?.[sectionKey]?.productName || activeProduct.name);
 
   const ld = {
     "@context": "https://schema.org",
@@ -136,12 +140,14 @@ export default function ProductDetail() {
           <EditableText
             section={sectionKey}
             contentKey="productName"
+            fallback={productName}
             className="mt-1.5 font-display text-3xl font-semibold leading-tight md:text-4xl block"
             as="h1"
           />
           <EditableText
             section={sectionKey}
             contentKey="pageSubtitle"
+            fallback={isFallback ? `A 10-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
             className="mt-1.5 max-w-xl text-sm text-muted-foreground block"
             as="p"
           />
