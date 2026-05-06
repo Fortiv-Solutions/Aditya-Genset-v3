@@ -166,10 +166,55 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- Add inquiry count to products
+ALTER TABLE products ADD COLUMN IF NOT EXISTS inquiry_count INTEGER DEFAULT 0;
+
+-- Function to increment inquiry count
+CREATE OR REPLACE FUNCTION increment_product_inquiries(product_id UUID)
+RETURNS VOID AS $$
+BEGIN
+  UPDATE products
+  SET inquiry_count = inquiry_count + 1,
+      updated_at = NOW()
+  WHERE id = product_id;
+END;
+$$ LANGUAGE plpgsql;
+
 CREATE TRIGGER update_products_updated_at
   BEFORE UPDATE ON products
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- =====================================================
+-- 10. CMS SECTIONS TABLE (Dynamic Content Store)
+-- =====================================================
+CREATE TABLE cms_sections (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  section_key VARCHAR(100) NOT NULL,
+  scope_type VARCHAR(20) NOT NULL DEFAULT 'global' CHECK (scope_type IN ('global', 'product', 'category', 'page')),
+  scope_id UUID, -- References products.id, pages.id etc.
+  content JSONB NOT NULL DEFAULT '{}',
+  revision INTEGER DEFAULT 1,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(section_key, scope_type, scope_id)
+);
+
+CREATE INDEX idx_cms_sections_key ON cms_sections(section_key);
+CREATE INDEX idx_cms_sections_scope ON cms_sections(scope_type, scope_id);
+
+-- Enable RLS
+ALTER TABLE cms_sections ENABLE ROW LEVEL SECURITY;
+
+-- Public read access
+CREATE POLICY "CMS sections are viewable by everyone"
+  ON cms_sections FOR SELECT
+  USING (true);
+
+-- Admin write access
+CREATE POLICY "Authenticated users can manage CMS sections"
+  ON cms_sections FOR ALL
+  USING (auth.role() = 'authenticated');
 
 -- =====================================================
 -- ROW LEVEL SECURITY (RLS) POLICIES

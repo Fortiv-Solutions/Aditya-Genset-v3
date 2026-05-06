@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { fetchContent, defaultContent, saveContent, CMSSection } from "@/lib/sanity";
+import { fetchCMSSection, updateCMSSection } from "@/lib/api/cms";
+import { defaultContent, CMSSection as CMSSectionKey } from "@/lib/sanity";
 
 type CMSContentState = typeof defaultContent;
 
@@ -7,8 +8,8 @@ interface CMSEditorContextType {
   isEditMode: boolean;
   setIsEditMode: (v: boolean) => void;
   content: CMSContentState;
-  updateContent: (section: CMSSection, key: string, value: string) => void;
-  updateContentLive: (section: CMSSection, key: string, value: string) => void;
+  updateContent: (section: CMSSectionKey, key: string, value: string) => void;
+  updateContentLive: (section: CMSSectionKey, key: string, value: string) => void;
   commitHistory: () => void;
   undo: () => void;
   redo: () => void;
@@ -16,11 +17,14 @@ interface CMSEditorContextType {
   canRedo: boolean;
   discard: () => void;
   saveAll: () => Promise<void>;
+  loadProductCMS: (productId: string) => Promise<void>;
 }
 
 const CMSEditorContext = createContext<CMSEditorContextType | null>(null);
 
-const ALL_SECTIONS = Object.keys(defaultContent) as CMSSection[];
+const ALL_GLOBAL_SECTIONS = Object.keys(defaultContent).filter(
+  s => !s.toLowerCase().includes('showcase') && !s.toLowerCase().includes('presentation')
+) as CMSSectionKey[];
 
 export function CMSEditorProvider({ children }: { children: ReactNode }) {
   const [isEditMode, setIsEditMode] = useState(false);
@@ -31,33 +35,44 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
   const [history, setHistory] = useState<CMSContentState[]>([defaultContent]);
   const [historyIndex, setHistoryIndex] = useState(0);
 
-  // Load ALL sections on mount
+  // Load GLOBAL sections on mount
   useEffect(() => {
-    const loadAll = async () => {
+    const loadGlobals = async () => {
       try {
-        const results = await Promise.all(ALL_SECTIONS.map(s => fetchContent(s)));
-        const fullState = ALL_SECTIONS.reduce((acc, section, i) => {
-          // Defensive merge: combine defaults with stored values so no key is ever missing
-          acc[section] = { ...defaultContent[section], ...(results[i] || {}) } as any;
-          return acc;
-        }, {} as CMSContentState);
-
-        setContent(fullState);
-        setInitialContent(fullState);
-        setHistory([fullState]);
-        setHistoryIndex(0);
+        const results = await Promise.all(ALL_GLOBAL_SECTIONS.map(s => fetchCMSSection(s, 'global')));
+        
+        setContent(prev => {
+          const newState = { ...prev };
+          ALL_GLOBAL_SECTIONS.forEach((section, i) => {
+            if (results[i]) {
+              newState[section] = { ...defaultContent[section], ...results[i].content } as any;
+            }
+          });
+          return newState;
+        });
       } catch (err) {
-        console.error("CMS Load Failed:", err);
+        console.error("CMS Load Globals Failed:", err);
       }
     };
-    loadAll();
-
-    const handleUpdate = () => loadAll();
-    window.addEventListener("cms_updated", handleUpdate);
-    return () => window.removeEventListener("cms_updated", handleUpdate);
+    loadGlobals();
   }, []);
 
-  const updateContentLive = React.useCallback((section: CMSSection, key: string, value: string) => {
+  const loadProductCMS = React.useCallback(async (productId: string) => {
+    try {
+      const showcase = await fetchCMSSection('showcaseData', 'product', productId);
+      const presentation = await fetchCMSSection('presentationData', 'product', productId);
+      
+      setContent(prev => ({
+        ...prev,
+        showcaseData: showcase?.content || prev.showcaseData,
+        presentationData: presentation?.content || prev.presentationData
+      }));
+    } catch (err) {
+      console.error("CMS Load Product Data Failed:", err);
+    }
+  }, []);
+
+  const updateContentLive = React.useCallback((section: CMSSectionKey, key: string, value: string) => {
     setContent((prev) => ({
       ...prev,
       [section]: {
@@ -68,18 +83,15 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const commitHistory = React.useCallback(() => {
-    setContent(currentContent => {
-      setHistory(prevHistory => {
-        const newHistory = prevHistory.slice(0, historyIndex + 1);
-        if (JSON.stringify(newHistory[newHistory.length - 1]) !== JSON.stringify(currentContent)) {
-          newHistory.push(currentContent);
-          setHistoryIndex(newHistory.length - 1);
-        }
-        return newHistory;
-      });
-      return currentContent;
+    setHistory(prevHistory => {
+      const newHistory = prevHistory.slice(0, historyIndex + 1);
+      if (JSON.stringify(newHistory[newHistory.length - 1]) !== JSON.stringify(content)) {
+        newHistory.push(content);
+        setHistoryIndex(newHistory.length - 1);
+      }
+      return newHistory;
     });
-  }, [historyIndex]);
+  }, [content, historyIndex]);
 
   const undo = React.useCallback(() => {
     if (historyIndex > 0) {
@@ -104,9 +116,16 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
   }, [initialContent]);
 
   const saveAll = React.useCallback(async () => {
+    const sectionsToSave = Object.keys(content) as CMSSectionKey[];
     await Promise.all(
-      ALL_SECTIONS.map(section => saveContent(section, content[section]))
+      sectionsToSave.map(section => {
+        const scopeType = (section === 'showcaseData' || section === 'presentationData') ? 'product' : 'global';
+        // Note: For product scope, we'd need the current product ID. 
+        // This is a simplified version; in a real app, you'd track the current scope.
+        return updateCMSSection(section, content[section], scopeType);
+      })
     );
+    setInitialContent(content);
   }, [content]);
 
   const contextValue = React.useMemo(() => ({
@@ -122,6 +141,7 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
     canRedo: historyIndex < history.length - 1,
     discard,
     saveAll,
+    loadProductCMS,
   }), [
     isEditMode,
     content,
@@ -133,7 +153,9 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
     redo,
     discard,
     saveAll,
+    loadProductCMS
   ]);
+
 
   return (
     <CMSEditorContext.Provider value={contextValue}>

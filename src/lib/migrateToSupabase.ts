@@ -4,10 +4,12 @@ import { SHOWCASE } from '@/data/products'
 /**
  * Migration script to move hardcoded product data to Supabase
  * Run this once to populate the database with existing product data
+ * 
+ * UPDATED: Works with your production schema
  */
 export async function migrateProductToSupabase() {
   try {
-    console.log('Starting migration...')
+    console.log('🚀 Starting migration to production schema...')
 
     // 1. Insert main product
     const { data: product, error: productError } = await supabase
@@ -18,159 +20,154 @@ export async function migrateProductToSupabase() {
         name: SHOWCASE.name,
         kva: SHOWCASE.kva,
         engine_brand: 'Baudouin',
-        type: 'Silent',
-        phase: 'Three',
-        application: 'Prime',
-        status: 'Active',
-        tags: ['Best Seller', 'Featured'],
-        thumbnail_url: SHOWCASE.thumbnail,
-        hero_image_url: SHOWCASE.hero,
+        type: 'silent',
+        cpcb: 'iv-plus',
+        status: 'published',
+        price_on_request: true,
+        moq: 1,
+        lead_time_days: 21,
+        stock: 'in_stock',
+        short_desc: '62.5 kVA silent diesel generator set, CPCB IV+ compliant',
+        tags: ['Best Seller', 'Featured', 'Silent'],
+        published_at: new Date().toISOString()
       })
       .select()
       .single()
 
     if (productError) {
-      console.error('Error inserting product:', productError)
+      console.error('❌ Error inserting product:', productError)
       return
     }
 
     console.log('✅ Product inserted:', product.id)
 
-    // 2. Insert showcase sections
-    for (const section of SHOWCASE.sections) {
-      const { data: showcaseSection, error: sectionError } = await supabase
-        .from('showcase_sections')
+    // 2. Insert primary product image
+    const { error: mediaError } = await supabase
+      .from('product_media')
+      .insert({
+        product_id: product.id,
+        kind: 'primary',
+        public_url: SHOWCASE.hero,
+        alt_text: `${SHOWCASE.name} - Main Image`,
+        display_order: 0
+      })
+
+    if (mediaError) {
+      console.error('❌ Error inserting product media:', mediaError)
+    } else {
+      console.log('✅ Product media inserted')
+    }
+
+    // 3. Insert product specs from showcase sections
+    const allSpecs: Array<{ label: string; value: string }> = []
+    SHOWCASE.sections.forEach(section => {
+      section.specs.forEach(spec => {
+        allSpecs.push({ label: spec.label, value: spec.value })
+      })
+    })
+
+    for (let i = 0; i < allSpecs.length; i++) {
+      const spec = allSpecs[i]
+      const { error: specError } = await supabase
+        .from('product_specs')
         .insert({
           product_id: product.id,
-          section_id: section.id,
-          section_number: section.number,
-          title: section.title,
-          tagline: section.tagline || null,
-          description: null,
-          image_url: section.image,
-          alt_text: section.alt,
-          order: parseInt(section.number),
+          spec_label: spec.label,
+          spec_value: spec.value,
+          display_order: i
         })
-        .select()
-        .single()
 
-      if (sectionError) {
-        console.error(`Error inserting section ${section.id}:`, sectionError)
-        continue
-      }
-
-      console.log(`✅ Section inserted: ${section.id}`)
-
-      // 3. Insert section specs
-      for (let i = 0; i < section.specs.length; i++) {
-        const spec = section.specs[i]
-        const { error: specError } = await supabase
-          .from('showcase_section_specs')
-          .insert({
-            section_id: showcaseSection.id,
-            label: spec.label,
-            value: spec.value,
-            order: i,
-          })
-
-        if (specError) {
-          console.error(`Error inserting spec for ${section.id}:`, specError)
-        }
-      }
-
-      // 4. Insert section highlights (if exists)
-      if (section.highlight) {
-        for (let i = 0; i < section.highlight.length; i++) {
-          const highlight = section.highlight[i]
-          const { error: highlightError } = await supabase
-            .from('showcase_section_highlights')
-            .insert({
-              section_id: showcaseSection.id,
-              value: highlight.value,
-              suffix: highlight.suffix || null,
-              label: highlight.label,
-              order: i,
-            })
-
-          if (highlightError) {
-            console.error(`Error inserting highlight for ${section.id}:`, highlightError)
-          }
-        }
+      if (specError) {
+        console.error(`❌ Error inserting spec ${spec.label}:`, specError)
       }
     }
 
-    // 5. Insert presentation hotspots
-    for (let i = 0; i < SHOWCASE.hotspots.length; i++) {
-      const hotspot = SHOWCASE.hotspots[i]
-      const { data: presentationHotspot, error: hotspotError } = await supabase
-        .from('presentation_hotspots')
-        .insert({
-          product_id: product.id,
-          hotspot_id: hotspot.id,
-          title: hotspot.title,
-          description: hotspot.description,
-          x_position: hotspot.x,
-          y_position: hotspot.y,
-          zoom: 1.0,
-          offset_x: 0,
-          offset_y: 0,
-          sub_image_url: null,
-          order: i,
-        })
-        .select()
-        .single()
+    console.log(`✅ ${allSpecs.length} product specs inserted`)
 
-      if (hotspotError) {
-        console.error(`Error inserting hotspot ${hotspot.id}:`, hotspotError)
-        continue
-      }
-
-      console.log(`✅ Hotspot inserted: ${hotspot.id}`)
-
-      // 6. Insert hotspot specs
-      for (let j = 0; j < hotspot.specs.length; j++) {
-        const spec = hotspot.specs[j]
-        const { error: specError } = await supabase
-          .from('presentation_hotspot_specs')
-          .insert({
-            hotspot_id: presentationHotspot.id,
-            label: spec.label,
-            value: spec.value,
-            order: j,
-          })
-
-        if (specError) {
-          console.error(`Error inserting hotspot spec for ${hotspot.id}:`, specError)
-        }
-      }
+    // 4. Store showcase data in CMS
+    const showcaseContent = {
+      sections: SHOWCASE.sections.map(section => ({
+        id: section.id,
+        number: section.number,
+        title: section.title,
+        tagline: section.tagline || null,
+        image: section.image,
+        alt: section.alt,
+        specs: section.specs,
+        highlight: section.highlight || null
+      }))
     }
 
-    console.log('✅ Migration completed successfully!')
+    const { error: cmsError } = await supabase
+      .from('cms_sections')
+      .insert({
+        section_key: 'showcaseData',
+        scope_type: 'product',
+        scope_id: product.id,
+        content: showcaseContent,
+        revision: 1
+      })
+
+    if (cmsError) {
+      console.error('❌ Error inserting CMS showcase data:', cmsError)
+    } else {
+      console.log('✅ CMS showcase data inserted')
+    }
+
+    // 5. Store presentation hotspots in CMS
+    const presentationContent = {
+      hotspots: SHOWCASE.hotspots.map(hotspot => ({
+        id: hotspot.id,
+        x: hotspot.x,
+        y: hotspot.y,
+        title: hotspot.title,
+        description: hotspot.description,
+        specs: hotspot.specs
+      }))
+    }
+
+    const { error: presentationError } = await supabase
+      .from('cms_sections')
+      .insert({
+        section_key: 'presentationData',
+        scope_type: 'product',
+        scope_id: product.id,
+        content: presentationContent,
+        revision: 1
+      })
+
+    if (presentationError) {
+      console.error('❌ Error inserting CMS presentation data:', presentationError)
+    } else {
+      console.log('✅ CMS presentation data inserted')
+    }
+
+    console.log('🎉 Migration completed successfully!')
+    console.log('📊 Summary:')
+    console.log('  - 1 product')
+    console.log('  - 1 product image')
+    console.log(`  - ${allSpecs.length} product specs`)
+    console.log('  - 1 showcase CMS section')
+    console.log('  - 1 presentation CMS section')
+
     return product
 
   } catch (error) {
-    console.error('Migration failed:', error)
+    console.error('💥 Migration failed:', error)
     throw error
   }
 }
 
 /**
- * Fetch product data from Supabase
+ * Fetch product data from Supabase (for testing)
  */
 export async function fetchProductFromSupabase(slug: string) {
   const { data, error } = await supabase
     .from('products')
     .select(`
       *,
-      showcase_sections (
-        *,
-        showcase_section_specs (*),
-        showcase_section_highlights (*)
-      ),
-      presentation_hotspots (
-        *,
-        presentation_hotspot_specs (*)
-      )
+      product_media (*),
+      product_specs (*)
     `)
     .eq('slug', slug)
     .single()
@@ -182,3 +179,24 @@ export async function fetchProductFromSupabase(slug: string) {
 
   return data
 }
+
+/**
+ * Fetch showcase data from CMS
+ */
+export async function fetchShowcaseFromSupabase(productId: string) {
+  const { data, error } = await supabase
+    .from('cms_sections')
+    .select('content')
+    .eq('section_key', 'showcaseData')
+    .eq('scope_type', 'product')
+    .eq('scope_id', productId)
+    .single()
+
+  if (error) {
+    console.error('Error fetching showcase:', error)
+    return null
+  }
+
+  return data?.content
+}
+

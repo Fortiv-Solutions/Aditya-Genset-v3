@@ -12,6 +12,7 @@ export type ProductStatus = "active" | "coming_soon";
 export type KvaRange = "15-62.5" | "75-200" | "250-500";
 
 export interface ProductSummary {
+  id?: string;
   slug: string;
   name: string;
   kva: number;
@@ -55,6 +56,7 @@ export interface ShowcaseProduct extends ProductSummary {
   hero: string;
   sections: ShowcaseSection[];
   hotspots: Hotspot[];
+  engineBrand?: string;
 }
 
 export const SHOWCASE: ShowcaseProduct = {

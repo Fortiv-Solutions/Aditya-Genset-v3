@@ -1,41 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { SEO } from "@/components/site/SEO";
-import { getDynamicSummaries } from "@/data/products";
+import { fetchPublishedProducts } from "@/lib/api/products";
 import { SectionReveal } from "@/components/site/SectionReveal";
-import { ArrowLeft, ArrowRight, Zap, Search } from "lucide-react";
-import gensetHero from "@/assets/products/showcase/main-view.png";
-import gensetLarge from "@/assets/products/showcase/main-view.png";
-import gensetOpen from "@/assets/products/parts/engine-real.jpg";
-import gensetSmall from "@/assets/products/parts/enclosure.jpg";
+import { ArrowLeft, ArrowRight, Zap, Search, Loader2 } from "lucide-react";
+import gensetFallback from "@/assets/products/showcase/main-view.png";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 
-// Array of images to rotate through
-const gensetImages = [gensetHero, gensetLarge, gensetOpen, gensetSmall];
-
 export interface DGSet {
   id: string;
+  slug: string;
   model: string;
   kva: number;
   engine: "Baudouin" | "Escorts";
-  application: "Prime" | "Standby" | "Continuous";
+  application: string;
   fuel: string;
   noise: string;
   image: string;
   compliance: string;
   isHidden?: boolean;
 }
-
-export const dgSets: DGSet[] = [
-  // Escorts-Kubota (pinned first)
-  { id: "18", model: "ATM EKL 15 (2 Cyl)-IV", kva: 15, engine: "Escorts", application: "Prime", fuel: "4.1 L/h", noise: "70 dB(A)", image: gensetImages[1], compliance: "CPCB IV" },
-
-  // Baudouin Generators (Hidden as per user request, but kept in data)
-  { id: "1", model: "ATMBD 250", kva: 250, engine: "Baudouin", application: "Prime", fuel: "52.5 L/h", noise: "73 dB(A)", image: gensetImages[0], compliance: "CPCB IV+", isHidden: true },
-  { id: "2", model: "ATMBD 320", kva: 320, engine: "Baudouin", application: "Prime", fuel: "67.2 L/h", noise: "74 dB(A)", image: gensetImages[1], compliance: "CPCB IV+", isHidden: true },
-  { id: "3", model: "ATMBD 400", kva: 400, engine: "Baudouin", application: "Prime", fuel: "84 L/h", noise: "74 dB(A)", image: gensetImages[2], compliance: "CPCB IV+", isHidden: true },
-];
 
 const kvaRanges = [
   { label: "All", min: 0, max: 10000 },
@@ -54,39 +39,50 @@ export default function DGSetsCategory() {
   const [selectedEngine, setSelectedEngine] = useState<string>("All");
   const [selectedKvaRange, setSelectedKvaRange] = useState(kvaRanges[0]);
   const [selectedApplication, setSelectedApplication] = useState("All");
+  
+  const [sets, setSets] = useState<DGSet[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Get live CMS values to override hardcoded values
-  const dynamicSummaries = getDynamicSummaries();
-  const dynamicSets: DGSet[] = dynamicSummaries.map(s => ({
-    id: s.slug,
-    model: s.name,
-    kva: s.kva,
-    engine: "Escorts", // Assuming Escorts for dynamic imports as per request
-    application: "Prime",
-    fuel: "Variable",
-    noise: "70 dB(A)",
-    image: gensetImages[1], // Use Escort template image
-    compliance: "CPCB IV+",
-  }));
-
-  const liveDgSets = [...dgSets, ...dynamicSets].map(set => ({
-    ...set,
-    model: content?.productsData?.[`product_${set.id}_model`] || set.model,
-    kva: Number(content?.productsData?.[`product_${set.id}_kva`]) || set.kva,
-    engine: (content?.productsData?.[`product_${set.id}_engine`] || set.engine) as "Baudouin" | "Escorts",
-    application: (content?.productsData?.[`product_${set.id}_application`] || set.application) as "Prime" | "Standby" | "Continuous",
-    fuel: content?.productsData?.[`product_${set.id}_fuel`] || set.fuel,
-    noise: content?.productsData?.[`product_${set.id}_noise`] || set.noise,
-    compliance: content?.productsData?.[`product_${set.id}_compliance`] || set.compliance,
-  }));
+  useEffect(() => {
+    async function loadSets() {
+      setLoading(true);
+      try {
+        const products = await fetchPublishedProducts();
+        const mapped: DGSet[] = products.map(p => {
+          const primaryMedia = p.product_media?.find(m => m.kind === 'primary' || m.kind === 'card');
+          const specs = p.product_specs || [];
+          
+          return {
+            id: p.id,
+            slug: p.slug,
+            model: p.model || p.name,
+            kva: p.kva,
+            engine: (p.engine_brand === 'Escorts' ? 'Escorts' : 'Baudouin') as any,
+            application: specs.find(s => s.label.toLowerCase().includes('application'))?.value || 'Prime',
+            fuel: specs.find(s => s.label.toLowerCase().includes('fuel consumption'))?.value || 'Variable',
+            noise: specs.find(s => s.label.toLowerCase().includes('noise'))?.value || '70 dB(A)',
+            image: primaryMedia?.url || gensetFallback,
+            compliance: specs.find(s => s.label.toLowerCase().includes('compliance'))?.value || 'CPCB IV+',
+            isHidden: p.status !== 'published'
+          };
+        });
+        setSets(mapped);
+      } catch (err) {
+        console.error("Failed to load DG sets:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadSets();
+  }, []);
 
   // Filter logic
-  const filteredSets = liveDgSets.filter((set) => {
+  const filteredSets = sets.filter((set) => {
     const matchesSearch = set.model.toLowerCase().includes(searchQuery.toLowerCase()) || 
                          set.kva.toString().includes(searchQuery);
-    const matchesEngine = selectedEngine === "All" || set.engine === selectedEngine;
+    const matchesEngine = selectedEngine === "All" || (selectedEngine === "Escorts" ? set.engine === "Escorts" : set.engine === "Baudouin");
     const matchesKva = set.kva >= selectedKvaRange.min && set.kva <= selectedKvaRange.max;
-    const matchesApplication = selectedApplication === "All" || set.application === selectedApplication;
+    const matchesApplication = selectedApplication === "All" || set.application.includes(selectedApplication);
     
     return !set.isHidden && matchesSearch && matchesEngine && matchesKva && matchesApplication;
   });
@@ -213,140 +209,103 @@ export default function DGSetsCategory() {
               as="h2" 
             />
             <div className="text-sm text-muted-foreground">
-              Showing {filteredSets.length} results
+              {loading ? "Loading..." : `Showing ${filteredSets.length} results`}
             </div>
           </div>
 
           {/* Product Grid - Scrollable */}
           <div className="flex-1 overflow-y-auto min-h-0">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
-            {filteredSets.map((set, index) => (
-              <div key={set.id}>
-                <div className="group relative bg-white border border-border rounded-xl overflow-hidden hover:border-accent hover:shadow-xl transition-all duration-300 cursor-pointer h-full">
-                  {/* Badge */}
-                  {index === 0 && (
-                    <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-accent text-foreground text-xs font-bold uppercase tracking-wider rounded">
-                      <EditableText section="dgSetsCategory" contentKey="badgeBestSeller" />
-                    </div>
-                  )}
-                  {set.model === "ATMBD 1250" && (
-                    <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-blue-500 text-white text-xs font-bold uppercase tracking-wider rounded">
-                      <EditableText section="dgSetsCategory" contentKey="badgePopular" />
-                    </div>
-                  )}
-
-                  {/* Compare Icon */}
-                  <button className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/90 backdrop-blur-sm border border-border rounded-lg flex items-center justify-center hover:bg-accent hover:border-accent transition-colors text-sm">
-                    ⚖
-                  </button>
-
-                  {/* Image */}
-                  <div className="relative h-48 bg-gray-50 overflow-hidden">
-                    <img
-                      src={set.image}
-                      alt={set.model}
-                      className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110"
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div className="p-5">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex-1">
-                        <EditableText 
-                          section="productsData" 
-                          contentKey={`product_${set.id}_model`} 
-                          className="font-display text-lg font-bold text-foreground leading-tight block" 
-                          as="h3" 
-                        />
-                        <div className="text-sm text-muted-foreground mt-0.5">
-                          <EditableText section="productsData" contentKey={`product_${set.id}_engine`} as="span" />
-                          {" · "}
-                          <EditableText section="productsData" contentKey={`product_${set.id}_application`} as="span" />
-                        </div>
+            {loading ? (
+              <div className="flex h-64 items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-accent" />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pb-4">
+              {filteredSets.map((set, index) => (
+                <div key={set.id} onClick={() => navigate(`/products/${set.slug}`)}>
+                  <div className="group relative bg-white border border-border rounded-xl overflow-hidden hover:border-accent hover:shadow-xl transition-all duration-300 cursor-pointer h-full">
+                    {/* Badge */}
+                    {index === 0 && (
+                      <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-accent text-foreground text-xs font-bold uppercase tracking-wider rounded">
+                        <EditableText section="dgSetsCategory" contentKey="badgeBestSeller" />
                       </div>
-                      <div className="text-right ml-3">
-                        <EditableText 
-                          section="productsData" 
-                          contentKey={`product_${set.id}_kva`} 
-                          className="text-2xl font-bold text-accent leading-none block" 
-                          as="div" 
-                        />
-                        <div className="text-xs text-muted-foreground uppercase tracking-wider mt-0.5">
-                          <EditableText section="dgSetsCategory" contentKey="cardKvaLabel" />
-                        </div>
-                      </div>
-                    </div>
+                    )}
 
-                    <div className="space-y-2 mb-4 text-sm">
-                      <div className="flex items-center gap-2.5 text-foreground">
-                        <span className="text-muted-foreground">⚙</span>
-                        <span className="text-muted-foreground"><EditableText section="dgSetsCategory" contentKey="cardEngineLabel" /></span>
-                        <EditableText section="productsData" contentKey={`product_${set.id}_engine`} className="ml-auto font-semibold" as="span" />
-                      </div>
-                      <div className="flex items-center gap-2.5 text-foreground">
-                        <span className="text-muted-foreground">⛽</span>
-                        <span className="text-muted-foreground"><EditableText section="dgSetsCategory" contentKey="cardFuelLabel" /></span>
-                        <EditableText section="productsData" contentKey={`product_${set.id}_fuel`} className="ml-auto font-semibold" as="span" />
-                      </div>
-                      <div className="flex items-center gap-2.5 text-foreground">
-                        <span className="text-muted-foreground">🔊</span>
-                        <span className="text-muted-foreground"><EditableText section="dgSetsCategory" contentKey="cardNoiseLabel" /></span>
-                        <EditableText section="productsData" contentKey={`product_${set.id}_noise`} className="ml-auto font-semibold" as="span" />
-                      </div>
-                    </div>
-
-                    {/* Compliance Badge */}
-                    <div className="mb-4">
-                      <EditableText 
-                        section="productsData" 
-                        contentKey={`product_${set.id}_compliance`} 
-                        className="inline-block px-2.5 py-1 bg-accent/10 border border-accent/30 rounded text-xs font-bold text-accent uppercase tracking-wider" 
-                        as="span" 
+                    {/* Image */}
+                    <div className="relative h-48 bg-gray-50 overflow-hidden">
+                      <img
+                        src={set.image}
+                        alt={set.model}
+                        className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110"
                       />
                     </div>
 
-                    {/* CTA */}
-                    <button
-                      onClick={(e) => {
-                        if (document.querySelector('.fixed.inset-0.z-\\[100\\]')) {
-                          e.preventDefault();
-                          return;
-                        }
-                        // EKL 15 (2 Cyl) has its own specific slug, others use their ID/Slug
-                        const targetSlug = set.id === "18" ? "ekl-15-2cyl" : set.id;
-                        navigate(`/products/${targetSlug}`);
-                      }}
-                      className="w-full flex items-center justify-center gap-2.5 py-2.5 bg-gray-50 hover:bg-accent hover:text-foreground rounded-lg text-base font-semibold transition-colors group/btn border border-border hover:border-accent"
-                    >
-                      <EditableText section="dgSetsCategory" contentKey="cardCtaText" as="span" />
-                      <ArrowRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
-                    </button>
+                    {/* Content */}
+                    <div className="p-5">
+                      <div className="flex items-start justify-between mb-3">
+                        <div className="flex-1">
+                          <h3 className="font-display text-lg font-bold text-foreground leading-tight">
+                            {set.model}
+                          </h3>
+                          <div className="text-sm text-muted-foreground mt-0.5">
+                            {set.engine} · {set.application}
+                          </div>
+                        </div>
+                        <div className="text-right ml-3">
+                          <div className="text-2xl font-bold text-accent leading-none">
+                            {set.kva}
+                          </div>
+                          <div className="text-xs text-muted-foreground uppercase tracking-wider mt-0.5">
+                            kVA
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 mb-4 text-sm">
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Engine</span>
+                          <span className="font-semibold">{set.engine}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Fuel</span>
+                          <span className="font-semibold">{set.fuel}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">Noise</span>
+                          <span className="font-semibold">{set.noise}</span>
+                        </div>
+                      </div>
+
+                      {/* Compliance Badge */}
+                      <div className="mb-4">
+                        <span className="inline-block px-2.5 py-1 bg-accent/10 border border-accent/30 rounded text-xs font-bold text-accent uppercase tracking-wider">
+                          {set.compliance}
+                        </span>
+                      </div>
+
+                      {/* CTA */}
+                      <button
+                        className="w-full flex items-center justify-center gap-2.5 py-2.5 bg-gray-50 hover:bg-accent hover:text-foreground rounded-lg text-base font-semibold transition-colors group/btn border border-border hover:border-accent"
+                      >
+                        Explore Story
+                        <ArrowRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
+                      </button>
+                    </div>
                   </div>
                 </div>
+              ))}
               </div>
-            ))}
-            </div>
+            )}
           </div>
 
           {/* No Results */}
-          {filteredSets.length === 0 && (
+          {!loading && filteredSets.length === 0 && (
             <div className="text-center py-8">
               <div className="text-muted-foreground mb-2">
                 <Zap size={32} className="mx-auto opacity-20" />
               </div>
-              <EditableText 
-                section="dgSetsCategory" 
-                contentKey="noResultsTitle" 
-                className="text-sm font-bold text-muted-foreground mb-1 block" 
-                as="h3" 
-              />
-              <EditableText 
-                section="dgSetsCategory" 
-                contentKey="noResultsSubtitle" 
-                className="text-xs text-muted-foreground block" 
-                as="p" 
-              />
+              <h3 className="text-sm font-bold text-muted-foreground mb-1">No products found</h3>
+              <p className="text-xs text-muted-foreground">Try adjusting your filters or search query.</p>
             </div>
           )}
         </div>
@@ -354,3 +313,4 @@ export default function DGSetsCategory() {
     </>
   );
 }
+

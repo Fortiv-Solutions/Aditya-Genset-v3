@@ -1,12 +1,12 @@
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { SEO } from "@/components/site/SEO";
-import { getProductBySlug, SHOWCASE, EKL15_SHOWCASE } from "@/data/products";
 import { ScrollStory } from "@/components/site/ScrollStory";
-import { ArrowLeft, Monitor } from "lucide-react";
-import { useRef, useState } from "react";
+import { ArrowLeft, Monitor, Loader2 } from "lucide-react";
+import { useRef, useState, useEffect } from "react";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
-
+import { fetchProductShowcase } from "@/lib/api/cms";
+import { ShowcaseProduct } from "@/data/products";
 
 // Height of the absolute header overlay in px — used to offset first chapter
 export const SHOWCASE_HEADER_H = 230;
@@ -15,15 +15,56 @@ export default function ProductDetail() {
   const { slug, pageId } = useParams();
   const navigate = useNavigate();
   const scrollStoryRef = useRef<{ enterPresentMode: () => void }>(null);
-  const { content } = useCMSState();
+  const { content, loadProductCMS } = useCMSState();
   const [activeChapter, setActiveChapter] = useState(0);
+  const [product, setProduct] = useState<ShowcaseProduct | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const isCMSPreview = !!pageId?.startsWith("showcaseData") || !!pageId?.startsWith("ekl15ShowcaseData");
-  
-  const product = slug ? getProductBySlug(slug) : undefined;
-  
-  // Decide which CMS section to use for editing (dynamic products use showcaseData as base)
-  const sectionId = isCMSPreview ? pageId : (slug === EKL15_SHOWCASE.slug ? "ekl15ShowcaseData" : "showcaseData");
+
+  useEffect(() => {
+    async function loadData() {
+      if (!slug) return;
+      setLoading(true);
+      try {
+        const data = await fetchProductShowcase(slug);
+        if (data && data.product) {
+          const productMedia = (data.product as any).product_media || [];
+          const primaryImage = productMedia.find((m: any) => m.kind === 'primary' || m.kind === 'hero')?.public_url || "";
+          
+          // Map DB product and CMS content to ShowcaseProduct shape
+          const mappedProduct: ShowcaseProduct = {
+            id: data.product.id,
+            slug: data.product.slug,
+            name: data.product.name,
+            kva: data.product.kva,
+            engineBrand: (data.product as any).engine_brand,
+            range: "15-62.5", 
+            status: "active",
+            thumbnail: primaryImage, 
+            hero: primaryImage, 
+            sections: data.showcase?.sections || [],
+            hotspots: data.showcase?.hotspots || [],
+          };
+          setProduct(mappedProduct);
+          await loadProductCMS(data.product.id);
+        }
+      } catch (err) {
+        console.error("Failed to load product detail:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadData();
+  }, [slug, loadProductCMS]);
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+      </div>
+    );
+  }
 
   if (!isCMSPreview && !product) {
     return (
@@ -39,8 +80,10 @@ export default function ProductDetail() {
     );
   }
 
-  const activeProduct = product || (pageId === "ekl15ShowcaseData" ? EKL15_SHOWCASE : SHOWCASE);
-  const sectionKey = sectionId as "showcaseData" | "ekl15ShowcaseData";
+  const activeProduct = product!;
+  // Decide which CMS section to use for editing (dynamic products use showcaseData as base)
+  const sectionId = isCMSPreview ? pageId : "showcaseData";
+  const sectionKey = sectionId as "showcaseData";
   const productName = content?.[sectionKey]?.productName || activeProduct.name;
 
   const ld = {
@@ -116,3 +159,4 @@ export default function ProductDetail() {
     </div>
   );
 }
+

@@ -695,6 +695,12 @@ export const defaultContent = {
     hotspot_4_spec3_label: "Dry weight",
     hotspot_4_spec3_value: "~70 kg",
   },
+  presentationData: {
+    mainImages: {
+      image1: "",
+      image2: "",
+    }
+  }
 };
 
 export type CMSSection = keyof typeof defaultContent;

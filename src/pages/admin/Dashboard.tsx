@@ -14,6 +14,8 @@ import {
   REVENUE_FORECAST, MOCK_NOTIFICATIONS,
 } from "@/data/adminData";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
 
 // ─── Mini Chart (SVG Sparkline) ────────────────────────────────────────────
 function Sparkline({ data, color = "#D97706" }: { data: number[]; color?: string }) {
@@ -196,15 +198,64 @@ export default function AdminDashboard() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<"overview" | "leads" | "products">("overview");
 
-  const totalLeads = MOCK_LEADS.length;
-  const openQuotes = MOCK_LEADS.filter((l) => l.stage === "quotation_sent").length;
-  const wonDeals = MOCK_LEADS.filter((l) => l.stage === "won").length;
-  const pendingFollowups = MOCK_LEADS.filter(
-    (l) => !["won", "lost"].includes(l.stage)
-  ).length;
-  const recentLeads = MOCK_LEADS.slice(0, 5);
-  const sparkTrend = LEAD_TREND_DATA.map((d) => d.leads);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [stats, setStats] = useState({
+    totalProducts: 0,
+    activeProducts: 0,
+    totalLeads: 0,
+    openQuotes: 0,
+    revenuePipeline: 0,
+    recentLeads: [] as any[],
+    isLoading: true
+  });
+
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        // 1. Fetch Products
+        const { count: totalCount } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true });
+
+        const { count: activeCount } = await supabase
+          .from('products')
+          .select('*', { count: 'exact', head: true })
+          .eq('status', 'published');
+
+        // 2. Fetch Leads
+        const { count: leadCount } = await supabase
+          .from('leads')
+          .select('*', { count: 'exact', head: true });
+
+        const { count: quoteCount } = await supabase
+          .from('leads')
+          .select('*', { count: 'exact', head: true })
+          .eq('stage', 'quotation_sent');
+
+        // 3. Fetch Recent Leads
+        const { data: recent } = await supabase
+          .from('leads')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        setStats({
+          totalProducts: totalCount || 0,
+          activeProducts: activeCount || 0,
+          totalLeads: leadCount || 0,
+          openQuotes: quoteCount || 0,
+          revenuePipeline: 0, // Placeholder until revenue tracking is added
+          recentLeads: recent || [],
+          isLoading: false
+        });
+      } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        setStats(s => ({ ...s, isLoading: false }));
+      }
+    }
+
+    fetchDashboardData();
+  }, []);
 
   const handleExport = (format: "excel" | "pdf") => {
     toast.promise(new Promise(resolve => setTimeout(resolve, 1500)), {
@@ -306,18 +357,18 @@ export default function AdminDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <KpiCard
           label="Total Products"
-          value={String(ADMIN_PRODUCTS.length)}
-          sub={`${ADMIN_PRODUCTS.filter(p => p.status === 'published').length} Active Listings`}
+          value={String(stats.totalProducts)}
+          sub={`${stats.activeProducts} Active Listings`}
           trend="up"
-          change="+2"
+          change="+0"
           icon={Package}
           iconColor="text-purple-400"
           bgColor="bg-purple-500/10"
         />
         <KpiCard
           label="Active Dealers"
-          value={String(MOCK_DEALERS.filter(d => d.status === 'active').length)}
-          sub="Across 4 regions"
+          value="0"
+          sub="No active partners"
           trend="neutral"
           change="—"
           icon={Briefcase}
@@ -325,37 +376,37 @@ export default function AdminDashboard() {
           bgColor="bg-amber-500/10"
         />
         <KpiCard
-          label="Leads This Month"
-          value={String(totalLeads)}
-          sub="↑ 12% vs Apr"
-          trend="up"
-          change="+33%"
+          label="Total Leads"
+          value={String(stats.totalLeads)}
+          sub="Updated just now"
+          trend="neutral"
+          change="—"
           icon={Users}
           iconColor="text-blue-400"
           bgColor="bg-blue-500/10"
-          sparkData={sparkTrend}
+          sparkData={[5, 10, 8, 15, 12, 20]}
           sparkColor="#3B82F6"
         />
         <KpiCard
           label="Quotes Sent"
-          value="42"
-          sub="₹1.85 Cr total value"
-          trend="up"
-          change="+8"
+          value={String(stats.openQuotes)}
+          sub="Pending follow-up"
+          trend="neutral"
+          change="—"
           icon={FileText}
           iconColor="text-accent"
           bgColor="bg-accent/10"
         />
         <KpiCard
           label="Revenue Pipeline"
-          value={`₹${(QUOTE_METRICS.totalQuotedValue / 10000000).toFixed(2)} Cr`}
-          sub="Weighted: ₹0.92 Cr"
-          trend="up"
-          change="+15%"
+          value="₹0.00 Cr"
+          sub="No active quotes"
+          trend="neutral"
+          change="—"
           icon={IndianRupee}
           iconColor="text-green-400"
           bgColor="bg-green-500/10"
-          sparkData={[2, 3, 4, 3, 5, 6, 7]}
+          sparkData={[0, 0, 0, 0, 0]}
           sparkColor="#22C55E"
         />
       </div>
@@ -632,7 +683,7 @@ export default function AdminDashboard() {
             </button>
           </div>
           <div className="divide-y divide-border">
-            {recentLeads.map((lead) => (
+            {stats.recentLeads.length > 0 ? stats.recentLeads.map((lead) => (
               <div
                 key={lead.id}
                 className="flex items-center gap-4 px-5 py-3 hover:bg-secondary transition-colors cursor-pointer group"
@@ -643,26 +694,21 @@ export default function AdminDashboard() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground group-hover:text-foreground transition-colors truncate">{lead.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{lead.company} · {lead.city}</p>
+                  <p className="text-xs text-muted-foreground truncate">{lead.company || 'Private'} · {lead.city || 'Unknown'}</p>
                 </div>
                 <div className="hidden sm:block text-right flex-shrink-0">
-                  <p className="text-xs font-semibold text-accent">{lead.kvaRequired}</p>
-                  <p className="text-xs text-muted-foreground">{lead.application}</p>
+                  <p className="text-xs font-semibold text-accent">{lead.kva_required || lead.kvaRequired || 'N/A'}</p>
+                  <p className="text-xs text-muted-foreground">{lead.application || 'General'}</p>
                 </div>
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex-shrink-0 ${STAGE_COLORS[lead.stage]}`}>
-                  {STAGE_LABELS[lead.stage]}
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-semibold flex-shrink-0 ${STAGE_COLORS[lead.stage] || 'bg-slate-700/50 text-slate-300'}`}>
+                  {STAGE_LABELS[lead.stage] || 'New'}
                 </span>
-                <div className="hidden md:flex items-center gap-1 flex-shrink-0">
-                  <div className="w-16 h-1.5 bg-secondary rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-accent rounded-full"
-                      style={{ width: `${lead.score}%` }}
-                    />
-                  </div>
-                  <span className="text-[10px] text-muted-foreground w-6">{lead.score}</span>
-                </div>
               </div>
-            ))}
+            )) : (
+              <div className="p-10 text-center text-muted-foreground italic text-sm">
+                No recent leads found.
+              </div>
+            )}
           </div>
         </div>
 

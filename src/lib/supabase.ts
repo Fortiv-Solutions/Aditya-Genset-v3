@@ -7,64 +7,70 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
 // Create Supabase client
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Database types
-export interface Database {
-  public: {
-    Tables: {
-      products: {
-        Row: Product
-        Insert: Omit<Product, 'id' | 'created_at' | 'updated_at'>
-        Update: Partial<Omit<Product, 'id' | 'created_at' | 'updated_at'>>
-      }
-      product_specs: {
-        Row: ProductSpec
-        Insert: Omit<ProductSpec, 'id'>
-        Update: Partial<Omit<ProductSpec, 'id'>>
-      }
-      product_images: {
-        Row: ProductImage
-        Insert: Omit<ProductImage, 'id'>
-        Update: Partial<Omit<ProductImage, 'id'>>
-      }
-      showcase_sections: {
-        Row: ShowcaseSection
-        Insert: Omit<ShowcaseSection, 'id'>
-        Update: Partial<Omit<ShowcaseSection, 'id'>>
-      }
-      showcase_section_specs: {
-        Row: ShowcaseSectionSpec
-        Insert: Omit<ShowcaseSectionSpec, 'id'>
-        Update: Partial<Omit<ShowcaseSectionSpec, 'id'>>
-      }
-      presentation_hotspots: {
-        Row: PresentationHotspot
-        Insert: Omit<PresentationHotspot, 'id'>
-        Update: Partial<Omit<PresentationHotspot, 'id'>>
-      }
-      presentation_hotspot_specs: {
-        Row: PresentationHotspotSpec
-        Insert: Omit<PresentationHotspotSpec, 'id'>
-        Update: Partial<Omit<PresentationHotspotSpec, 'id'>>
-      }
-    }
-  }
-}
+// =====================================================
+// TYPE DEFINITIONS (matching your production schema)
+// =====================================================
 
-// Type definitions
+// Enums
+export type AppRole = 'Super Admin' | 'Admin' | 'Sales Manager' | 'Sales Executive' | 'Media Editor'
+export type ProductStatus = 'published' | 'draft' | 'archived'
+export type ProductType = 'silent' | 'open'
+export type ProductStock = 'in_stock' | 'on_order' | 'discontinued'
+export type LeadStage = 'new' | 'contacted' | 'qualified' | 'site_assessment' | 'quotation_sent' | 'negotiation' | 'won' | 'lost'
+export type LeadSource = 'website_form' | 'whatsapp' | 'phone' | 'referral' | 'indiamart' | 'trade_show' | 'dealer'
+export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
+export type PresentationStatus = 'active' | 'completed' | 'abandoned'
+export type ScopeType = 'global' | 'product' | 'category' | 'page'
+
+// Product Types
 export interface Product {
   id: string
-  slug: string
-  model: string
+  category_id: string | null
+  status: ProductStatus
+  type: ProductType
   name: string
+  model: string
+  slug: string
   kva: number
-  engine_brand: 'Baudouin' | 'Escorts' | 'Kubota'
-  type: 'Silent' | 'Open'
-  phase: 'Single' | 'Three'
-  application: 'Prime' | 'Standby' | 'Continuous'
-  status: 'Active' | 'Discontinued' | 'Coming Soon'
+  engine_brand: string
+  cpcb: string
+  price: number | null
+  price_on_request: boolean
+  moq: number
+  lead_time_days: number
+  stock: ProductStock
+  short_desc: string | null
+  full_desc: string | null
   tags: string[]
-  thumbnail_url: string
-  hero_image_url: string
+  seo_title: string | null
+  meta_desc: string | null
+  inquiries: number
+  published_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductCategory {
+  id: string
+  parent_id: string | null
+  slug: string
+  name: string
+  description: string | null
+  sort_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductMedia {
+  id: string
+  product_id: string
+  kind: string
+  storage_path: string | null
+  public_url: string | null
+  alt_text: string | null
+  mime_type: string | null
+  display_order: number
   created_at: string
   updated_at: string
 }
@@ -72,70 +78,96 @@ export interface Product {
 export interface ProductSpec {
   id: string
   product_id: string
-  category: string
-  spec_key: string
+  spec_label: string
   spec_value: string
-  order: number
+  display_order: number
+  created_at: string
+  updated_at: string
 }
 
-export interface ProductImage {
+// CMS Types
+export interface CMSSection {
   id: string
-  product_id: string
-  image_url: string
-  image_type: 'main' | 'gallery' | 'detail' | 'section'
-  alt_text: string
-  order: number
+  section_key: string
+  scope_type: ScopeType
+  scope_id: string | null
+  content: any // JSONB
+  revision: number
+  updated_by_user_id: string | null
+  created_at: string
+  updated_at: string
 }
 
-export interface ShowcaseSection {
+// Presentation Types
+export interface PresentationSession {
   id: string
-  product_id: string
-  section_id: string
-  section_number: string
-  title: string
-  tagline: string | null
-  description: string | null
-  image_url: string
-  alt_text: string
-  order: number
+  created_by_user_id: string | null
+  share_token: string | null
+  product_id: string | null
+  cms_section_key: string
+  status: PresentationStatus
+  current_chapter_index: number
+  current_hotspot_id: string | null
+  started_at: string
+  last_activity_at: string
+  ended_at: string | null
 }
 
-export interface ShowcaseSectionSpec {
+export interface PresentationSessionEvent {
   id: string
-  section_id: string
-  label: string
-  value: string
-  order: number
+  session_id: string
+  event_type: string
+  created_at: string
+  payload: any // JSONB
 }
 
-export interface ShowcaseSectionHighlight {
+// Lead Types
+export interface Lead {
   id: string
-  section_id: string
-  value: number
-  suffix: string | null
-  label: string
-  order: number
+  customer_name: string
+  company: string
+  designation: string | null
+  phone: string | null
+  email: string | null
+  city: string | null
+  state: string | null
+  kva_required: string | null
+  application: string | null
+  stage: LeadStage
+  source: LeadSource
+  assigned_to_user_id: string | null
+  assigned_to_name: string | null
+  score: number
+  created_by_user_id: string | null
+  created_at: string
+  last_activity_at: string | null
+  updated_at: string
 }
 
-export interface PresentationHotspot {
+// Quote Types
+export interface Quote {
   id: string
-  product_id: string
-  hotspot_id: string
-  title: string
-  description: string
-  x_position: number
-  y_position: number
-  zoom: number
-  offset_x: number
-  offset_y: number
-  sub_image_url: string | null
-  order: number
+  quote_number: string | null
+  lead_id: string | null
+  created_by_user_id: string | null
+  status: QuoteStatus
+  currency: string
+  total_amount: number
+  payload: any // JSONB
+  sent_at: string | null
+  accepted_at: string | null
+  rejected_at: string | null
+  expires_at: string | null
+  created_at: string
+  updated_at: string
 }
 
-export interface PresentationHotspotSpec {
-  id: string
-  hotspot_id: string
-  label: string
-  value: string
-  order: number
+// Profile Types
+export interface Profile {
+  user_id: string
+  role: AppRole
+  full_name: string | null
+  phone: string | null
+  created_at: string
+  updated_at: string
 }

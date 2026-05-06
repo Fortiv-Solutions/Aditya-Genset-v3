@@ -1,39 +1,65 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Lock, Mail, Store } from "lucide-react";
+import { ArrowRight, Lock, Mail, Store, ShieldCheck } from "lucide-react";
 import { SEO } from "@/components/site/SEO";
 import { toast } from "sonner";
 import factoryHero from "@/assets/products/showcase/factory.jpg";
 import { useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { useCMSState } from "@/components/cms/CMSEditorProvider";
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loginType, setLoginType] = useState<"dealer" | "admin">("dealer");
 
-  const handleLogin = (e: React.FormEvent) => {
+  const [isLoading, setIsLoading] = useState(false);
+  const { content } = useCMSState();
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Check if fields are not empty
     if (!email.trim() || !password.trim()) {
       toast.error("Please enter both email and password");
       return;
     }
 
-    // Set login state
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("userEmail", email);
+    setIsLoading(true);
     
-    // Show success message
-    toast.success("Login successful! Redirecting...");
-    
-    // Redirect based on credentials
-    setTimeout(() => {
-      if (email === "admin@fortivsolutions.in" && password === "Fortiv@2026") {
-        navigate("/admin");
-      } else {
-        navigate("/");
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: password,
+      });
+
+      if (error) throw error;
+
+      if (data.user) {
+        // Set basic login state for UI
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("userEmail", data.user.email || email);
+        
+        toast.success("Login successful! Redirecting...");
+        
+        // Determine user role and redirect
+        const userEmail = data.user.email || "";
+        const isAdmin = data.user.app_metadata?.role === 'admin' || userEmail === 'admin@fortivsolutions.in';
+        
+        setTimeout(() => {
+          if (isAdmin) {
+            navigate("/admin");
+          } else {
+            // Redirect normal users to the main site (Home/Welcome page)
+            navigate("/");
+          }
+        }, 500);
       }
-    }, 500);
+    } catch (error: any) {
+      toast.error(error.message || "Authentication failed. Please check your credentials.");
+      console.error("Login error:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -68,10 +94,10 @@ export default function Login() {
           {/* Header */}
           <div className="text-center mb-10">
             <h1 className="font-display text-3xl font-extrabold tracking-tight text-accent">
-              Aditya Genset
+              {loginType === "admin" ? "Admin Portal" : "Aditya Genset"}
             </h1>
             <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.3em] text-white/60">
-              VisualSales Pro
+              {loginType === "admin" ? "Management Dashboard" : "VisualSales Pro"}
             </p>
           </div>
 
@@ -127,17 +153,41 @@ export default function Login() {
             <div className="pt-4 space-y-4">
               <button
                 type="submit"
-                className="group relative w-full flex items-center justify-center gap-2 py-3.5 bg-amber-gradient rounded-sm text-sm font-bold text-brand-navy-deep transition-all duration-300 ease-out hover:shadow-[0_0_20px_rgba(255,176,0,0.4)] hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0"
+                disabled={isLoading}
+                className="group relative w-full flex items-center justify-center gap-2 py-3.5 bg-amber-gradient rounded-sm text-sm font-bold text-brand-navy-deep transition-all duration-300 ease-out hover:shadow-[0_0_20px_rgba(255,176,0,0.4)] hover:-translate-y-0.5 active:scale-[0.98] active:translate-y-0 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                Secure Login 
-                <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />
+                {isLoading ? "Authenticating..." : "Secure Login"}
+                {!isLoading && <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />}
               </button>
               
               <button
                 type="button"
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-sm text-sm font-medium text-white transition-all duration-300 hover:border-white/20 active:scale-[0.98]"
+                onClick={() => {
+                  setLoginType("dealer");
+                  setEmail("");
+                }}
+                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-sm text-sm font-medium transition-all duration-300 active:scale-[0.98] ${
+                  loginType === "dealer" 
+                    ? "bg-white/10 border border-accent/30 text-accent" 
+                    : "bg-white/5 hover:bg-white/10 border border-white/10 text-white"
+                }`}
               >
-                <Store size={16} className="text-white/60" /> Login as Dealer
+                <Store size={16} className={loginType === "dealer" ? "text-accent" : "text-white/60"} /> Login as Dealer
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLoginType("admin");
+                  setEmail("admin@fortivsolutions.in");
+                }}
+                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-sm text-sm font-medium transition-all duration-300 active:scale-[0.98] ${
+                  loginType === "admin" 
+                    ? "bg-white/10 border border-accent/30 text-accent" 
+                    : "bg-white/5 hover:bg-white/10 border border-white/10 text-white"
+                }`}
+              >
+                <ShieldCheck size={16} className={loginType === "admin" ? "text-accent" : "text-white/60"} /> Login as Admin
               </button>
             </div>
           </form>
