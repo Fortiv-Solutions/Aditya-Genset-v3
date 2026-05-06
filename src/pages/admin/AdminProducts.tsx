@@ -5,6 +5,12 @@ import {
   ChevronUp, ChevronDown, Package, ArrowLeft,
 } from "lucide-react";
 import { ADMIN_PRODUCTS, AdminProduct } from "@/data/adminData";
+import { getDynamicSummaries } from "@/data/products";
+import { useEffect } from "react";
+import { toast } from "sonner";
+import { 
+  FileSpreadsheet, History, FilterX, MoreVertical
+} from "lucide-react";
 
 const STATUS_STYLES = {
   published: "bg-green-900/50 text-green-300 border-green-700/50",
@@ -35,6 +41,23 @@ export default function AdminProducts() {
   const [sortField, setSortField] = useState<SortField>("kva");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const dynamic = getDynamicSummaries().map(s => ({
+      id: s.slug,
+      name: s.name,
+      model: s.slug,
+      kva: s.kva,
+      engineBrand: "Escorts",
+      type: "silent" as const,
+      cpcb: "IV+" as const,
+      price: 0,
+      stock: "in_stock" as const,
+      inquiries: 0,
+      status: "published" as const,
+    }));
+    setProducts([...ADMIN_PRODUCTS, ...dynamic]);
+  }, []);
 
   const filtered = products
     .filter((p) => {
@@ -82,6 +105,27 @@ export default function AdminProducts() {
           : p
       )
     );
+  };
+
+  const duplicateProduct = (product: AdminProduct) => {
+    const newProduct = {
+      ...product,
+      id: `P${Math.floor(Math.random() * 10000)}`,
+      name: `${product.name} (Copy)`,
+      model: `${product.model}-copy`,
+      inquiries: 0,
+    };
+    setProducts([newProduct, ...products]);
+    toast.success("Product duplicated successfully");
+  };
+
+  const archiveProduct = (id: string) => {
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === id ? { ...p, status: "archived" as const } : p
+      )
+    );
+    toast.info("Product moved to archives");
   };
 
   const SortIcon = ({ field }: { field: SortField }) => (
@@ -164,8 +208,20 @@ export default function AdminProducts() {
             <option value="silent">Silent</option>
             <option value="open">Open</option>
           </select>
-          <button className="flex items-center gap-1.5 px-3 py-2.5 bg-card shadow-sm border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <Filter size={14} /> Filter
+          <button 
+            onClick={() => {
+              setSearch("");
+              setFilterStatus("all");
+              setFilterType("all");
+            }}
+            className="flex items-center gap-1.5 px-3 py-2.5 bg-card shadow-sm border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <FilterX size={14} /> Reset
+          </button>
+          <div className="h-full w-px bg-border mx-1 hidden sm:block" />
+          <button className="flex items-center gap-1.5 px-4 py-2.5 bg-secondary hover:bg-secondary/80 border border-border rounded-lg text-sm font-medium text-muted-foreground transition-colors">
+            <FileSpreadsheet size={15} className="text-green-500" />
+            Bulk Import
           </button>
         </div>
       </div>
@@ -324,8 +380,16 @@ export default function AdminProducts() {
                       <button
                         className="p-1.5 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
                         title="Duplicate"
+                        onClick={() => duplicateProduct(product)}
                       >
                         <Copy size={14} />
+                      </button>
+                      <button
+                        className="p-1.5 rounded-md text-muted-foreground hover:text-amber-500 hover:bg-amber-500/10 transition-colors"
+                        title="Archive"
+                        onClick={() => archiveProduct(product.id)}
+                      >
+                        <History size={14} />
                       </button>
                       <button
                         className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors"

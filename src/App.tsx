@@ -28,6 +28,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCMS from "./pages/admin/AdminCMS";
 import CMSEditor from "./pages/admin/CMSEditor";
 import AdminComingSoon from "./pages/admin/AdminComingSoon";
+import SoftwareRoadmap from "./pages/admin/SoftwareRoadmap";
 
 import { useState, useEffect } from "react";
 
@@ -88,6 +89,7 @@ const App = () => {
 
             <Route path="/admin/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
             <Route path="/admin/cms/edit/:pageId" element={<ProtectedRoute><CMSEditor /></ProtectedRoute>} />
+            <Route path="/admin/roadmap" element={<AdminRoute><SoftwareRoadmap /></AdminRoute>} />
 
             {/* Removed CMS, Orders, Dealers, Service routes to focus on Presentation Tool features */}
 

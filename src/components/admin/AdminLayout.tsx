@@ -63,6 +63,11 @@ const NAV_ITEMS: NavItem[] = [
     icon: Settings,
     path: "/admin/settings",
   },
+  {
+    label: "Roadmap",
+    icon: Zap,
+    path: "/admin/roadmap",
+  },
 ];
 
 interface AdminLayoutProps {

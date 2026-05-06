@@ -10,7 +10,10 @@ async function getPdfjsLib() {
   if (!pdfjsLib) {
     const mod = await import("pdfjs-dist");
     // Use a CDN-hosted worker so we don't need to copy it to public/
-    mod.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${mod.version}/pdf.worker.min.js`;
+    mod.GlobalWorkerOptions.workerSrc = new URL(
+      "pdfjs-dist/build/pdf.worker.min.mjs",
+      import.meta.url
+    ).toString();
     pdfjsLib = mod;
   }
   return pdfjsLib;
@@ -98,7 +101,7 @@ PDF TEXT:
 ${rawText.slice(0, 12000)}`;
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },

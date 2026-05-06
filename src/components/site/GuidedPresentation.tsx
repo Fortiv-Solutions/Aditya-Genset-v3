@@ -139,10 +139,11 @@ export function GuidedPresentation({ onClose, sectionId = "showcaseData", produc
   
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  // Use EKL15 custom images, switching halfway through the 10 chapters
-  const imageKey = product?.slug === "ekl-15-2cyl" ? (currentIndex >= 5 ? "ekl15Main2" : "ekl15Main1") : "mainImage";
-  const defaultImage = product?.slug === "ekl-15-2cyl" 
-    ? (currentIndex >= 5 ? ekl15Main2 : ekl15Main1) 
+  // Use EKL15 custom images for all Escort products, switching halfway through the 10 chapters
+  const isEscort = product?.slug === "ekl-15-2cyl" || product?.name.toLowerCase().includes("escort");
+  const imageKey = isEscort ? (currentIndex >= 5 ? "ekl15Main2" : "ekl15Main1") : "mainImage";
+  const defaultImage = isEscort
+    ? (currentIndex >= 5 ? ekl15Main2 : ekl15Main1)
     : (product?.hero || mainImage);
 
   // Handle keyboard
@@ -166,7 +167,9 @@ export function GuidedPresentation({ onClose, sectionId = "showcaseData", produc
   }, [scrollYProgress, presentationHotspots.length]);
 
   const activeHotspot = presentationHotspots[currentIndex];
-  const eklData = product?.slug === "ekl-15-2cyl" ? EKL15_CHAPTER_DATA[activeHotspot.id as keyof typeof EKL15_CHAPTER_DATA] : null;
+  // Only use the static EKL15_CHAPTER_DATA for the original EKL15. 
+  // Dynamic products use their own data already embedded in hotspots.
+  const eklData = (product?.slug === "ekl-15-2cyl") ? EKL15_CHAPTER_DATA[activeHotspot.id as keyof typeof EKL15_CHAPTER_DATA] : null;
 
   // Dynamically calculate camera pan offset so the camera perfectly centers on the active dot, even if the admin moves it
   const activeDotX = cmsContent?.[`hotspot_${currentIndex}_x`] !== undefined ? Number(cmsContent[`hotspot_${currentIndex}_x`]) : activeHotspot.x;

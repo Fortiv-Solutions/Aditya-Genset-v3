@@ -62,6 +62,33 @@ export interface KpiData {
   color: string;
 }
 
+export interface Dealer {
+  id: string;
+  name: string;
+  region: string;
+  activeLeads: number;
+  totalSales: number;
+  status: "active" | "inactive";
+}
+
+export interface SalesRep {
+  id: string;
+  name: string;
+  presentations: number;
+  quotesSent: number;
+  conversionRate: number;
+  lastActive: string;
+}
+
+export interface AppNotification {
+  id: string;
+  type: "lead" | "quote" | "dealer" | "system";
+  title: string;
+  message: string;
+  time: string;
+  unread: boolean;
+}
+
 export const MOCK_LEADS: Lead[] = [
   {
     id: "L001",
@@ -365,9 +392,43 @@ export const PIPELINE_DATA = [
 ];
 
 export const TOP_PRODUCTS_DATA = [
-  { name: "62.5 kVA Silent", inquiries: 67 },
-  { name: "125 kVA Silent", inquiries: 52 },
-  { name: "250 kVA Silent", inquiries: 41 },
-  { name: "15 kVA Silent", inquiries: 38 },
-  { name: "500 kVA Silent", inquiries: 29 },
+  { name: "62.5 kVA Silent", inquiries: 67, views: 1240, comparisons: 156, quotes: 42 },
+  { name: "125 kVA Silent", inquiries: 52, views: 980, comparisons: 112, quotes: 35 },
+  { name: "250 kVA Silent", inquiries: 41, views: 850, comparisons: 89, quotes: 28 },
+  { name: "15 kVA Silent", inquiries: 38, views: 1100, comparisons: 145, quotes: 25 },
+  { name: "500 kVA Silent", inquiries: 29, views: 670, comparisons: 54, quotes: 18 },
+];
+
+export const MOCK_DEALERS: Dealer[] = [
+  { id: "D001", name: "Shakti Power Systems", region: "Gujarat", activeLeads: 12, totalSales: 45, status: "active" },
+  { id: "D002", name: "Apex Generators", region: "Maharashtra", activeLeads: 8, totalSales: 32, status: "active" },
+  { id: "D003", name: "Sunview Energy", region: "Rajasthan", activeLeads: 5, totalSales: 18, status: "active" },
+  { id: "D004", name: "Metro Electrics", region: "Madhya Pradesh", activeLeads: 3, totalSales: 12, status: "inactive" },
+];
+
+export const MOCK_SALES_REPS: SalesRep[] = [
+  { id: "S001", name: "Vikram Shah", presentations: 45, quotesSent: 18, conversionRate: 35, lastActive: "10 mins ago" },
+  { id: "S002", name: "Priya Joshi", presentations: 38, quotesSent: 14, conversionRate: 28, lastActive: "2 hrs ago" },
+  { id: "S003", name: "Arjun Singh", presentations: 24, quotesSent: 9, conversionRate: 22, lastActive: "Yesterday" },
+];
+
+export const QUOTE_METRICS = {
+  totalQuotedValue: 18500000, // 1.85 Cr
+  acceptanceRate: 64,
+  averageDealSize: 850000,
+  targetValue: 25000000,
+};
+
+export const REVENUE_FORECAST = [
+  { month: "May", revenue: 4800000, weighted: 3200000 },
+  { month: "Jun", revenue: 6500000, weighted: 4100000 },
+  { month: "Jul", revenue: 5200000, weighted: 3500000 },
+  { month: "Aug", revenue: 8400000, weighted: 5800000 },
+];
+
+export const MOCK_NOTIFICATIONS: AppNotification[] = [
+  { id: "N001", type: "lead", title: "New Website Inquiry", message: "Rajesh Mehta requested a quote for 250 kVA set.", time: "5 mins ago", unread: true },
+  { id: "N002", type: "quote", title: "Quote Approved", message: "Quotation #4421 for Rane Pharma has been approved.", time: "1 hr ago", unread: true },
+  { id: "N003", type: "dealer", title: "Dealer Activity", message: "Shakti Power Systems added 3 new leads.", time: "3 hrs ago", unread: false },
+  { id: "N004", type: "system", title: "Monthly Report", message: "April performance report is now ready for download.", time: "Yesterday", unread: false },
 ];

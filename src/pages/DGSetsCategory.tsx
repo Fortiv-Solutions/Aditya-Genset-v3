@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SEO } from "@/components/site/SEO";
+import { getDynamicSummaries } from "@/data/products";
 import { SectionReveal } from "@/components/site/SectionReveal";
 import { ArrowLeft, ArrowRight, Zap, Search } from "lucide-react";
 import gensetHero from "@/assets/products/showcase/main-view.png";
@@ -55,7 +56,20 @@ export default function DGSetsCategory() {
   const [selectedApplication, setSelectedApplication] = useState("All");
 
   // Get live CMS values to override hardcoded values
-  const liveDgSets = dgSets.map(set => ({
+  const dynamicSummaries = getDynamicSummaries();
+  const dynamicSets: DGSet[] = dynamicSummaries.map(s => ({
+    id: s.slug,
+    model: s.name,
+    kva: s.kva,
+    engine: "Escorts", // Assuming Escorts for dynamic imports as per request
+    application: "Prime",
+    fuel: "Variable",
+    noise: "70 dB(A)",
+    image: gensetImages[1], // Use Escort template image
+    compliance: "CPCB IV+",
+  }));
+
+  const liveDgSets = [...dgSets, ...dynamicSets].map(set => ({
     ...set,
     model: content?.productsData?.[`product_${set.id}_model`] || set.model,
     kva: Number(content?.productsData?.[`product_${set.id}_kva`]) || set.kva,
@@ -299,12 +313,9 @@ export default function DGSetsCategory() {
                           e.preventDefault();
                           return;
                         }
-                        // EKL 15 (2 Cyl) has its own full showcase
-                        if (set.id === "18") {
-                          navigate("/products/ekl-15-2cyl");
-                        } else {
-                          navigate("/products/silent-62-5");
-                        }
+                        // EKL 15 (2 Cyl) has its own specific slug, others use their ID/Slug
+                        const targetSlug = set.id === "18" ? "ekl-15-2cyl" : set.id;
+                        navigate(`/products/${targetSlug}`);
                       }}
                       className="w-full flex items-center justify-center gap-2.5 py-2.5 bg-gray-50 hover:bg-accent hover:text-foreground rounded-lg text-base font-semibold transition-colors group/btn border border-border hover:border-accent"
                     >

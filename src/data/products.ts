@@ -598,5 +598,24 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
     },
   ],
 };
+export const getDynamicSummaries = (): ProductSummary[] => {
+  const stored = localStorage.getItem("dynamic_summaries");
+  return stored ? JSON.parse(stored) : [];
+};
 
+export const getDynamicProduct = (slug: string): ShowcaseProduct | null => {
+  const stored = localStorage.getItem("dynamic_products");
+  if (!stored) return null;
+  const products = JSON.parse(stored);
+  return products[slug] || null;
+};
 
+export const getAllProducts = (): ProductSummary[] => {
+  return [...PRODUCTS, ...getDynamicSummaries()];
+};
+
+export const getProductBySlug = (slug: string): ShowcaseProduct | null => {
+  if (slug === SHOWCASE.slug) return SHOWCASE;
+  if (slug === EKL15_SHOWCASE.slug) return EKL15_SHOWCASE;
+  return getDynamicProduct(slug);
+};

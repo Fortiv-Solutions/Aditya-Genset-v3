@@ -1,16 +1,12 @@
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { SEO } from "@/components/site/SEO";
-import { SHOWCASE, EKL15_SHOWCASE } from "@/data/products";
+import { getProductBySlug, SHOWCASE, EKL15_SHOWCASE } from "@/data/products";
 import { ScrollStory } from "@/components/site/ScrollStory";
 import { ArrowLeft, Monitor } from "lucide-react";
 import { useRef, useState } from "react";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 
-const SHOWCASES = {
-  [SHOWCASE.slug]: SHOWCASE,
-  [EKL15_SHOWCASE.slug]: EKL15_SHOWCASE,
-};
 
 // Height of the absolute header overlay in px — used to offset first chapter
 export const SHOWCASE_HEADER_H = 230;
@@ -23,9 +19,11 @@ export default function ProductDetail() {
   const [activeChapter, setActiveChapter] = useState(0);
 
   const isCMSPreview = !!pageId?.startsWith("showcaseData") || !!pageId?.startsWith("ekl15ShowcaseData");
+  
+  const product = slug ? getProductBySlug(slug) : undefined;
+  
+  // Decide which CMS section to use for editing (dynamic products use showcaseData as base)
   const sectionId = isCMSPreview ? pageId : (slug === EKL15_SHOWCASE.slug ? "ekl15ShowcaseData" : "showcaseData");
-
-  const product = slug ? SHOWCASES[slug] : undefined;
 
   if (!isCMSPreview && !product) {
     return (

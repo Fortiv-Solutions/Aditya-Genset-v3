@@ -7,6 +7,7 @@ import {
 import { toast } from "sonner";
 import { PDFImportZone } from "@/components/admin/PDFImportZone";
 import type { ExtractedProduct } from "@/lib/pdfExtractor";
+import { generateShowcaseFromTemplate, saveDynamicProduct } from "@/lib/productGenerator";
 
 // ─── Form Section Wrapper ────────────────────────────────────────────────────
 function FormSection({ title, icon: Icon, children }: {
@@ -193,6 +194,7 @@ export default function AddProduct() {
   const [savingDraft, setSavingDraft] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [specs, setSpecs] = useState(DEFAULT_SPECS);
+  const [extractedData, setExtractedData] = useState<ExtractedProduct | null>(null);
 
   const [form, setForm] = useState({
     name: "",
@@ -215,6 +217,7 @@ export default function AddProduct() {
 
   /** Called when admin clicks "Apply to Form" after PDF extraction */
   const handleExtracted = (data: ExtractedProduct) => {
+    setExtractedData(data);
     setForm((prev) => ({
       ...prev,
       name: data.name || prev.name,
@@ -260,8 +263,19 @@ export default function AddProduct() {
     }
     setPublishing(true);
     setTimeout(() => {
+      // If it's an Escort product, generate and save the dynamic showcase data
+      if (extractedData) {
+        try {
+          const dynamicShowcase = generateShowcaseFromTemplate(extractedData);
+          saveDynamicProduct(dynamicShowcase);
+          console.log("Generated dynamic showcase:", dynamicShowcase);
+        } catch (err) {
+          console.error("Failed to generate dynamic showcase:", err);
+        }
+      }
+
       setPublishing(false);
-      toast.success("Product published successfully!");
+      toast.success("Product published successfully! Showcase generated.");
       navigate("/admin/products");
     }, 1000);
   };
