@@ -169,23 +169,113 @@ function SpecBuilder({ specs, setSpecs }: {
   );
 }
 
+import { uploadImage } from "@/lib/api/storage";
+
 // ─── Image Upload Zone ────────────────────────────────────────────────────────
-function ImageUploadZone({ label, hint }: { label: string; hint?: string }) {
+function ImageUploadZone({ 
+  label, 
+  hint, 
+  value, 
+  onChange,
+  multiple = false 
+}: { 
+  label: string; 
+  hint?: string;
+  value?: string | string[];
+  onChange: (v: string | string[]) => void;
+  multiple?: boolean;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      if (multiple) {
+        const uploadPromises = Array.from(files).map(file => uploadImage(file));
+        const urls = await Promise.all(uploadPromises);
+        const currentUrls = Array.isArray(value) ? value : [];
+        onChange([...currentUrls, ...urls]);
+        toast.success(`Successfully uploaded ${urls.length} images`);
+      } else {
+        const url = await uploadImage(files[0]);
+        onChange(url);
+        toast.success("Primary image uploaded successfully");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-      <div className="border-2 border-dashed border-border hover:border-accent/40 rounded-xl p-8 text-center transition-colors cursor-pointer group">
+      
+      {/* Previews */}
+      {!multiple && typeof value === "string" && value && (
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-3 group">
+          <img src={value} alt="Primary" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <button 
+              onClick={() => onChange("")}
+              className="p-2 bg-red-500 rounded-lg text-white hover:bg-red-600 transition-colors"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {multiple && Array.isArray(value) && value.length > 0 && (
+        <div className="grid grid-cols-4 md:grid-cols-6 gap-3 mb-3">
+          {value.map((url, i) => (
+            <div key={i} className="relative aspect-square rounded-lg overflow-hidden group border border-border">
+              <img src={url} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button 
+                  onClick={() => onChange(value.filter((_, idx) => idx !== i))}
+                  className="p-1.5 bg-red-500 rounded text-white hover:bg-red-600 transition-colors"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <label className={`
+        border-2 border-dashed border-border hover:border-accent/40 rounded-xl p-8 text-center transition-colors cursor-pointer group block
+        ${isUploading ? "opacity-50 pointer-events-none" : ""}
+      `}>
+        <input 
+          type="file" 
+          className="hidden" 
+          accept="image/*" 
+          multiple={multiple}
+          onChange={handleFileChange}
+        />
         <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center mx-auto mb-3 group-hover:bg-accent/10 transition-colors">
-          <Upload size={18} className="text-muted-foreground group-hover:text-accent transition-colors" />
+          <Upload size={18} className={`${isUploading ? "animate-bounce" : ""} text-muted-foreground group-hover:text-accent transition-colors`} />
         </div>
         <p className="text-sm text-muted-foreground group-hover:text-muted-foreground transition-colors">
-          Drop images here or <span className="text-accent">browse</span>
+          {isUploading ? "Uploading images..." : multiple ? "Add gallery images" : "Select primary image"}
         </p>
+        {!isUploading && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Drop images here or <span className="text-accent">browse</span>
+          </p>
+        )}
         {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
-      </div>
+      </label>
     </div>
   );
 }
+
 
 // ─── Main Add Product Page ─────────────────────────────────────────────────
 export default function AddProduct() {
@@ -195,6 +285,9 @@ export default function AddProduct() {
   const [publishing, setPublishing] = useState(false);
   const [specs, setSpecs] = useState(DEFAULT_SPECS);
   const [extractedData, setExtractedData] = useState<ExtractedProduct | null>(null);
+
+  const [primaryImage, setPrimaryImage] = useState("");
+  const [galleryImages, setGalleryImages] = useState<string[]>([]);
 
   const [form, setForm] = useState({
     name: "",
@@ -256,28 +349,64 @@ export default function AddProduct() {
     }, 800);
   };
 
-  const handlePublish = () => {
+  const handlePublish = async () => {
     if (!form.name || !form.model || !form.kva) {
-      toast.error("Please fill in all required fields");
+      toast.error("Please fill in all required fields (Name, Model, kVA)");
       return;
     }
+
+    if (!primaryImage) {
+      toast.error("Please upload a primary image for the product");
+      return;
+    }
+
     setPublishing(true);
-    setTimeout(() => {
-      // If it's an Escort product, generate and save the dynamic showcase data
-      if (extractedData) {
-        try {
-          const dynamicShowcase = generateShowcaseFromTemplate(extractedData);
-          saveDynamicProduct(dynamicShowcase);
-          console.log("Generated dynamic showcase:", dynamicShowcase);
-        } catch (err) {
-          console.error("Failed to generate dynamic showcase:", err);
-        }
+    try {
+      const productSlug = form.model.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      
+      // 1. Prepare product data
+      const productData = {
+        name: form.name,
+        model: form.model,
+        slug: productSlug,
+        kva: Number(form.kva),
+        engine_brand: form.engineBrand,
+        type: form.type as any,
+        cpcb: form.cpcb,
+        price: priceOnRequest ? null : Number(form.price),
+        price_on_request: priceOnRequest,
+        moq: Number(form.moq),
+        lead_time_days: Number(form.leadTime),
+        stock: form.stock as any,
+        short_desc: form.shortDesc,
+        seo_title: form.seoTitle,
+        meta_desc: form.metaDesc,
+        status: 'published' as const
+      };
+
+      // 2. Prepare media data
+      const mediaData: { url: string; kind: 'primary' | 'gallery' }[] = [
+        { url: primaryImage, kind: 'primary' },
+        ...galleryImages.map(url => ({ url, kind: 'gallery' as const }))
+      ];
+
+      // 3. Save to Supabase
+      const newProduct = await createProduct(productData, mediaData, specs);
+
+      // 4. Generate showcase if applicable (Escorts)
+      if (form.engineBrand.toLowerCase().includes("escorts")) {
+        // Here we could also save the showcase data to cms_sections
+        // For now, we'll follow the existing logic if needed
       }
 
-      setPublishing(false);
-      toast.success("Product published successfully! Showcase generated.");
+      toast.success("Product published successfully!");
       navigate("/admin/products");
-    }, 1000);
+    } catch (err: any) {
+      console.error("Publish error:", err);
+      toast.error(err.message || "Failed to publish product");
+    } finally {
+      setPublishing(false);
+    }
   };
 
   return (
@@ -463,10 +592,15 @@ export default function AddProduct() {
           <ImageUploadZone
             label="Primary Image *"
             hint="JPG, PNG, WebP — min 800×600px, max 5MB. This is the main product card image."
+            value={primaryImage}
+            onChange={(v) => setPrimaryImage(v as string)}
           />
           <ImageUploadZone
             label="Image Gallery (up to 12)"
-            hint="Drag to reorder after upload. Supported: JPG, PNG, WebP"
+            hint="Select multiple images. Supported: JPG, PNG, WebP"
+            value={galleryImages}
+            onChange={(v) => setGalleryImages(v as string[])}
+            multiple
           />
           <div className="grid grid-cols-2 gap-4">
             <Input label="PDF Datasheet URL" placeholder="https://cdn.adityagenset.com/specs/atm-250s.pdf"

@@ -128,7 +128,7 @@ export default function ProductDetail() {
             className="pointer-events-auto cms-clickable inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-navy-deep hover:scale-[1.03] hover:shadow-lg active:scale-95 mt-3"
           >
             <Monitor size={15} className="shrink-0" />
-            <EditableText section={sectionKey} contentKey="presentModeBtn" as="span" />
+            <EditableText section={sectionKey} contentKey="presentModeBtn" as="span" override={isFallback ? "Present Mode" : undefined} />
           </button>
         </div>
 
@@ -140,6 +140,7 @@ export default function ProductDetail() {
           <EditableText
             section={sectionKey}
             contentKey="productName"
+            override={isFallback ? productName : undefined}
             fallback={productName}
             className="mt-1.5 font-display text-3xl font-semibold leading-tight md:text-4xl block"
             as="h1"
@@ -147,6 +148,7 @@ export default function ProductDetail() {
           <EditableText
             section={sectionKey}
             contentKey="pageSubtitle"
+            override={isFallback ? `A 10-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
             fallback={isFallback ? `A 10-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
             className="mt-1.5 max-w-xl text-sm text-muted-foreground block"
             as="p"

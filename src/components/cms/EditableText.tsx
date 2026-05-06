@@ -8,15 +8,18 @@ interface EditableTextProps {
   className?: string;
   as?: React.ElementType;
   fallback?: string;
+  /** When set, this value takes absolute priority — overrides even existing CMS content. */
+  override?: string;
 }
 
-export function EditableText({ contentKey, section, className = "", as: Component = "span", fallback }: EditableTextProps) {
+export function EditableText({ contentKey, section, className = "", as: Component = "span", fallback, override }: EditableTextProps) {
   const context = useCMSState();
   const { content, isEditMode, updateContent } = context;
 
   // Always derive the raw string value from the single source of truth
   const rawValue = content[section]?.[contentKey as keyof typeof content[typeof section]] as string | undefined;
-  const value = rawValue !== undefined ? rawValue : (fallback || "");
+  // `override` wins over everything; fallback only used when rawValue is absent
+  const value = override !== undefined ? override : (rawValue !== undefined ? rawValue : (fallback || ""));
   const ref = useRef<HTMLElement>(null);
 
   // The Empty-DOM Effect Pattern:

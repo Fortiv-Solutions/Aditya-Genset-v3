@@ -259,17 +259,26 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
 
       {/* ── Mobile stacked layout ──────────────────────────────────────── */}
       <div className="container-x lg:hidden">
-        {product.sections.map((s, i) => (
-          <article
-            key={s.id}
-            className="py-12 border-b border-border last:border-0"
-          >
-            <div className="mb-6 aspect-square overflow-hidden rounded-sm bg-muted">
-              <SmoothImage src={s.image} alt={s.alt} loading="lazy" wrapperClassName="h-full w-full" imageClassName="h-full w-full object-cover" />
-            </div>
-            <SectionContent section={s} active index={i} sectionId={sectionId} />
-          </article>
-        ))}
+        {product.sections.map((s, i) => {
+          const isEscortsMobile = product.engineBrand === "Escorts";
+          return (
+            <article
+              key={s.id}
+              className="py-12 border-b border-border last:border-0"
+            >
+              {!isEscortsMobile && (
+                <div className="mb-6 aspect-square overflow-hidden rounded-sm bg-muted">
+                  <SmoothImage src={s.image} alt={s.alt} loading="lazy" wrapperClassName="h-full w-full" imageClassName="h-full w-full object-cover" />
+                </div>
+              )}
+              {isEscortsMobile ? (
+                <ChapterInteractive chapterId={s.id} data={s as any} active={true} />
+              ) : (
+                <SectionContent section={s} active index={i} sectionId={sectionId} />
+              )}
+            </article>
+          );
+        })}
       </div>
 
       {/* Vertical Dot Nav — controlled by active chapter */}
@@ -489,7 +498,7 @@ function SectionContent({ section, active, index, sectionId }: { section: Showca
       )}
 
       <dl className="mt-8 divide-y divide-border border-y border-border">
-        {section.specs.map((row, spIdx) => (
+        {(section.specs ?? []).map((row, spIdx) => (
           <div
             key={row.label}
             className="grid grid-cols-2 gap-4 py-4 transition-all duration-500 ease-brand"
