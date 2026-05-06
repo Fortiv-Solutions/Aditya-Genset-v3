@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, Lock, Mail, Store } from "lucide-react";
 import { SEO } from "@/components/site/SEO";
 import { toast } from "sonner";
-import factoryHero from "@/assets/brand/factory-hero.jpg";
+import factoryHero from "@/assets/products/showcase/factory.jpg";
 import { useState } from "react";
 
 export default function Login() {

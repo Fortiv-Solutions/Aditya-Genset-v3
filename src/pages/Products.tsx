@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { SEO } from "@/components/site/SEO";
 import { SectionReveal } from "@/components/site/SectionReveal";
 import { ArrowRight, Zap, Package } from "lucide-react";
-import dgProduct from "@/assets/brand/dg-product.jpg";
-import containerImg from "@/assets/brand/container.png";
+import dgProduct from "@/assets/products/parts/enclosure.jpg";
+import containerImg from "@/assets/products/showcase/container.png";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 

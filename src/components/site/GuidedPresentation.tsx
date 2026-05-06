@@ -5,21 +5,25 @@ import { cn } from "@/lib/utils";
 import { fadeIn, fadeUp, scaleIn, durations, easings } from "@/lib/animations";
 import { EditableText } from "@/components/cms/EditableText";
 import { EditableImage } from "@/components/cms/EditableImage";
-import type { CMSSection } from "@/lib/sanity";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import type { CMSSection } from "@/lib/sanity";
 
-// Main image - always dg-real-1
-import mainImage from "@/assets/brand/dg-real-1.png";
+// Main image - always main-view.png
+import mainImage from "@/assets/products/showcase/main-view.png";
 
 // Sub-images from assets folder
-import subEngine from "@/assets/dg-engine.jpg";
-import subControl from "@/assets/brand/control-panel.png";
-import subFuel from "@/assets/brand/fuel-tank.jpg";
-import subProduct from "@/assets/brand/dg-product.jpg";
-import subAlternator from "@/assets/brand/engine-baudouin.jpg";
-import subEnclosure from "@/assets/brand/dg-real-2.jpg";
-import subDimensions from "@/assets/genset-hero-CdfwbH8a.jpg";
+import subEngine from "@/assets/products/parts/engine-real.jpg";
+import subControl from "@/assets/products/parts/enclosure.jpg";
+import subFuel from "@/assets/products/parts/enclosure.jpg";
+import subProduct from "@/assets/products/parts/enclosure.jpg";
+import subAlternator from "@/assets/products/parts/engine-real.jpg";
+import subEnclosure from "@/assets/products/parts/enclosure.jpg";
+import subDimensions from "@/assets/products/showcase/main-view.png";
+
+// EKL15 Specific assets for transition
+import ekl15Main1 from "@/assets/products/escorts/escort_15kva.jpg";
+import ekl15Main2 from "@/assets/products/escorts/escort_15kva_2.jpg";
+import { EKL15_CHAPTER_DATA } from "@/data/ekl15Data";
 
 interface Hotspot {
   id: string;
@@ -128,6 +132,8 @@ export function GuidedPresentation({ onClose, sectionId = "showcaseData", produc
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const imageWrapperRef = useRef<HTMLDivElement>(null);
+
+  const { scrollYProgress } = useScroll({ container: wrapperRef });
   
   const presentationHotspots = product?.hotspots && product.hotspots.length > 0 ? product.hotspots : HOTSPOTS;
   

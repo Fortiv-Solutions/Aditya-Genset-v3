@@ -5,16 +5,16 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 
 // DG Sets Images
-import dgProduct from "@/assets/brand/dg-product.jpg";
-import dgReal1 from "@/assets/brand/dg-real-1.png";
-import dgReal2 from "@/assets/brand/dg-real-2.jpg";
-import dgRealistic from "@/assets/brand/dg-realistic.png";
-import controlPanel from "@/assets/brand/control-panel.png";
+import dgProduct from "@/assets/products/parts/enclosure.jpg";
+import dgReal1 from "@/assets/products/showcase/main-view.png";
+import dgReal2 from "@/assets/products/parts/enclosure.jpg";
+import dgRealistic from "@/assets/products/showcase/cinematic-view.png";
+import controlPanel from "@/assets/products/parts/enclosure.jpg";
 
 // Non-Standard Images
-import containerImg from "@/assets/brand/container.png";
-import nonStandard from "@/assets/brand/non-standard.jpeg";
-import fuelTank from "@/assets/brand/fuel-tank.jpg";
+import containerImg from "@/assets/products/showcase/container.png";
+import nonStandard from "@/assets/products/showcase/non-standard.jpg";
+import fuelTank from "@/assets/products/parts/enclosure.jpg";
 
 const CATEGORIES = [
   {

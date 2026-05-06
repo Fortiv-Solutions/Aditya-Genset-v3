@@ -1,12 +1,12 @@
-import dgOverview from "@/assets/brand/dg-real-1.png";
-import dgEngine from "@/assets/brand/engine-baudouin.jpg";
-import dgAlternator from "@/assets/dg-alternator.jpg";
-import dgEnclosure from "@/assets/brand/dg-product.jpg";
-import dgDimensions from "@/assets/genset-hero-CdfwbH8a.jpg";
-import dgThumb from "@/assets/brand/dg-product.jpg";
-import dgControl from "@/assets/ekl15-electrical.png";
-import dgFuel from "@/assets/brand/fuel-tank.jpg";
-import escortVideo from "@/assets/brand/Escort_DG_SET.mp4";
+import dgOverview from "@/assets/products/showcase/main-view.png";
+import dgEngine from "@/assets/products/parts/engine-real.jpg"; // Placeholder as original is missing
+import dgAlternator from "@/assets/products/parts/engine-real.jpg"; // Placeholder as original is missing
+import dgEnclosure from "@/assets/products/parts/enclosure.jpg";
+import dgDimensions from "@/assets/products/showcase/main-view.png"; // Placeholder
+import dgThumb from "@/assets/products/parts/enclosure.jpg";
+import dgControl from "@/assets/products/parts/enclosure.jpg"; // Placeholder
+import dgFuel from "@/assets/products/parts/enclosure.jpg"; // Placeholder
+import escortVideo from "@/assets/products/showcase/product-video.mp4";
 
 export type ProductStatus = "active" | "coming_soon";
 export type KvaRange = "15-62.5" | "75-200" | "250-500";
@@ -311,24 +311,24 @@ export const PRODUCTS: ProductSummary[] = [
 ];
 
 // ── EKL 15 (2 Cyl)-IV Showcase ──────────────────────────────────────────────
-import ekl15Engine    from "@/assets/brand/engine-escorts.jpg";
-import ekl15Control   from "@/assets/ekl15-electrical.png";
-import ekl15Overview  from "@/assets/genset-small-C07x-piZ.jpg";
-import ekl15Alternator from "@/assets/dg-alternator.jpg";
-import ekl15Dimensions from "@/assets/escorts/40KVA.jpg";
-import ekl15Enclosure  from "@/assets/brand/dg-product.jpg";
-import ekl15Supply     from "@/assets/genset-open-tU4whFeg.jpg";
+import ekl15Engine    from "@/assets/products/parts/engine-real.jpg";
+import ekl15Control   from "@/assets/products/parts/enclosure.jpg";
+import ekl15Overview  from "@/assets/products/escorts/escort_15kva.jpg";
+import ekl15Alternator from "@/assets/products/parts/engine-real.jpg";
+import ekl15Dimensions from "@/assets/products/escorts/escort_40kva_main.jpg";
+import ekl15Enclosure  from "@/assets/products/parts/enclosure.jpg";
+import ekl15Supply     from "@/assets/products/escorts/escort_20kva_1.jpg";
 
-import escort15KVA from "@/assets/escorts/15KVA.jpg";
-import escort15KVA2 from "@/assets/escorts/15KVA2.jpg";
-import escort20KVA1 from "@/assets/escorts/20 KVA.1.jpg";
-import escort30KVA from "@/assets/escorts/30KVA.jpg";
-import escort40KVA2 from "@/assets/escorts/40KVA.2.jpg";
-import escort40KVA from "@/assets/escorts/40KVA.jpg";
-import escortVideoThumb from "@/assets/escorts/video-thumbnail.png";
-import ekl15Electrical from "@/assets/ekl15-electrical.png";
-import ekl15Protection from "@/assets/ekl15-protection.png";
-import ekl15RealDG     from "@/assets/brand/dg-real-2.jpg";
+import escort15KVA from "@/assets/products/escorts/escort_15kva.jpg";
+import escort15KVA2 from "@/assets/products/escorts/escort_15kva_2.jpg";
+import escort20KVA1 from "@/assets/products/escorts/escort_20kva_1.jpg";
+import escort30KVA from "@/assets/products/escorts/escort_30kva.jpg";
+import escort40KVA2 from "@/assets/products/escorts/escort_40kva_2.jpg";
+import escort40KVA from "@/assets/products/escorts/escort_40kva_main.jpg";
+import escortVideoThumb from "@/assets/products/showcase/main-view.png";
+import ekl15Electrical from "@/assets/products/parts/enclosure.jpg";
+import ekl15Protection from "@/assets/products/parts/enclosure.jpg";
+import ekl15RealDG     from "@/assets/products/parts/engine-real.jpg";
 
 export const EKL15_SHOWCASE: ShowcaseProduct = {
   slug: "ekl-15-2cyl",

@@ -1,8 +1,8 @@
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
-import factoryHero from "@/assets/brand/factory-hero.jpg";
-import dgRealistic from "@/assets/brand/dg-realistic.png";
+import factoryHero from "@/assets/products/showcase/factory.jpg";
+import dgRealistic from "@/assets/products/showcase/cinematic-view.png";
 import { SEO } from "@/components/site/SEO";
 import { StatStrip } from "@/components/site/StatStrip";
 import { SectionReveal } from "@/components/site/SectionReveal";

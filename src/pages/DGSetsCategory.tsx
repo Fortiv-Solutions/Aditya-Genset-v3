@@ -3,10 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { SEO } from "@/components/site/SEO";
 import { SectionReveal } from "@/components/site/SectionReveal";
 import { ArrowLeft, ArrowRight, Zap, Search } from "lucide-react";
-import gensetHero from "@/assets/genset-hero-CdfwbH8a.jpg";
-import gensetLarge from "@/assets/genset-large-CFWdgEox.jpg";
-import gensetOpen from "@/assets/genset-open-tU4whFeg.jpg";
-import gensetSmall from "@/assets/genset-small-C07x-piZ.jpg";
+import gensetHero from "@/assets/products/showcase/main-view.png";
+import gensetLarge from "@/assets/products/showcase/main-view.png";
+import gensetOpen from "@/assets/products/parts/engine-real.jpg";
+import gensetSmall from "@/assets/products/parts/enclosure.jpg";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 
