@@ -7,6 +7,8 @@ import { ArrowLeft, ArrowRight, Zap, Search, Loader2 } from "lucide-react";
 import gensetFallback from "@/assets/products/showcase/main-view.png";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
+import { useCompare } from "@/context/CompareContext";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export interface DGSet {
   id: string;
@@ -35,6 +37,7 @@ const applications = ["All", "Prime", "Standby", "Continuous"];
 export default function DGSetsCategory() {
   const navigate = useNavigate();
   const { content } = useCMSState();
+  const { isInCompare, addToCompare, removeFromCompare } = useCompare();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEngine, setSelectedEngine] = useState<string>("All");
   const [selectedKvaRange, setSelectedKvaRange] = useState(kvaRanges[0]);
@@ -224,6 +227,29 @@ export default function DGSetsCategory() {
               {filteredSets.map((set, index) => (
                 <div key={set.id} onClick={() => navigate(`/products/${set.slug}`)}>
                   <div className="group relative bg-white border border-border rounded-xl overflow-hidden hover:border-accent hover:shadow-xl transition-all duration-300 cursor-pointer h-full">
+                    {/* Compare Checkbox */}
+                    <div 
+                      className="absolute top-3 right-3 z-20"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center gap-2 px-2 py-1 bg-white/80 backdrop-blur-sm rounded-lg border border-border shadow-sm">
+                        <Checkbox 
+                          id={`compare-${set.id}`}
+                          checked={isInCompare(set.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) addToCompare(set.id);
+                            else removeFromCompare(set.id);
+                          }}
+                        />
+                        <label 
+                          htmlFor={`compare-${set.id}`}
+                          className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground cursor-pointer"
+                        >
+                          Compare
+                        </label>
+                      </div>
+                    </div>
+
                     {/* Badge */}
                     {index === 0 && (
                       <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-accent text-foreground text-xs font-bold uppercase tracking-wider rounded">

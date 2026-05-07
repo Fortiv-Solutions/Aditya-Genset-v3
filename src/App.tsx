@@ -49,6 +49,8 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 import { CMSEditorProvider } from "./components/cms/CMSEditorProvider";
+import { CompareProvider } from "./context/CompareContext";
+import CompareProducts from "./pages/CompareProducts";
 
 const App = () => {
   const [, setIsLoggedIn] = useState(false);
@@ -64,7 +66,8 @@ const App = () => {
         <Toaster />
         <Sonner />
         <CMSEditorProvider>
-          <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <CompareProvider>
+            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
             <Routes>
               {/* ── Public ─────────────────────────────────── */}
               <Route path="/login" element={<Login />} />
@@ -111,6 +114,7 @@ const App = () => {
                         <Route path="/products" element={<Products />} />
                         <Route path="/products/dg-sets" element={<DGSetsCategory />} />
                         <Route path="/products/:slug" element={<ProductDetail />} />
+                        <Route path="/compare" element={<CompareProducts />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </RouteFade>
@@ -120,7 +124,8 @@ const App = () => {
             />
           </Routes>
           </BrowserRouter>
-        </CMSEditorProvider>
+        </CompareProvider>
+      </CMSEditorProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

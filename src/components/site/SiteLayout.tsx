@@ -1,6 +1,7 @@
 import { ReactNode } from "react";
 import { Navbar } from "@/components/site/Navbar";
 import { useLocation } from "react-router-dom";
+import { CompareBar } from "@/components/products/CompareBar";
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -16,6 +17,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <main className={isLoginPage ? "" : "pt-16 md:pt-0 md:pl-0"}>
         {children}
       </main>
+      {!isLoginPage && <CompareBar />}
     </div>
   );
 }
