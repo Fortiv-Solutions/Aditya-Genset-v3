@@ -1,6 +1,8 @@
 import { ReactNode } from "react";
 import { Navbar } from "@/components/site/Navbar";
 import { useLocation } from "react-router-dom";
+import { CompareBar } from "@/components/products/CompareBar";
+import { DemoModeBanner } from "./DemoModeBanner";
 
 export function SiteLayout({ children }: { children: ReactNode }) {
   const { pathname } = useLocation();
@@ -8,6 +10,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {!isLoginPage && <DemoModeBanner />}
       {!isLoginPage && <Navbar />}
       {/* 
         On mobile: add top padding for the fixed mobile header (pt-16)
@@ -16,6 +19,7 @@ export function SiteLayout({ children }: { children: ReactNode }) {
       <main className={isLoginPage ? "" : "pt-16 md:pt-0 md:pl-0"}>
         {children}
       </main>
+      {!isLoginPage && <CompareBar />}
     </div>
   );
 }

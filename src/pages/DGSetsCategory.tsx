@@ -7,6 +7,8 @@ import { ArrowLeft, ArrowRight, Zap, Search, Loader2 } from "lucide-react";
 import gensetFallback from "@/assets/products/showcase/main-view.png";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
+import { useCompare } from "@/context/CompareContext";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export interface DGSet {
   id: string;
@@ -35,6 +37,7 @@ const applications = ["All", "Prime", "Standby", "Continuous"];
 export default function DGSetsCategory() {
   const navigate = useNavigate();
   const { content } = useCMSState();
+  const { isInCompare, addToCompare, removeFromCompare } = useCompare();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedEngine, setSelectedEngine] = useState<string>("All");
   const [selectedKvaRange, setSelectedKvaRange] = useState(kvaRanges[0]);
@@ -47,10 +50,23 @@ export default function DGSetsCategory() {
     async function loadSets() {
       setLoading(true);
       try {
+        console.log('🔍 DGSetsCategory: Fetching products...')
         const products = await fetchPublishedProducts();
+        console.log('📦 DGSetsCategory: Received products:', products)
+        console.log('📊 DGSetsCategory: Product count:', products.length)
+        
         const mapped: DGSet[] = products.map(p => {
           const primaryMedia = p.product_media?.find(m => m.kind === 'primary' || m.kind === 'card');
           const specs = p.product_specs || [];
+          
+          console.log(`📝 Mapping product: ${p.name}`, {
+            id: p.id,
+            status: p.status,
+            engine_brand: p.engine_brand,
+            kva: p.kva,
+            hasImage: !!primaryMedia,
+            specCount: specs.length
+          })
           
           return {
             id: p.id,
@@ -66,9 +82,11 @@ export default function DGSetsCategory() {
             isHidden: p.status !== 'published'
           };
         });
+        console.log('✅ DGSetsCategory: Mapped products:', mapped)
+        console.log('📊 DGSetsCategory: Mapped count:', mapped.length)
         setSets(mapped);
       } catch (err) {
-        console.error("Failed to load DG sets:", err);
+        console.error("❌ DGSetsCategory: Failed to load DG sets:", err);
       } finally {
         setLoading(false);
       }
@@ -84,8 +102,22 @@ export default function DGSetsCategory() {
     const matchesKva = set.kva >= selectedKvaRange.min && set.kva <= selectedKvaRange.max;
     const matchesApplication = selectedApplication === "All" || set.application.includes(selectedApplication);
     
-    return !set.isHidden && matchesSearch && matchesEngine && matchesKva && matchesApplication;
+    const passes = !set.isHidden && matchesSearch && matchesEngine && matchesKva && matchesApplication;
+    
+    if (!passes) {
+      console.log(`🚫 Product filtered out: ${set.model}`, {
+        isHidden: set.isHidden,
+        matchesSearch,
+        matchesEngine,
+        matchesKva,
+        matchesApplication
+      })
+    }
+    
+    return passes;
   });
+
+  console.log('📊 Filtered products count:', filteredSets.length, 'out of', sets.length)
 
   return (
     <>
@@ -224,6 +256,29 @@ export default function DGSetsCategory() {
               {filteredSets.map((set, index) => (
                 <div key={set.id} onClick={() => navigate(`/products/${set.slug}`)}>
                   <div className="group relative bg-white border border-border rounded-xl overflow-hidden hover:border-accent hover:shadow-xl transition-all duration-300 cursor-pointer h-full">
+                    {/* Compare Checkbox */}
+                    <div 
+                      className="absolute top-3 right-3 z-20"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div className="flex items-center gap-2 px-2 py-1 bg-white/80 backdrop-blur-sm rounded-lg border border-border shadow-sm">
+                        <Checkbox 
+                          id={`compare-${set.id}`}
+                          checked={isInCompare(set.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) addToCompare(set.id);
+                            else removeFromCompare(set.id);
+                          }}
+                        />
+                        <label 
+                          htmlFor={`compare-${set.id}`}
+                          className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground cursor-pointer"
+                        >
+                          Compare
+                        </label>
+                      </div>
+                    </div>
+
                     {/* Badge */}
                     {index === 0 && (
                       <div className="absolute top-3 left-3 z-10 px-2.5 py-1 bg-accent text-foreground text-xs font-bold uppercase tracking-wider rounded">

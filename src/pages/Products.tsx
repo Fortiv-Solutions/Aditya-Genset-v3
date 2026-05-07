@@ -43,7 +43,7 @@ export default function Products() {
   return (
     <>
       <SEO
-        title={`${content.productConfig.sectionTitle} — Aditya Genset`}
+        title={`${content.productConfig.sectionTitle} | Aditya Genset`}
         description={content.productConfig.sectionSubtitle}
       />
 

@@ -50,6 +50,7 @@ export default function Login() {
     setIsLoading(true);
     
     try {
+      // Real Supabase authentication only
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,

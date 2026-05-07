@@ -1,18 +1,32 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, Home, Box, Monitor, LayoutDashboard } from "lucide-react";
+import { Menu, X, Home, Box, Monitor, LayoutDashboard, BarChart2, FileText } from "lucide-react";
+import { useCompare } from "@/context/CompareContext";
 import logo from "@/assets/brand/logo.png";
 
 const links = [
   { to: "/", label: "Welcome", icon: Home },
   { to: "/products", label: "Products", icon: Box },
+  { to: "/compare", label: "Compare", icon: BarChart2 },
+  { to: "/quote-builder", label: "Quote Builder", icon: FileText },
 ];
 
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const [isPresentMode, setIsPresentMode] = useState(false);
   const { pathname } = useLocation();
+  const { selectedIds } = useCompare();
+
+  const allLinks = [
+    ...links.map(link => {
+      // Add count badge to Compare link
+      if (link.to === "/compare" && selectedIds.length > 0) {
+        return { ...link, label: `Compare (${selectedIds.length})` };
+      }
+      return link;
+    }),
+  ];
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -64,7 +78,7 @@ export function Navbar() {
       {open && (
         <div className="fixed inset-x-0 top-16 z-40 border-b border-border bg-white p-4 shadow-xl animate-fade-in md:hidden">
           <nav className="flex flex-col gap-2">
-            {links.map((l) => (
+            {allLinks.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}
@@ -154,7 +168,7 @@ export function Navbar() {
           )}
         >
           <nav className="flex flex-col gap-1.5">
-            {links.map((l) => (
+            {allLinks.map((l) => (
               <NavLink
                 key={l.to}
                 to={l.to}
