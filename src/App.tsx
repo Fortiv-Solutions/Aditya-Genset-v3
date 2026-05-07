@@ -13,6 +13,8 @@ import ProductDetail from "./pages/ProductDetail";
 import DGSetsCategory from "./pages/DGSetsCategory";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import CompareProducts from "./pages/CompareProducts";
+import QuoteBuilder from "./pages/QuoteBuilder";
 
 // Admin Layout
 import AdminLayout from "./components/admin/AdminLayout";
@@ -28,7 +30,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCMS from "./pages/admin/AdminCMS";
 import CMSEditor from "./pages/admin/CMSEditor";
 import AdminComingSoon from "./pages/admin/AdminComingSoon";
-import SoftwareRoadmap from "./pages/admin/SoftwareRoadmap";
+// import SoftwareRoadmap from "./pages/admin/SoftwareRoadmap";
 import MigrationRunner from "./pages/MigrationRunner";
 
 import { useState, useEffect } from "react";
@@ -50,7 +52,7 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
 
 import { CMSEditorProvider } from "./components/cms/CMSEditorProvider";
 import { CompareProvider } from "./context/CompareContext";
-import CompareProducts from "./pages/CompareProducts";
+import { QuoteProvider } from "./context/QuoteContext";
 
 const App = () => {
   const [, setIsLoggedIn] = useState(false);
@@ -67,8 +69,9 @@ const App = () => {
         <Sonner />
         <CMSEditorProvider>
           <CompareProvider>
-            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-            <Routes>
+            <QuoteProvider>
+              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+              <Routes>
               {/* ── Public ─────────────────────────────────── */}
               <Route path="/login" element={<Login />} />
 
@@ -93,7 +96,7 @@ const App = () => {
 
             <Route path="/admin/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
             <Route path="/admin/cms/edit/:pageId" element={<ProtectedRoute><CMSEditor /></ProtectedRoute>} />
-            <Route path="/admin/roadmap" element={<AdminRoute><SoftwareRoadmap /></AdminRoute>} />
+            {/* <Route path="/admin/roadmap" element={<AdminRoute><SoftwareRoadmap /></AdminRoute>} /> */}
             <Route path="/admin/migrations" element={<AdminRoute><MigrationRunner /></AdminRoute>} />
 
             {/* Removed CMS, Orders, Dealers, Service routes to focus on Presentation Tool features */}
@@ -115,6 +118,7 @@ const App = () => {
                         <Route path="/products/dg-sets" element={<DGSetsCategory />} />
                         <Route path="/products/:slug" element={<ProductDetail />} />
                         <Route path="/compare" element={<CompareProducts />} />
+                        <Route path="/quote-builder" element={<QuoteBuilder />} />
                         <Route path="*" element={<NotFound />} />
                       </Routes>
                     </RouteFade>
@@ -124,8 +128,9 @@ const App = () => {
             />
           </Routes>
           </BrowserRouter>
-        </CompareProvider>
-      </CMSEditorProvider>
+        </QuoteProvider>
+      </CompareProvider>
+    </CMSEditorProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

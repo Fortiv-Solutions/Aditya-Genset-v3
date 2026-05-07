@@ -4,7 +4,7 @@ import { SEO } from "@/components/site/SEO";
 import { toast } from "sonner";
 import factoryHero from "@/assets/products/showcase/factory.jpg";
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
+import { supabase, isDemoMode } from "@/lib/supabase";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 
 export default function Login() {
@@ -27,6 +27,29 @@ export default function Login() {
     setIsLoading(true);
     
     try {
+      // Demo mode - bypass authentication
+      if (isDemoMode) {
+        console.info('🎨 Demo mode login - bypassing authentication');
+        
+        // Set basic login state for UI
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("userEmail", email);
+        
+        toast.success("Demo login successful! Redirecting...");
+        
+        setTimeout(() => {
+          if (loginType === "admin") {
+            navigate("/admin");
+          } else {
+            navigate("/");
+          }
+        }, 500);
+        
+        setIsLoading(false);
+        return;
+      }
+
+      // Real Supabase authentication
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
@@ -93,6 +116,13 @@ export default function Login() {
           
           {/* Header */}
           <div className="text-center mb-10">
+            {isDemoMode && (
+              <div className="mb-4 p-3 bg-blue-500/20 border border-blue-400/30 rounded-lg">
+                <p className="text-xs text-blue-200 font-medium">
+                  🎨 Demo Mode: Enter any email and password to login
+                </p>
+              </div>
+            )}
             <h1 className="font-display text-3xl font-extrabold tracking-tight text-accent">
               {loginType === "admin" ? "Admin Portal" : "Aditya Genset"}
             </h1>

@@ -1,11 +1,28 @@
 import { createClient } from '@supabase/supabase-js'
 
 // Supabase configuration
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || ''
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || ''
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://placeholder.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'placeholder-key'
 
-// Create Supabase client
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+// Check if we have valid Supabase credentials
+const hasValidCredentials = 
+  supabaseUrl && 
+  supabaseAnonKey && 
+  !supabaseUrl.includes('dummy') && 
+  !supabaseAnonKey.includes('dummy') &&
+  !supabaseUrl.includes('placeholder') &&
+  !supabaseAnonKey.includes('placeholder')
+
+// Create Supabase client (will use demo mode if credentials are invalid)
+export const supabase = hasValidCredentials 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createClient('https://placeholder.supabase.co', 'placeholder-key')
+
+export const isDemoMode = !hasValidCredentials
+
+if (isDemoMode) {
+  console.info('🎨 Running in DEMO MODE - Using local demo data instead of Supabase')
+}
 
 // =====================================================
 // TYPE DEFINITIONS (matching your production schema)

@@ -1,6 +1,6 @@
 import { useCompare } from "@/context/CompareContext";
 import { useNavigate } from "react-router-dom";
-import { X, ArrowRight, BarChart2 } from "lucide-react";
+import { X, ArrowRight, BarChart2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { fetchPublishedProducts } from "@/lib/api/products";
@@ -80,6 +80,15 @@ export function CompareBar() {
               className="sm:hidden"
             >
               Clear
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => navigate("/quote-builder")}
+              disabled={selectedIds.length === 0}
+              className="hidden md:flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              Quote
             </Button>
             <Button
               onClick={() => navigate("/compare")}

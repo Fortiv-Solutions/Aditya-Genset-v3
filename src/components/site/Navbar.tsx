@@ -1,13 +1,14 @@
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, Home, Box, Monitor, LayoutDashboard, BarChart2 } from "lucide-react";
+import { Menu, X, Home, Box, Monitor, LayoutDashboard, BarChart2, FileText } from "lucide-react";
 import { useCompare } from "@/context/CompareContext";
 import logo from "@/assets/brand/logo.png";
 
 const links = [
   { to: "/", label: "Welcome", icon: Home },
   { to: "/products", label: "Products", icon: Box },
+  { to: "/quote-builder", label: "Quote Builder", icon: FileText },
 ];
 
 export function Navbar() {
