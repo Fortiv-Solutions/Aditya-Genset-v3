@@ -50,46 +50,78 @@ export default function Login() {
     setIsLoading(true);
     
     try {
+      console.log("🔐 Starting login process...");
+      
       // Real Supabase authentication only
       const { data, error } = await supabase.auth.signInWithPassword({
         email: email,
         password: password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Auth error:", error);
+        throw error;
+      }
+
+      console.log("✅ Authentication successful:", data.user?.email);
 
       if (data.user) {
+        console.log("🔍 Fetching user profile...");
+        
         const { data: profile, error: profileError } = await supabase
           .from("profiles")
           .select("role")
           .eq("user_id", data.user.id)
           .maybeSingle();
 
-        if (profileError) throw profileError;
+        console.log("Profile query result:", { profile, profileError });
+
+        if (profileError) {
+          console.error("❌ Profile error:", profileError);
+          throw profileError;
+        }
+        
         if (!profile?.role) {
+          console.error("❌ No profile found for user:", data.user.id);
           await supabase.auth.signOut();
           throw new Error("Your account does not have an assigned profile. Contact an administrator.");
         }
+
+        console.log("✅ Profile found:", profile.role);
 
         const profileRole = profile.role as AppRole;
         const selectedAdminPortal = loginRole === "admin";
         const canUseSelectedPortal = selectedAdminPortal ? isAdminRole(profileRole) : isSalesRole(profileRole);
 
+        console.log("🔐 Access check:", {
+          profileRole,
+          selectedAdminPortal,
+          canUseSelectedPortal,
+          isAdmin: isAdminRole(profileRole),
+          isSales: isSalesRole(profileRole)
+        });
+
         if (!canUseSelectedPortal) {
+          console.error("❌ Wrong portal selected for role:", profileRole);
           await supabase.auth.signOut();
           throw new Error(`This account is assigned as ${profileRole}. Please select the correct login type.`);
         }
+
+        const redirectPath = getRoleHomePath(profileRole);
+        console.log("✅ Login successful! Redirecting to:", redirectPath);
 
         localStorage.removeItem("isLoggedIn");
         localStorage.setItem("userEmail", data.user.email || email);
 
         toast.success("Login successful! Redirecting...");
-        setTimeout(() => navigate(getRoleHomePath(profileRole), { replace: true }), 300);
+        
+        // Immediate redirect without setTimeout
+        navigate(redirectPath, { replace: true });
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Authentication failed. Please check your credentials.";
+      console.error("❌ Login failed:", error);
       toast.error(message);
-      console.error("Login error:", error);
     } finally {
       setIsLoading(false);
     }
