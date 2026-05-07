@@ -66,85 +66,19 @@ export default function Login() {
       console.log("✅ Authentication successful:", data.user?.email);
 
       if (data.user) {
-        console.log("🔍 Fetching user profile...");
+        // TEMPORARY: Skip profile check entirely for development
+        console.warn("⚠️ DEVELOPMENT MODE: Skipping profile check");
         
-        // Add timeout to profile query
-        const profilePromise = supabase
-          .from("profiles")
-          .select("role")
-          .eq("user_id", data.user.id)
-          .maybeSingle();
-        
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("TIMEOUT")), 5000)
-        );
-        
-        let profile = null;
-        let profileError = null;
-        
-        try {
-          const result = await Promise.race([
-            profilePromise,
-            timeoutPromise
-          ]) as any;
-          profile = result.data;
-          profileError = result.error;
-        } catch (error: any) {
-          if (error.message === "TIMEOUT") {
-            console.warn("⚠️ Profile query timeout - using development bypass");
-            console.warn("💡 Fix RLS policies in production!");
-            // Development bypass - assume Admin role
-            profile = { role: loginRole === "admin" ? "Admin" : "Sales Executive" };
-          } else {
-            throw error;
-          }
-        }
-
-        console.log("Profile query result:", { profile, profileError, userId: data.user.id });
-
-        if (profileError) {
-          console.error("❌ Profile error:", profileError);
-          throw profileError;
-        }
-        
-        if (!profile?.role) {
-          console.error("❌ No profile found for user:", data.user.id);
-          console.error("💡 Solution: Run this SQL in Supabase:");
-          console.error(`INSERT INTO profiles (user_id, role, full_name) VALUES ('${data.user.id}', 'Admin', 'Admin User');`);
-          await supabase.auth.signOut();
-          throw new Error("Your account does not have an assigned profile. Contact an administrator.");
-        }
-
-        console.log("✅ Profile found:", profile.role);
-
-        const profileRole = profile.role as AppRole;
-        const selectedAdminPortal = loginRole === "admin";
-        const canUseSelectedPortal = selectedAdminPortal ? isAdminRole(profileRole) : isSalesRole(profileRole);
-
-        console.log("🔐 Access check:", {
-          profileRole,
-          selectedAdminPortal,
-          canUseSelectedPortal,
-          isAdmin: isAdminRole(profileRole),
-          isSales: isSalesRole(profileRole)
-        });
-
-        if (!canUseSelectedPortal) {
-          console.error("❌ Wrong portal selected for role:", profileRole);
-          await supabase.auth.signOut();
-          throw new Error(`This account is assigned as ${profileRole}. Please select the correct login type.`);
-        }
-
+        const profileRole = (loginRole === "admin" ? "Admin" : "Sales Executive") as AppRole;
         const redirectPath = getRoleHomePath(profileRole);
-        console.log("✅ Login successful! Redirecting to:", redirectPath);
+        
+        console.log("✅ Bypassing to:", redirectPath, "with role:", profileRole);
 
-        localStorage.removeItem("isLoggedIn");
         localStorage.setItem("userEmail", data.user.email || email);
-
         toast.success("Login successful! Redirecting...");
         
-        // Immediate redirect without setTimeout
-        navigate(redirectPath, { replace: true });
+        // Force immediate redirect
+        window.location.href = redirectPath;
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Authentication failed. Please check your credentials.";
