@@ -5,6 +5,8 @@ import type { Product, ProductMedia, ProductSpec } from '../supabase'
  * Fetch all published products with their media and specs
  */
 export async function fetchPublishedProducts() {
+  console.log('🔍 Fetching products from Supabase...')
+  
   const { data, error } = await supabase
     .from('products')
     .select(`
@@ -16,11 +18,30 @@ export async function fetchPublishedProducts() {
     .order('created_at', { ascending: false })
 
   if (error) {
-    console.error('Error fetching products:', error)
-    return []
+    console.error('❌ Error fetching products:', error)
+    throw error
   }
 
-  return data || []
+  console.log('✅ Raw data from Supabase:', data)
+  console.log(`📊 Found ${data?.length || 0} products`)
+
+  // Transform the data to match the expected format
+  const transformedData = (data || []).map(product => ({
+    ...product,
+    product_media: product.product_media?.map((media: any) => ({
+      ...media,
+      url: media.public_url, // Map public_url to url for compatibility
+    })),
+    product_specs: product.product_specs?.map((spec: any) => ({
+      ...spec,
+      label: spec.spec_label, // Map spec_label to label
+      value: spec.spec_value, // Map spec_value to value
+    })),
+  }))
+
+  console.log('✅ Transformed data:', transformedData)
+
+  return transformedData
 }
 
 /**
@@ -43,7 +64,23 @@ export async function fetchProductBySlug(slug: string) {
     return null
   }
 
-  return data
+  // Transform the data
+  if (data) {
+    return {
+      ...data,
+      product_media: data.product_media?.map((media: any) => ({
+        ...media,
+        url: media.public_url,
+      })),
+      product_specs: data.product_specs?.map((spec: any) => ({
+        ...spec,
+        label: spec.spec_label,
+        value: spec.spec_value,
+      })),
+    }
+  }
+
+  return null
 }
 
 /**
@@ -92,7 +129,7 @@ export async function fetchProductsWithFilters(filters: {
 
   if (error) {
     console.error('Error fetching filtered products:', error)
-    return []
+    throw error
   }
 
   return data || []

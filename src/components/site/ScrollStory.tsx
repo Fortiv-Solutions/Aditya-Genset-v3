@@ -138,13 +138,25 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
       col.removeEventListener("touchstart", onTouchStart);
       col.removeEventListener("touchend", onTouchEnd);
     };
-  }, [isPresenting, product.sections.length]);
+  }, [isPresenting, product.sections?.length || 0]);
 
   // Build nav sections from product chapters
-  const navSections: NavSection[] = product.sections.map((s, i) => ({
+  const navSections: NavSection[] = (product.sections || []).map((s, i) => ({
     id: `chapter-${i}`,
     label: s.id,
   }));
+
+  // If no sections, show a message
+  if (!product.sections || product.sections.length === 0) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">No Product Details Available</h2>
+          <p className="text-muted-foreground">This product doesn't have detailed sections yet.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isPresenting) {
     return <GuidedPresentation onClose={() => setIsPresenting(false)} sectionId={sectionId} product={product} />;
@@ -206,11 +218,11 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
             </div>
 
             <ProgressRail
-              count={product.sections.length}
+              count={product.sections?.length || 0}
               active={active}
-              labels={product.sections.map((s) => s.number)}
-              images={product.sections.map((s) => s.image)}
-              videoUrls={product.sections.map((s) => s.videoUrl)}
+              labels={(product.sections || []).map((s) => s.number)}
+              images={(product.sections || []).map((s) => s.image)}
+              videoUrls={(product.sections || []).map((s) => s.videoUrl)}
               onJump={jumpTo}
             />
           </div>
@@ -227,8 +239,8 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
             msOverflowStyle: "none",
           }}
         >
-          {product.sections.map((s, i) => {
-            const isEscortsTemplateProduct = product.engineBrand === "Escorts" && product.slug === "ekl-15-2cyl";
+          {(product.sections || []).map((s, i) => {
+            const isEscorts = product.engineBrand === "Escorts";
             const ekl15Data = EKL15_CHAPTER_DATA[s.id];
             return (
               <article
@@ -241,7 +253,7 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
                   scrollSnapAlign: "start",
                 }}
               >
-                {isEscortsTemplateProduct && ekl15Data ? (
+                {isEscorts && ekl15Data ? (
                   <ChapterInteractive
                     chapterId={s.id}
                     data={ekl15Data}
@@ -258,7 +270,7 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
 
       {/* ── Mobile stacked layout ──────────────────────────────────────── */}
       <div className="container-x lg:hidden">
-        {product.sections.map((s, i) => (
+        {(product.sections || []).map((s, i) => (
           <article
             key={s.id}
             className="py-12 border-b border-border last:border-0"
@@ -447,7 +459,7 @@ function SectionContent({ section, active, index, sectionId }: { section: Showca
         </div>
       )}
 
-      {section.highlight && (
+      {section.highlight && section.highlight.length > 0 && (
         <div className="mt-8 grid grid-cols-3 gap-6 border-y border-border py-6">
           {section.highlight.map((h, hIdx) => {
             const hValueRaw = content?.[sectionKey]?.[`chapter_${index}_h${hIdx}_value`];
@@ -488,7 +500,7 @@ function SectionContent({ section, active, index, sectionId }: { section: Showca
       )}
 
       <dl className="mt-8 divide-y divide-border border-y border-border">
-        {section.specs.map((row, spIdx) => (
+        {(section.specs || []).map((row, spIdx) => (
           <div
             key={row.label}
             className="grid grid-cols-2 gap-4 py-4 transition-all duration-500 ease-brand"

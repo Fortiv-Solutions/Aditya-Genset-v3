@@ -48,7 +48,7 @@ export const defaultContent = {
     heroContactEmail: "sales@adityagenset.com",
     heroContactWebsiteLabel: "Website",
     heroContactWebsite: "www.adityagenset.com",
-    seoTitle: "Get Your Silent Diesel Generators Today | Aditya — ISO Certified",
+    seoTitle: "Get Your Silent Diesel Generators Today | Aditya | ISO Certified",
     seoDescription: "ISO 9001:2015 certified manufacturer of silent diesel generator sets, 15–500 kVA. Pan-India delivery. Trusted since 1997.",
     featuredBadge: "Featured · 62.5 kVA",
     featuredButton: "Explore Specs",
@@ -179,7 +179,7 @@ export const defaultContent = {
     certificationText: "An ISO 9001:2015 Certified Company",
   },
   dgSetsCategory: {
-    seoTitle: "DG Sets — Aditya Genset",
+    seoTitle: "DG Sets | Aditya Genset",
     seoDescription: "Browse 30+ DG sets, run side-by-side comparisons, and generate quotes in one session.",
     pageTitle: "Find the right power solution.",
     pageSubtitle: "Browse 30+ DG sets, run side-by-side comparisons, and generate quotes in one session.",

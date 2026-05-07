@@ -20,6 +20,8 @@ import ProductDetail from "./pages/ProductDetail";
 import DGSetsCategory from "./pages/DGSetsCategory";
 import NotFound from "./pages/NotFound";
 import Login from "./pages/Login";
+import CompareProducts from "./pages/CompareProducts";
+import QuoteBuilder from "./pages/QuoteBuilder";
 
 // Admin Layout
 import AdminLayout from "./components/admin/AdminLayout";
@@ -34,15 +36,28 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCMS from "./pages/admin/AdminCMS";
 import CMSEditor from "./pages/admin/CMSEditor";
 import AdminComingSoon from "./pages/admin/AdminComingSoon";
+import ProductDiagnostic from "./pages/admin/ProductDiagnostic";
+// import SoftwareRoadmap from "./pages/admin/SoftwareRoadmap";
 import MigrationRunner from "./pages/MigrationRunner";
 
 const queryClient = new QueryClient();
 
-const AdminRoute = ({ children }: { children: React.ReactNode }) => (
-  <RoleRoute allowedRoles={ADMIN_ROLES}>
-    <AdminLayout>{children}</AdminLayout>
-  </RoleRoute>
-);
+// ─── Protected Route ────────────────────────────────────────────────────────
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  return isLoggedIn ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+// ─── Admin Route (Protected + AdminLayout) ──────────────────────────────────
+const AdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  return <AdminLayout>{children}</AdminLayout>;
+};
+
+import { CMSEditorProvider } from "./components/cms/CMSEditorProvider";
+import { CompareProvider } from "./context/CompareContext";
+import { QuoteProvider } from "./context/QuoteContext";
 
 const App = () => {
   return (
@@ -51,57 +66,70 @@ const App = () => {
         <Toaster />
         <Sonner />
         <CMSEditorProvider>
-          <AuthProvider>
-            <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <CompareProvider>
+            <QuoteProvider>
+              <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
               <Routes>
-                <Route path="/" element={<Navigate to="/login" replace />} />
-                <Route path="/login" element={<Login />} />
+              {/* ── Public ─────────────────────────────────── */}
+              <Route path="/login" element={<Login />} />
 
-                <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-                <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
-                <Route path="/admin/products/add" element={<AdminRoute><AddProduct /></AdminRoute>} />
-                <Route path="/admin/products/categories" element={
-                  <AdminRoute>
-                    <AdminComingSoon title="Product Categories" description="Manage the hierarchical category tree for DG Sets, Open DG Sets, Industrial Sets, and Accessories." />
-                  </AdminRoute>
-                } />
-                <Route path="/admin/products/:id/edit" element={<AdminRoute><AddProduct /></AdminRoute>} />
+            {/* ── Admin Dashboard ─────────────────────────── */}
+            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
+            <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
+            <Route path="/admin/products/add" element={<AdminRoute><AddProduct /></AdminRoute>} />
+            <Route path="/admin/products/diagnostic" element={<AdminRoute><ProductDiagnostic /></AdminRoute>} />
+            <Route path="/admin/products/categories" element={
+              <AdminRoute>
+                <AdminComingSoon title="Product Categories" description="Manage the hierarchical category tree for DG Sets, Open DG Sets, Industrial Sets, and Accessories." />
+              </AdminRoute>
+            } />
+            <Route path="/admin/products/:id/edit" element={<AdminRoute><AddProduct /></AdminRoute>} />
 
-                <Route path="/admin/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
-                <Route path="/admin/cms/edit/:pageId" element={<AdminRoute><CMSEditor /></AdminRoute>} />
-                <Route path="/admin/roadmap" element={
-                  <AdminRoute>
-                    <AdminComingSoon title="Software Roadmap" description="Track planned admin features, CMS improvements, and product management updates." />
-                  </AdminRoute>
-                } />
-                <Route path="/admin/migrations" element={<AdminRoute><MigrationRunner /></AdminRoute>} />
+            <Route path="/admin/leads" element={<AdminRoute><AdminLeads /></AdminRoute>} />
+            <Route path="/admin/leads/pipeline" element={<AdminRoute><AdminLeads /></AdminRoute>} />
+            <Route path="/admin/leads/followups" element={
+              <AdminRoute>
+                <AdminComingSoon title="Follow-up Manager" description="View and manage all scheduled follow-ups, overdue tasks, and daily sales rep reminders." />
+              </AdminRoute>
+            } />
 
-                <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
-                <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
-                <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+            <Route path="/admin/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
+            <Route path="/admin/cms/edit/:pageId" element={<ProtectedRoute><CMSEditor /></ProtectedRoute>} />
+            {/* <Route path="/admin/roadmap" element={<AdminRoute><SoftwareRoadmap /></AdminRoute>} /> */}
+            <Route path="/admin/migrations" element={<AdminRoute><MigrationRunner /></AdminRoute>} />
 
-                <Route
-                  path="/*"
-                  element={
-                    <AuthenticatedRoute>
-                      <SiteLayout>
-                        <RouteFade>
-                          <Routes>
-                            <Route path="/home" element={<Home />} />
-                            <Route path="/products" element={<Products />} />
-                            <Route path="/products/dg-sets" element={<DGSetsCategory />} />
-                            <Route path="/products/:slug" element={<ProductDetail />} />
-                            <Route path="*" element={<NotFound />} />
-                          </Routes>
-                        </RouteFade>
-                      </SiteLayout>
-                    </AuthenticatedRoute>
-                  }
-                />
-              </Routes>
-            </BrowserRouter>
-          </AuthProvider>
-        </CMSEditorProvider>
+            {/* Removed CMS, Orders, Dealers, Service routes to focus on Presentation Tool features */}
+
+            <Route path="/admin/users" element={<AdminRoute><AdminUsers /></AdminRoute>} />
+            <Route path="/admin/reports" element={<AdminRoute><AdminReports /></AdminRoute>} />
+            <Route path="/admin/settings" element={<AdminRoute><AdminSettings /></AdminRoute>} />
+
+            {/* ── Site (Protected + SiteLayout) ───────────── */}
+            <Route
+              path="/*"
+              element={
+                <ProtectedRoute>
+                  <SiteLayout>
+                    <RouteFade>
+                      <Routes>
+                        <Route path="/" element={<Home />} />
+                        <Route path="/products" element={<Products />} />
+                        <Route path="/products/dg-sets" element={<DGSetsCategory />} />
+                        <Route path="/products/:slug" element={<ProductDetail />} />
+                        <Route path="/compare" element={<CompareProducts />} />
+                        <Route path="/quote-builder" element={<QuoteBuilder />} />
+                        <Route path="*" element={<NotFound />} />
+                      </Routes>
+                    </RouteFade>
+                  </SiteLayout>
+                </ProtectedRoute>
+              }
+            />
+          </Routes>
+          </BrowserRouter>
+        </QuoteProvider>
+      </CompareProvider>
+    </CMSEditorProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );

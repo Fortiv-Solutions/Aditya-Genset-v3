@@ -7,6 +7,8 @@ import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import { fetchProductShowcase } from "@/lib/api/cms";
 import { ShowcaseProduct } from "@/data/products";
+import { useCompare } from "@/context/CompareContext";
+import { BarChart2 } from "lucide-react";
 
 // Height of the absolute header overlay in px — used to offset first chapter
 export const SHOWCASE_HEADER_H = 230;
@@ -19,6 +21,7 @@ export default function ProductDetail() {
   const [activeChapter, setActiveChapter] = useState(0);
   const [product, setProduct] = useState<ShowcaseProduct | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isInCompare, addToCompare, removeFromCompare } = useCompare();
 
   const isCMSPreview = !!pageId?.startsWith("showcaseData") || !!pageId?.startsWith("ekl15ShowcaseData");
 
@@ -72,7 +75,7 @@ export default function ProductDetail() {
   if (!isCMSPreview && !product) {
     return (
       <section className="container-x py-32 text-center">
-        <SEO title="Coming soon — Adityagenset" />
+        <SEO title="Coming soon | Adityagenset" />
         <div className="font-display text-xs uppercase tracking-[0.3em] text-accent">Coming soon</div>
         <h1 className="mt-3 font-display text-5xl font-semibold">This story is on its way.</h1>
         <p className="mt-4 text-muted-foreground">Verified specs and imagery for this product are being prepared.</p>
@@ -100,7 +103,7 @@ export default function ProductDetail() {
 
   return (
     <div className="relative">
-      <SEO title={`${productName} — Adityagenset`} description={`Explore the ${activeProduct.kva} kVA Silent DG Set: engine, power, sound, dimensions — a guided scroll story.`} />
+      <SEO title={`${productName} | Adityagenset`} description={`Explore the ${activeProduct.kva} kVA Silent DG Set: engine, power, sound, dimensions — a guided scroll story.`} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
 
       {/* ── Header overlay — visible only on chapter 1 ── */}
@@ -122,20 +125,41 @@ export default function ProductDetail() {
             <ArrowLeft size={12} /> Back to category
           </button>
 
-          <button
-            onClick={() => scrollStoryRef.current?.enterPresentMode()}
-            className="pointer-events-auto cms-clickable inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-navy-deep hover:scale-[1.03] hover:shadow-lg active:scale-95 mt-3"
-          >
-            <Monitor size={15} className="shrink-0" />
-            <EditableText section={sectionKey} contentKey="presentModeBtn" as="span" />
-          </button>
+          <div className="flex items-center gap-3 mt-3">
+            <button
+              onClick={() => {
+                if (activeProduct.id) {
+                  if (isInCompare(activeProduct.id)) removeFromCompare(activeProduct.id);
+                  else addToCompare(activeProduct.id);
+                }
+              }}
+              className={`pointer-events-auto flex items-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold border-2 transition-all duration-300 ${
+                activeProduct.id && isInCompare(activeProduct.id)
+                  ? "bg-accent/10 border-accent text-accent"
+                  : "bg-white border-gray-200 text-foreground hover:border-accent"
+              }`}
+            >
+              <BarChart2 size={15} className="shrink-0" />
+              {activeProduct.id && isInCompare(activeProduct.id) ? "In Compare" : "Compare"}
+            </button>
+
+            <button
+              onClick={() => scrollStoryRef.current?.enterPresentMode()}
+              className="pointer-events-auto cms-clickable inline-flex items-center gap-2 rounded-md bg-foreground px-5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-brand-navy-deep hover:scale-[1.03] hover:shadow-lg active:scale-95"
+            >
+              <Monitor size={15} className="shrink-0" />
+              <EditableText section={sectionKey} contentKey="presentModeBtn" as="span" />
+            </button>
+          </div>
         </div>
 
         {/* Row 2 — Product identity */}
         <div className="mt-5">
-          <div className="font-display text-[10px] uppercase tracking-[0.4em] text-accent">
-            {activeProduct.sections[0]?.number} / {activeProduct.sections[0]?.id}
-          </div>
+          {activeProduct.sections && activeProduct.sections.length > 0 && (
+            <div className="font-display text-[10px] uppercase tracking-[0.4em] text-accent">
+              {activeProduct.sections[0]?.number} / {activeProduct.sections[0]?.id}
+            </div>
+          )}
           <EditableText
             section={sectionKey}
             contentKey="productName"
