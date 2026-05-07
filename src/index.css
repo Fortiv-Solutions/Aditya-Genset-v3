@@ -291,3 +291,92 @@ body.present-mode footer {
   visibility: hidden;
   transition: opacity 0.5s ease-cinematic;
 }
+
+/* Admin console polish */
+.admin-shell {
+  background:
+    linear-gradient(180deg, hsl(210 35% 98%) 0%, hsl(0 0% 100%) 42%),
+    hsl(var(--background));
+}
+
+.admin-sidebar {
+  background: hsl(0 0% 100% / 0.96);
+  box-shadow: inset -1px 0 0 hsl(var(--border));
+}
+
+.admin-header {
+  background: hsl(0 0% 100% / 0.92);
+  box-shadow: 0 1px 0 hsl(var(--border)), 0 12px 28px hsl(207 80% 14% / 0.04);
+  backdrop-filter: blur(16px);
+}
+
+.admin-main {
+  background:
+    radial-gradient(circle at top left, hsl(41 100% 48% / 0.045), transparent 30rem),
+    linear-gradient(180deg, hsl(210 35% 98%) 0%, hsl(0 0% 100%) 38rem);
+}
+
+.admin-main h1 {
+  letter-spacing: 0;
+  color: hsl(var(--brand-navy-deep));
+}
+
+.admin-main h3,
+.admin-main th {
+  letter-spacing: 0;
+}
+
+.admin-page {
+  width: 100%;
+  max-width: 1560px;
+  margin-inline: auto;
+}
+
+.admin-page-narrow {
+  max-width: 1160px;
+}
+
+.admin-card,
+.admin-main .bg-card.rounded-xl,
+.admin-main .bg-card.rounded-lg {
+  border-radius: 8px !important;
+  border-color: hsl(211 24% 85%) !important;
+  box-shadow: 0 1px 2px hsl(207 80% 14% / 0.04), 0 12px 32px hsl(207 80% 14% / 0.055) !important;
+}
+
+.admin-main table thead tr {
+  background: hsl(210 30% 96% / 0.88) !important;
+}
+
+.admin-main th {
+  color: hsl(207 28% 36%) !important;
+  font-size: 0.72rem !important;
+  letter-spacing: 0.08em !important;
+}
+
+.admin-main tbody tr {
+  background: hsl(0 0% 100%) !important;
+}
+
+.admin-main tbody tr:hover {
+  background: hsl(210 30% 97%) !important;
+}
+
+.admin-main input,
+.admin-main select,
+.admin-main textarea {
+  border-radius: 6px !important;
+}
+
+.admin-main input:focus,
+.admin-main select:focus,
+.admin-main textarea:focus {
+  border-color: hsl(var(--brand-amber)) !important;
+  box-shadow: 0 0 0 3px hsl(var(--brand-amber) / 0.14) !important;
+}
+
+.admin-main button,
+.admin-header button,
+.admin-header a {
+  border-radius: 6px !important;
+}

@@ -1,10 +1,17 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SiteLayout } from "@/components/site/SiteLayout";
 import { RouteFade } from "@/components/site/RouteFade";
+import { AuthProvider } from "@/components/auth/AuthProvider";
+import {
+  AuthenticatedRoute,
+  RoleRoute,
+} from "@/components/auth/AuthRoutes";
+import { ADMIN_ROLES } from "@/lib/auth";
+import { CMSEditorProvider } from "./components/cms/CMSEditorProvider";
 
 // Site Pages
 import Home from "./pages/Home";
@@ -23,7 +30,6 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AddProduct from "./pages/admin/AddProduct";
-import AdminLeads from "./pages/admin/AdminLeads";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -33,8 +39,6 @@ import AdminComingSoon from "./pages/admin/AdminComingSoon";
 import ProductDiagnostic from "./pages/admin/ProductDiagnostic";
 // import SoftwareRoadmap from "./pages/admin/SoftwareRoadmap";
 import MigrationRunner from "./pages/MigrationRunner";
-
-import { useState, useEffect } from "react";
 
 const queryClient = new QueryClient();
 
@@ -56,13 +60,6 @@ import { CompareProvider } from "./context/CompareContext";
 import { QuoteProvider } from "./context/QuoteContext";
 
 const App = () => {
-  const [, setIsLoggedIn] = useState(false);
-
-  useEffect(() => {
-    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
-    setIsLoggedIn(loggedIn);
-  }, []);
-
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

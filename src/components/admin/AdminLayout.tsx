@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Package, Users, FileText, Image as ImageIcon,
-  ClipboardList, Handshake, Wrench, ShieldCheck, BarChart2,
+  LayoutDashboard, Package, FileText,
+  ShieldCheck, BarChart2,
   Settings, ChevronRight, Bell, Search, Plus, LogOut,
   Menu, X, Zap, Globe
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthContext";
 
 interface NavItem {
   label: string;
@@ -26,22 +27,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Products",
     icon: Package,
     path: "/admin/products",
-    sub: [
-      { label: "All Products", path: "/admin/products" },
-      { label: "Add Product", path: "/admin/products/add" },
-      { label: "Categories", path: "/admin/products/categories" },
-    ],
-  },
-  {
-    label: "Leads & Inquiries",
-    icon: Users,
-    path: "/admin/leads",
-    badge: 8,
-    sub: [
-      { label: "All Leads", path: "/admin/leads" },
-      { label: "Pipeline Board", path: "/admin/leads/pipeline" },
-      { label: "Follow-ups", path: "/admin/leads/followups" },
-    ],
   },
   {
     label: "CMS / Content",
@@ -72,18 +57,23 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile, user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [expandedNav, setExpandedNav] = useState<string | null>("Products");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
 
-  const userEmail = "Admin";
-  const userInitials = "AD";
+  const userName = profile?.full_name || user?.email || "Admin";
+  const userInitials = (profile?.full_name || user?.email || "AD")
+    .split(/[ @.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("") || "AD";
 
-  const handleLogout = () => {
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userEmail");
+  const handleLogout = async () => {
+    await signOut();
     toast.success("Logged out successfully");
-    navigate("/login");
+    navigate("/login", { replace: true });
   };
 
   const isActive = (path: string) => {
@@ -91,87 +81,83 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     return location.pathname.startsWith(path);
   };
 
-  const toggleExpand = (label: string) => {
-    setExpandedNav(expandedNav === label ? null : label);
+  const currentSection = NAV_ITEMS.find((item) => isActive(item.path))?.label ?? "Dashboard";
+
+  const handleGlobalSearch = () => {
+    const query = globalSearch.trim().toLowerCase();
+    if (!query) return;
+
+    if (query.includes("user") || query.includes("role")) {
+      navigate("/admin/users");
+      return;
+    }
+
+    if (query.includes("report")) {
+      navigate("/admin/reports");
+      return;
+    }
+
+    if (query.includes("setting")) {
+      navigate("/admin/settings");
+      return;
+    }
+
+    if (query.includes("cms") || query.includes("content")) {
+      navigate("/admin/cms");
+      return;
+    }
+
+    navigate("/admin/products");
   };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-4 py-5 border-b border-border">
-        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-accent flex items-center justify-center">
+      <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
+        <div className="flex-shrink-0 w-9 h-9 rounded-md bg-accent flex items-center justify-center shadow-sm shadow-accent/20">
           <Zap size={16} className="text-accent-foreground fill-accent-foreground" />
         </div>
         {sidebarOpen && (
           <div className="min-w-0">
-            <p className="text-sm font-bold text-foreground tracking-tight leading-none">Aditya Tech Mech</p>
-            <p className="text-[10px] text-accent/80 font-medium tracking-widest uppercase mt-0.5">Admin Portal</p>
+            <p className="text-sm font-bold text-foreground leading-none">Aditya Tech Mech</p>
+            <p className="text-[10px] text-accent font-semibold tracking-[0.18em] uppercase mt-1">Admin Portal</p>
           </div>
         )}
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 py-4 overflow-y-auto scrollbar-thin">
+      <nav className="flex-1 py-4 px-3 overflow-y-auto scrollbar-thin">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
-          const expanded = expandedNav === item.label;
 
           return (
             <div key={item.path}>
               <button
                 onClick={() => {
-                  if (item.sub) {
-                    toggleExpand(item.label);
-                  } else {
-                    navigate(item.path);
-                    setMobileMenuOpen(false);
-                  }
+                  navigate(item.path);
+                  setMobileMenuOpen(false);
                 }}
-                className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 group relative
+                className={`w-full flex items-center gap-3 px-3 py-2.5 text-sm transition-all duration-200 group relative rounded-md
                   ${active
-                    ? "text-accent bg-accent/10 border-r-2 border-accent"
-                    : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                    ? "text-foreground bg-accent/10 shadow-sm ring-1 ring-accent/20"
+                    : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
                   }`}
               >
-                <Icon size={17} className={`flex-shrink-0 ${active ? "text-accent" : "text-muted-foreground group-hover:text-muted-foreground"}`} />
+                <span className={`flex h-7 w-7 items-center justify-center rounded-md ${active ? "bg-accent text-accent-foreground" : "bg-transparent"}`}>
+                  <Icon size={16} className="flex-shrink-0" />
+                </span>
                 {sidebarOpen && (
                   <>
-                    <span className="flex-1 text-left font-medium">{item.label}</span>
+                    <span className="flex-1 text-left font-semibold">{item.label}</span>
                     {item.badge && (
                       <span className="bg-accent text-accent-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                         {item.badge}
                       </span>
                     )}
-                    {item.sub && (
-                      <ChevronRight
-                        size={14}
-                        className={`text-muted-foreground transition-transform duration-200 ${expanded ? "rotate-90" : ""}`}
-                      />
-                    )}
                   </>
                 )}
               </button>
-
-              {/* Sub-items */}
-              {sidebarOpen && item.sub && expanded && (
-                <div className="ml-4 border-l border-border pl-4 py-1">
-                  {item.sub.map((sub) => (
-                    <Link
-                      key={sub.path}
-                      to={sub.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={`block py-2 px-2 text-[13px] rounded-md transition-colors duration-150
-                        ${location.pathname === sub.path
-                          ? "text-accent font-medium"
-                          : "text-muted-foreground hover:text-foreground"
-                        }`}
-                    >
-                      {sub.label}
-                    </Link>
-                  ))}
-                </div>
-              )}
             </div>
           );
         })}
@@ -180,13 +166,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* User */}
       <div className="border-t border-border p-4">
         {sidebarOpen ? (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 rounded-md border border-border bg-secondary/50 p-2.5">
             <div className="w-8 h-8 rounded-full bg-accent/20 border border-accent/40 flex items-center justify-center flex-shrink-0">
               <span className="text-xs font-bold text-accent">{userInitials}</span>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-xs font-semibold text-foreground truncate">{userEmail}</p>
-              <p className="text-[10px] text-muted-foreground">Super Admin</p>
+              <p className="text-xs font-semibold text-foreground truncate">{userName}</p>
+              <p className="text-[10px] text-muted-foreground">{profile?.role || "Admin"}</p>
             </div>
             <button onClick={handleLogout} className="text-muted-foreground hover:text-red-400 transition-colors" title="Logout">
               <LogOut size={15} />
@@ -202,11 +188,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   );
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="admin-shell flex h-screen overflow-hidden">
       {/* Desktop Sidebar */}
       <aside
-        className={`hidden lg:flex flex-col bg-card border-r border-border transition-all duration-300 flex-shrink-0 ${
-          sidebarOpen ? "w-60" : "w-16"
+        className={`admin-sidebar hidden lg:flex flex-col transition-all duration-300 flex-shrink-0 ${
+          sidebarOpen ? "w-[260px]" : "w-16"
         }`}
       >
         <SidebarContent />
@@ -216,7 +202,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {mobileMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
           <div className="fixed inset-0 bg-background/80 backdrop-blur-sm backdrop-blur-sm" onClick={() => setMobileMenuOpen(false)} />
-          <aside className="relative z-10 w-64 bg-card border-r border-border flex flex-col h-full">
+          <aside className="admin-sidebar relative z-10 w-64 flex flex-col h-full">
             <SidebarContent />
           </aside>
         </div>
@@ -225,7 +211,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Top Header */}
-        <header className="flex-shrink-0 flex items-center gap-4 px-4 md:px-6 py-3.5 bg-card border-b border-border">
+        <header className="admin-header flex-shrink-0 flex items-center gap-4 px-4 md:px-7 py-4">
           {/* Left: Toggle + Breadcrumb */}
           <div className="flex items-center gap-3">
             <button
@@ -233,31 +219,34 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                 setSidebarOpen(!sidebarOpen);
                 setMobileMenuOpen(!mobileMenuOpen);
               }}
-              className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
               {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
             <div className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground">
-              <span className="text-accent font-medium">Admin</span>
+              <span className="text-accent font-semibold">Admin</span>
               {location.pathname !== "/admin" && (
                 <>
                   <ChevronRight size={13} />
-                  <span className="text-muted-foreground font-medium capitalize">
-                    {location.pathname.split("/")[2] || "Dashboard"}
-                  </span>
+                  <span className="text-foreground font-semibold">{currentSection}</span>
                 </>
               )}
             </div>
           </div>
 
           {/* Centre: Global Search */}
-          <div className="flex-1 max-w-md mx-auto hidden md:block">
+          <div className="flex-1 max-w-xl mx-auto hidden md:block">
             <div className="relative">
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search products, leads, content..."
-                className="w-full pl-9 pr-4 py-2 bg-secondary border border-border rounded-lg text-sm text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 focus:bg-secondary transition-all"
+                placeholder="Search products, content, users..."
+                value={globalSearch}
+                onChange={(event) => setGlobalSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleGlobalSearch();
+                }}
+                className="w-full pl-9 pr-4 py-2.5 bg-secondary/70 border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/60 focus:bg-card transition-all"
               />
             </div>
           </div>
@@ -265,25 +254,30 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {/* Right: Actions */}
           <div className="flex items-center gap-2 ml-auto">
             <Link 
-              to="/"
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 border border-border hover:bg-secondary rounded-lg text-xs font-medium text-muted-foreground transition-colors mr-2"
+              to="/home"
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 border border-border hover:bg-secondary text-xs font-semibold text-muted-foreground transition-colors mr-2"
             >
               <Globe size={14} />
               View Site
             </Link>
-            <button className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-accent hover:bg-accent/90 rounded-lg text-xs font-bold text-accent-foreground transition-colors">
+            <button
+              onClick={() => navigate("/admin/products/add")}
+              className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 bg-accent hover:bg-accent/90 text-xs font-bold text-accent-foreground shadow-sm shadow-accent/25 transition-colors"
+            >
               <Plus size={14} />
               Quick Add
             </button>
-            <button className="relative p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+            <button
+              onClick={() => toast.info("No new notifications")}
+              className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent rounded-full ring-2 ring-stone-950"></span>
             </button>
           </div>
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 overflow-y-auto bg-background p-4 md:p-6">
+        <main className="admin-main flex-1 overflow-y-auto p-4 md:p-7">
           {children}
         </main>
       </div>

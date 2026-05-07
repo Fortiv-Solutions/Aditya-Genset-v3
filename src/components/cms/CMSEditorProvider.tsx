@@ -18,6 +18,7 @@ interface CMSEditorContextType {
   discard: () => void;
   saveAll: () => Promise<void>;
   loadProductCMS: (productId: string) => Promise<void>;
+  setCurrentProductId: (productId: string | null) => void;
 }
 
 const CMSEditorContext = createContext<CMSEditorContextType | null>(null);
@@ -30,6 +31,7 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
   const [isEditMode, setIsEditMode] = useState(false);
   const [content, setContent] = useState<CMSContentState>(defaultContent);
   const [initialContent, setInitialContent] = useState<CMSContentState>(defaultContent);
+  const [currentProductId, setCurrentProductId] = useState<string | null>(null);
 
   // History for undo/redo
   const [history, setHistory] = useState<CMSContentState[]>([defaultContent]);
@@ -59,6 +61,7 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
 
   const loadProductCMS = React.useCallback(async (productId: string) => {
     try {
+      setCurrentProductId(productId);
       const showcase = await fetchCMSSection('showcaseData', 'product', productId);
       const presentation = await fetchCMSSection('presentationData', 'product', productId);
       
@@ -118,15 +121,17 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
   const saveAll = React.useCallback(async () => {
     const sectionsToSave = Object.keys(content) as CMSSectionKey[];
     await Promise.all(
-      sectionsToSave.map(section => {
+      sectionsToSave.flatMap(section => {
         const scopeType = (section === 'showcaseData' || section === 'presentationData') ? 'product' : 'global';
-        // Note: For product scope, we'd need the current product ID. 
-        // This is a simplified version; in a real app, you'd track the current scope.
-        return updateCMSSection(section, content[section], scopeType);
+        if (scopeType === "product" && !currentProductId) {
+          return [];
+        }
+        const scopeId = scopeType === "product" ? currentProductId || undefined : undefined;
+        return [updateCMSSection(section, content[section], scopeType, scopeId)];
       })
     );
     setInitialContent(content);
-  }, [content]);
+  }, [content, currentProductId]);
 
   const contextValue = React.useMemo(() => ({
     isEditMode,
@@ -142,6 +147,7 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
     discard,
     saveAll,
     loadProductCMS,
+    setCurrentProductId,
   }), [
     isEditMode,
     content,
@@ -153,7 +159,8 @@ export function CMSEditorProvider({ children }: { children: ReactNode }) {
     redo,
     discard,
     saveAll,
-    loadProductCMS
+    loadProductCMS,
+    setCurrentProductId,
   ]);
 
 

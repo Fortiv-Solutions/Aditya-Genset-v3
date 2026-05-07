@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Settings, Globe, Mail, Phone, MapPin, Instagram,
   Youtube, Linkedin, Facebook, Twitter, Save,
@@ -6,6 +6,7 @@ import {
   Plus, Trash2, ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 function SettingSection({ title, icon: Icon, children }: {
   title: string; icon: React.ElementType; children: React.ReactNode;
@@ -71,6 +72,11 @@ function Toggle({ enabled, onChange, label }: {
 export default function AdminSettings() {
   const [activeTab, setActiveTab] = useState<"site" | "notifications" | "security" | "integrations" | "email">("site");
   const [saving, setSaving] = useState(false);
+  const [recordIds, setRecordIds] = useState({
+    site: "",
+    notifications: "",
+    security: "",
+  });
 
   // Site config state
   const [site, setSite] = useState({
@@ -82,7 +88,7 @@ export default function AdminSettings() {
     email: "info@adityagenset.com",
     adminEmail: "admin@adityagenset.com",
     whatsapp: "+91 99099 24242",
-    address: "Plot No. 12, GIDC Industrial Area, Silvassa, DNH – 396230",
+    address: "Plot No. 12, GIDC Industrial Area, Silvassa, DNH - 396230",
     linkedin: "https://linkedin.com/company/adityatechmech",
     facebook: "https://facebook.com/adityagenset",
     instagram: "https://instagram.com/adityagenset",
@@ -93,8 +99,8 @@ export default function AdminSettings() {
 
   // Notification toggles
   const [notifs, setNotifs] = useState({
-    newLead: true,
-    leadAssigned: true,
+    newRequest: true,
+    requestAssigned: true,
     quoteSent: true,
     followupDue: true,
     amcRenewal: true,
@@ -112,28 +118,144 @@ export default function AdminSettings() {
     loginAttempts: "5",
   });
 
-  const handleSave = () => {
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const [{ data: siteData }, { data: notifData }, { data: securityData }] = await Promise.all([
+          supabase.from("site_settings").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+          supabase.from("notification_settings").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+          supabase.from("security_settings").select("*").order("updated_at", { ascending: false }).limit(1).maybeSingle(),
+        ]);
+
+        if (siteData) {
+          setRecordIds((current) => ({ ...current, site: siteData.id }));
+          setSite({
+            companyName: siteData.company_name || "",
+            tagline: siteData.tagline || "",
+            website: siteData.website || "",
+            phone1: siteData.phone1 || "",
+            phone2: siteData.phone2 || "",
+            email: siteData.email || "",
+            adminEmail: siteData.admin_email || "",
+            whatsapp: siteData.whatsapp || "",
+            address: siteData.address || "",
+            linkedin: siteData.linkedin || "",
+            facebook: siteData.facebook || "",
+            instagram: siteData.instagram || "",
+            youtube: siteData.youtube || "",
+            twitter: siteData.twitter || "",
+            gmapsKey: siteData.gmaps_key || "",
+          });
+        }
+
+        if (notifData) {
+          setRecordIds((current) => ({ ...current, notifications: notifData.id }));
+          setNotifs({
+            newRequest: Boolean(notifData.new_lead),
+            requestAssigned: Boolean(notifData.lead_assigned),
+            quoteSent: Boolean(notifData.quote_sent),
+            followupDue: Boolean(notifData.followup_due),
+            amcRenewal: Boolean(notifData.amc_renewal),
+            serviceTicket: Boolean(notifData.service_ticket),
+            weeklyReport: Boolean(notifData.weekly_report),
+            monthlyReport: Boolean(notifData.monthly_report),
+          });
+        }
+
+        if (securityData) {
+          setRecordIds((current) => ({ ...current, security: securityData.id }));
+          setSecurity({
+            twoFactor: Boolean(securityData.two_factor),
+            ipWhitelist: Boolean(securityData.ip_whitelist),
+            auditLog: Boolean(securityData.audit_log),
+            sessionTimeout: String(securityData.session_timeout_minutes || 480),
+            loginAttempts: String(securityData.login_attempts || 5),
+          });
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error("Unable to load settings");
+      }
+    }
+
+    loadSettings();
+  }, []);
+
+  const upsertSingleton = async (table: string, id: string, payload: Record<string, unknown>) => {
+    if (id) {
+      const { error } = await supabase.from(table).update(payload).eq("id", id);
+      if (error) throw error;
+      return id;
+    }
+
+    const { data, error } = await supabase.from(table).insert(payload).select("id").single();
+    if (error) throw error;
+    return data.id as string;
+  };
+
+  const handleSave = async () => {
     setSaving(true);
-    setTimeout(() => {
+    try {
+      const [siteId, notifId, securityId] = await Promise.all([
+        upsertSingleton("site_settings", recordIds.site, {
+          company_name: site.companyName,
+          tagline: site.tagline,
+          website: site.website,
+          phone1: site.phone1,
+          phone2: site.phone2,
+          email: site.email,
+          admin_email: site.adminEmail,
+          whatsapp: site.whatsapp,
+          address: site.address,
+          linkedin: site.linkedin,
+          facebook: site.facebook,
+          instagram: site.instagram,
+          youtube: site.youtube,
+          twitter: site.twitter,
+          gmaps_key: site.gmapsKey,
+        }),
+        upsertSingleton("notification_settings", recordIds.notifications, {
+          new_lead: notifs.newRequest,
+          lead_assigned: notifs.requestAssigned,
+          quote_sent: notifs.quoteSent,
+          followup_due: notifs.followupDue,
+          amc_renewal: notifs.amcRenewal,
+          service_ticket: notifs.serviceTicket,
+          weekly_report: notifs.weeklyReport,
+          monthly_report: notifs.monthlyReport,
+        }),
+        upsertSingleton("security_settings", recordIds.security, {
+          two_factor: security.twoFactor,
+          ip_whitelist: security.ipWhitelist,
+          audit_log: security.auditLog,
+          session_timeout_minutes: Number(security.sessionTimeout || 480),
+          login_attempts: Number(security.loginAttempts || 5),
+        }),
+      ]);
+
+      setRecordIds({ site: siteId, notifications: notifId, security: securityId });
       setSaving(false);
       toast.success("Settings saved successfully");
-    }, 800);
+    } catch (error) {
+      console.error(error);
+      toast.error("Unable to save settings");
+      setSaving(false);
+    }
   };
 
   const TABS = [
     { key: "site", label: "Site Config", icon: Globe },
     { key: "notifications", label: "Notifications", icon: Bell },
     { key: "security", label: "Security", icon: Lock },
-    { key: "integrations", label: "Integrations", icon: Key },
-    { key: "email", label: "Email Templates", icon: Mail },
   ] as const;
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-4xl">
+    <div className="admin-page admin-page-narrow space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-display">Settings</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">System Preferences</p>
+          <h1 className="mt-2 text-3xl font-bold text-foreground font-display">Settings</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Configure your admin portal and site preferences</p>
         </div>
         <button
@@ -188,7 +310,7 @@ export default function AdminSettings() {
             <FormRow label="Email Address">
               <TextInput value={site.email} onChange={(v) => setSite({ ...site, email: v })} />
             </FormRow>
-            <FormRow label="Admin Email" hint="Receives lead notifications">
+            <FormRow label="Admin Email" hint="Receives product, quote, and system notifications">
               <TextInput value={site.adminEmail} onChange={(v) => setSite({ ...site, adminEmail: v })} />
             </FormRow>
             <FormRow label="WhatsApp Number">
@@ -245,8 +367,8 @@ export default function AdminSettings() {
           <p className="text-sm text-muted-foreground mb-2">Configure which events trigger email/SMS alerts to your team.</p>
           <div className="space-y-4 divide-y divide-border">
             {[
-              { key: "newLead", label: "New Lead Received", hint: "Alert when a form submission arrives" },
-              { key: "leadAssigned", label: "Lead Assigned to Rep", hint: "Notify the rep when a lead is assigned" },
+              { key: "newRequest", label: "New Product Request", hint: "Alert when a customer product request arrives" },
+              { key: "requestAssigned", label: "Request Assigned to Rep", hint: "Notify the rep when a request is assigned" },
               { key: "quoteSent", label: "Quotation Sent", hint: "Confirm when a quote is emailed to customer" },
               { key: "followupDue", label: "Follow-up Reminders", hint: "1 hour before scheduled follow-up" },
               { key: "amcRenewal", label: "AMC Renewal Alerts", hint: "30, 14, 7 days before AMC expiry" },
@@ -365,10 +487,10 @@ export default function AdminSettings() {
             {[
               { name: "Google Analytics 4", desc: "Track website traffic and conversions", status: "not_connected", color: "text-orange-400" },
               { name: "Google Search Console", desc: "Monitor SEO performance and crawl errors", status: "not_connected", color: "text-blue-400" },
-              { name: "IndiaMART Lead API", desc: "Auto-sync leads from IndiaMART listing", status: "not_connected", color: "text-green-400" },
-              { name: "WhatsApp Business API", desc: "Receive & reply to WhatsApp inquiries", status: "not_connected", color: "text-green-400" },
+              { name: "IndiaMART Catalogue API", desc: "Sync catalogue visibility and product requests from IndiaMART", status: "not_connected", color: "text-green-400" },
+              { name: "WhatsApp Business API", desc: "Receive and reply to product requests", status: "not_connected", color: "text-green-400" },
               { name: "SendGrid (Email)", desc: "Transactional email delivery", status: "not_connected", color: "text-blue-400" },
-              { name: "MSG91 (SMS)", desc: "Indian SMS gateway for lead alerts", status: "not_connected", color: "text-purple-400" },
+              { name: "MSG91 (SMS)", desc: "Indian SMS gateway for request alerts", status: "not_connected", color: "text-purple-400" },
               { name: "Razorpay", desc: "Online advance payment links", status: "not_connected", color: "text-blue-400" },
               { name: "Tally / Zoho Books", desc: "Push orders to accounting software", status: "not_connected", color: "text-accent" },
             ].map(({ name, desc, status, color }) => (
@@ -405,8 +527,8 @@ export default function AdminSettings() {
           </p>
           <div className="space-y-2">
             {[
-              { name: "New Lead Notification", trigger: "On lead capture", audience: "Sales team" },
-              { name: "Lead Acknowledgement", trigger: "On lead capture", audience: "Customer" },
+              { name: "New Product Request", trigger: "On request capture", audience: "Sales team" },
+              { name: "Request Acknowledgement", trigger: "On request capture", audience: "Customer" },
               { name: "Quotation Email", trigger: "When quote is sent", audience: "Customer" },
               { name: "Follow-up Reminder", trigger: "1 hr before follow-up", audience: "Sales rep" },
               { name: "AMC Renewal – 30 days", trigger: "30 days before expiry", audience: "Customer" },

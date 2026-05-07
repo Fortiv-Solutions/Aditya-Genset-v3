@@ -1,20 +1,43 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Lock, Mail, Store, ShieldCheck } from "lucide-react";
+import { ArrowRight, Lock, Mail, ShieldCheck, UserCheck } from "lucide-react";
 import { SEO } from "@/components/site/SEO";
 import { toast } from "sonner";
 import factoryHero from "@/assets/products/showcase/factory.jpg";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { useCMSState } from "@/components/cms/CMSEditorProvider";
+import { getRoleHomePath, isAdminRole, isSalesRole } from "@/lib/auth";
+import type { AppRole } from "@/lib/supabase";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+
+type LoginRole = "admin" | "sales_executive";
+
+const ROLE_OPTIONS: Record<LoginRole, { label: string; title: string; subtitle: string }> = {
+  admin: {
+    label: "Admin",
+    title: "Admin Portal",
+    subtitle: "Management Dashboard",
+  },
+  sales_executive: {
+    label: "Sales Executive",
+    title: "Aditya Genset",
+    subtitle: "VisualSales Pro",
+  },
+};
 
 export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loginType, setLoginType] = useState<"dealer" | "admin">("dealer");
+  const [loginRole, setLoginRole] = useState<LoginRole>("sales_executive");
 
   const [isLoading, setIsLoading] = useState(false);
-  const { content } = useCMSState();
+  const selectedRole = ROLE_OPTIONS[loginRole];
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,27 +59,36 @@ export default function Login() {
       if (error) throw error;
 
       if (data.user) {
-        // Set basic login state for UI
-        localStorage.setItem("isLoggedIn", "true");
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("role")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+
+        if (profileError) throw profileError;
+        if (!profile?.role) {
+          await supabase.auth.signOut();
+          throw new Error("Your account does not have an assigned profile. Contact an administrator.");
+        }
+
+        const profileRole = profile.role as AppRole;
+        const selectedAdminPortal = loginRole === "admin";
+        const canUseSelectedPortal = selectedAdminPortal ? isAdminRole(profileRole) : isSalesRole(profileRole);
+
+        if (!canUseSelectedPortal) {
+          await supabase.auth.signOut();
+          throw new Error(`This account is assigned as ${profileRole}. Please select the correct login type.`);
+        }
+
+        localStorage.removeItem("isLoggedIn");
         localStorage.setItem("userEmail", data.user.email || email);
-        
+
         toast.success("Login successful! Redirecting...");
-        
-        // Determine user role and redirect
-        const userEmail = data.user.email || "";
-        const isAdmin = data.user.app_metadata?.role === 'admin' || userEmail === 'admin@fortivsolutions.in';
-        
-        setTimeout(() => {
-          if (isAdmin) {
-            navigate("/admin");
-          } else {
-            // Redirect normal users to the main site (Home/Welcome page)
-            navigate("/");
-          }
-        }, 500);
+        setTimeout(() => navigate(getRoleHomePath(profileRole), { replace: true }), 300);
       }
-    } catch (error: any) {
-      toast.error(error.message || "Authentication failed. Please check your credentials.");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Authentication failed. Please check your credentials.";
+      toast.error(message);
       console.error("Login error:", error);
     } finally {
       setIsLoading(false);
@@ -95,15 +127,40 @@ export default function Login() {
           {/* Header */}
           <div className="text-center mb-10">
             <h1 className="font-display text-3xl font-extrabold tracking-tight text-accent">
-              {loginType === "admin" ? "Admin Portal" : "Aditya Genset"}
+              {selectedRole.title}
             </h1>
             <p className="mt-2 text-[10px] font-bold uppercase tracking-[0.3em] text-white/60">
-              {loginType === "admin" ? "Management Dashboard" : "VisualSales Pro"}
+              {selectedRole.subtitle}
             </p>
           </div>
 
           {/* Form */}
           <form className="space-y-6" onSubmit={handleLogin}>
+            {/* Role Selector */}
+            <div className="space-y-2 group">
+              <label className="text-xs font-semibold uppercase tracking-wider text-white/80 transition-colors group-focus-within:text-accent">
+                Login Type
+              </label>
+              <Select value={loginRole} onValueChange={(value) => setLoginRole(value as LoginRole)}>
+                <SelectTrigger className="h-auto w-full rounded-sm border-white/10 bg-black/20 px-4 py-3.5 text-sm text-white shadow-inner ring-offset-brand-navy focus:border-accent focus:ring-accent [&>span]:flex [&>span]:items-center [&>span]:gap-2">
+                  <SelectValue placeholder="Select login type" />
+                </SelectTrigger>
+                <SelectContent className="border-white/10 bg-brand-navy text-white">
+                  <SelectItem value="admin" className="focus:bg-accent focus:text-accent-foreground">
+                    <span className="flex items-center gap-2">
+                      <ShieldCheck size={16} />
+                      Admin
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="sales_executive" className="focus:bg-accent focus:text-accent-foreground">
+                    <span className="flex items-center gap-2">
+                      <UserCheck size={16} />
+                      Sales Executive
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
             
             {/* Email Field */}
             <div className="space-y-2 group">
@@ -159,36 +216,6 @@ export default function Login() {
               >
                 {isLoading ? "Authenticating..." : "Secure Login"}
                 {!isLoading && <ArrowRight size={16} className="transition-transform duration-300 group-hover:translate-x-1" />}
-              </button>
-              
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginType("dealer");
-                  setEmail("");
-                }}
-                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-sm text-sm font-medium transition-all duration-300 active:scale-[0.98] ${
-                  loginType === "dealer" 
-                    ? "bg-white/10 border border-accent/30 text-accent" 
-                    : "bg-white/5 hover:bg-white/10 border border-white/10 text-white"
-                }`}
-              >
-                <Store size={16} className={loginType === "dealer" ? "text-accent" : "text-white/60"} /> Login as Dealer
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setLoginType("admin");
-                  setEmail("admin@fortivsolutions.in");
-                }}
-                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-sm text-sm font-medium transition-all duration-300 active:scale-[0.98] ${
-                  loginType === "admin" 
-                    ? "bg-white/10 border border-accent/30 text-accent" 
-                    : "bg-white/5 hover:bg-white/10 border border-white/10 text-white"
-                }`}
-              >
-                <ShieldCheck size={16} className={loginType === "admin" ? "text-accent" : "text-white/60"} /> Login as Admin
               </button>
             </div>
           </form>

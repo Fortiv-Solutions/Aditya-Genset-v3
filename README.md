@@ -1,6 +1,6 @@
 # Aditya Genset Website
 
-A modern, interactive website for Aditya Genset showcasing diesel generators with 3D models, animations, and comprehensive product information.
+A modern, interactive website for Aditya Genset showcasing diesel generators with 3D models, animations, and comprehensive product information..
 
 ## 🚀 Features
 
