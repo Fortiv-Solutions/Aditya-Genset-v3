@@ -12,6 +12,8 @@ import {
 } from "@/components/auth/AuthRoutes";
 import { ADMIN_ROLES } from "@/lib/auth";
 import { CMSEditorProvider } from "./components/cms/CMSEditorProvider";
+import { CompareProvider } from "./context/CompareContext";
+import { QuoteProvider } from "./context/QuoteContext";
 
 // Site Pages
 import Home from "./pages/Home";
@@ -31,6 +33,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AddProduct from "./pages/admin/AddProduct";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminLeads from "./pages/admin/AdminLeads";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCMS from "./pages/admin/AdminCMS";
@@ -54,10 +57,6 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   if (!isLoggedIn) return <Navigate to="/login" replace />;
   return <AdminLayout>{children}</AdminLayout>;
 };
-
-import { CMSEditorProvider } from "./components/cms/CMSEditorProvider";
-import { CompareProvider } from "./context/CompareContext";
-import { QuoteProvider } from "./context/QuoteContext";
 
 const App = () => {
   return (
