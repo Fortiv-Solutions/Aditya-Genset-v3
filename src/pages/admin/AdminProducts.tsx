@@ -6,7 +6,6 @@ import {
   Copy,
   Edit2,
   Eye,
-  FileSpreadsheet,
   FilterX,
   History,
   Package,
@@ -114,6 +113,7 @@ export default function AdminProducts() {
         id: p.id,
         name: p.name,
         model: p.model || p.slug,
+        slug: p.slug || p.model,
         kva: Number(p.kva || 0),
         engineBrand: p.engine_brand || "N/A",
         type: p.type || "silent",
@@ -238,13 +238,6 @@ export default function AdminProducts() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
-            type="button"
-            className="inline-flex items-center gap-2 border border-border bg-card px-4 py-2.5 text-sm font-semibold text-muted-foreground hover:bg-secondary hover:text-foreground"
-          >
-            <FileSpreadsheet size={16} className="text-emerald-600" />
-            Bulk Import
-          </button>
           <button
             onClick={() => navigate("/admin/products/add")}
             className="inline-flex items-center gap-2 bg-accent px-4 py-2.5 text-sm font-bold text-accent-foreground shadow-sm shadow-accent/25 transition-colors hover:bg-accent/90"
@@ -401,8 +394,14 @@ export default function AdminProducts() {
                   <td className="px-5 py-4">
                     <button
                       type="button"
-                      onClick={() => void updateProductStatus([product.id], product.status === "published" ? "draft" : "published")}
-                      className={`inline-flex rounded-md border px-2.5 py-1 text-[11px] font-bold capitalize transition-opacity hover:opacity-80 ${STATUS_STYLES[product.status]}`}
+                      onClick={() => {
+                        if (product.status === "archived") return;
+                        void updateProductStatus([product.id], product.status === "published" ? "draft" : "published");
+                      }}
+                      title={product.status === "archived" ? "Archived products must be edited or bulk-updated to republish" : "Toggle published/draft"}
+                      className={`inline-flex rounded-md border px-2.5 py-1 text-[11px] font-bold capitalize transition-opacity ${
+                        product.status === "archived" ? "cursor-not-allowed opacity-75" : "hover:opacity-80"
+                      } ${STATUS_STYLES[product.status]}`}
                     >
                       {product.status}
                     </button>
@@ -412,7 +411,7 @@ export default function AdminProducts() {
                       <IconButton label="Edit" onClick={() => navigate(`/admin/products/${product.id}/edit`)}>
                         <Edit2 size={15} />
                       </IconButton>
-                      <IconButton label="Preview" onClick={() => navigate(`/products/${product.model}`)}>
+                      <IconButton label="Preview" onClick={() => navigate(`/products/${product.slug}`)}>
                         <Eye size={15} />
                       </IconButton>
                       <IconButton label="Duplicate" onClick={() => void duplicateProduct(product)}>

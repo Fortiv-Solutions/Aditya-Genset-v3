@@ -3,14 +3,11 @@ import type { FormEvent } from "react";
 import { createPortal } from "react-dom";
 import {
   CheckCircle,
-  Edit2,
-  Eye,
   Lock,
   Mail,
   Phone,
   Plus,
   ShieldCheck,
-  Trash2,
   User,
   UserPlus,
 } from "lucide-react";
@@ -167,6 +164,7 @@ export default function AdminUsers() {
   const [activeTab, setActiveTab] = useState<"users" | "roles" | "matrix" | "activity">("users");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
+  const [edgeFunctionAvailable, setEdgeFunctionAvailable] = useState(true);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -178,9 +176,11 @@ export default function AdminUsers() {
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
 
+      setEdgeFunctionAvailable(true);
       setUsers((data?.users ?? []).map(mapUser));
     } catch (error) {
       console.warn("admin-users Edge Function unavailable, falling back to profiles table:", error);
+      setEdgeFunctionAvailable(false);
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
@@ -265,7 +265,7 @@ export default function AdminUsers() {
   };
 
   const createUserModal = showCreateModal ? createPortal(
-    <div className="fixed inset-x-0 bottom-0 top-[85px] z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto p-4 sm:p-6">
       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={resetModal} />
       <form
         onSubmit={handleCreateUser}
@@ -396,10 +396,16 @@ export default function AdminUsers() {
           <p className="text-sm text-muted-foreground mt-0.5">
             {users.filter((user) => user.status === "active").length} active - {users.length} total users
           </p>
+          {!edgeFunctionAvailable && (
+            <p className="text-xs text-muted-foreground mt-2">
+              Auth metadata is unavailable until the `admin-users` Edge Function is deployed.
+            </p>
+          )}
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors"
+          disabled={!edgeFunctionAvailable}
+          className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors disabled:opacity-60"
         >
           <Plus size={16} /> Create User
         </button>
@@ -427,7 +433,7 @@ export default function AdminUsers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-secondary">
-                  {["User", "Role", "Status", "Last Login", "2FA", "Actions"].map((heading) => (
+                  {["User", "Role", "Status", "Last Login", "2FA"].map((heading) => (
                     <th key={heading} className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {heading}
                     </th>
@@ -437,13 +443,13 @@ export default function AdminUsers() {
               <tbody className="divide-y divide-border">
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">
+                    <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">
                       Loading users...
                     </td>
                   </tr>
                 ) : users.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-10 text-center text-muted-foreground">
+                    <td colSpan={5} className="px-5 py-10 text-center text-muted-foreground">
                       No users found.
                     </td>
                   </tr>
@@ -485,21 +491,6 @@ export default function AdminUsers() {
                         ) : (
                           <span className="text-xs text-muted-foreground">-</span>
                         )}
-                      </td>
-                      <td className="px-5 py-4">
-                        <div className="flex gap-1">
-                          <button className="p-1.5 rounded-md text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors" aria-label="Edit user">
-                            <Edit2 size={14} />
-                          </button>
-                          <button className="p-1.5 rounded-md text-muted-foreground hover:text-blue-400 hover:bg-blue-500/10 transition-colors" aria-label="View user">
-                            <Eye size={14} />
-                          </button>
-                          {user.role !== "Super Admin" && (
-                            <button className="p-1.5 rounded-md text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors" aria-label="Delete user">
-                              <Trash2 size={14} />
-                            </button>
-                          )}
-                        </div>
                       </td>
                     </tr>
                   );

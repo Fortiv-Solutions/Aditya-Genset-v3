@@ -247,8 +247,6 @@ export default function AdminSettings() {
     { key: "site", label: "Site Config", icon: Globe },
     { key: "notifications", label: "Notifications", icon: Bell },
     { key: "security", label: "Security", icon: Lock },
-    { key: "integrations", label: "Integrations", icon: Key },
-    { key: "email", label: "Email Templates", icon: Mail },
   ] as const;
 
   return (

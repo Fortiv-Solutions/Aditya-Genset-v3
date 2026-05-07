@@ -4,6 +4,7 @@ export interface AdminProduct {
   id: string;
   name: string;
   model: string;
+  slug: string;
   kva: number;
   engineBrand: string;
   type: "silent" | "open";

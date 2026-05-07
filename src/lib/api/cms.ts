@@ -37,12 +37,19 @@ export async function updateCMSSection(
   scopeType: 'global' | 'product' | 'category' | 'page' = 'global',
   scopeId?: string
 ) {
-  const { data: existing } = await supabase
+  let existingQuery = supabase
     .from('cms_sections')
     .select('id, revision')
     .eq('section_key', sectionKey)
     .eq('scope_type', scopeType)
-    .maybeSingle()
+
+  if (scopeId) {
+    existingQuery = existingQuery.eq("scope_id", scopeId)
+  } else {
+    existingQuery = existingQuery.is("scope_id", null)
+  }
+
+  const { data: existing } = await existingQuery.maybeSingle()
 
   if (existing) {
     // Update existing

@@ -54,6 +54,38 @@ function formatCurrency(value: number) {
   return `Rs ${INR.format(value)}`;
 }
 
+function inSelectedRange(dateValue: string | null, range: string) {
+  if (range === "all_time") return true;
+  const date = dateValue ? new Date(dateValue) : null;
+  if (!date || Number.isNaN(date.getTime())) return false;
+
+  const now = new Date();
+  const start = new Date(now);
+
+  if (range === "today") {
+    start.setHours(0, 0, 0, 0);
+    return date >= start;
+  }
+
+  if (range === "this_week") {
+    const day = start.getDay();
+    const diff = day === 0 ? 6 : day - 1;
+    start.setDate(start.getDate() - diff);
+    start.setHours(0, 0, 0, 0);
+    return date >= start;
+  }
+
+  if (range === "this_month") {
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    return date >= start;
+  }
+
+  start.setMonth(Math.floor(start.getMonth() / 3) * 3, 1);
+  start.setHours(0, 0, 0, 0);
+  return date >= start;
+}
+
 function MetricCard({
   label,
   value,
@@ -131,16 +163,23 @@ export default function AdminReports() {
   }, []);
 
   const stats = useMemo(() => {
+    const filteredQuotes = data.quotes.filter((quote) => inSelectedRange(quote.accepted_at || quote.sent_at || quote.created_at, dateRange));
+    const filteredQuoteItems = data.quoteItems.filter((item) => {
+      if (!item.quote_id) return false;
+      const quote = data.quotes.find((entry) => entry.id === item.quote_id);
+      return quote ? inSelectedRange(quote.accepted_at || quote.sent_at || quote.created_at, dateRange) : false;
+    });
+
     const published = data.products.filter((product) => product.status === "published").length;
     const draft = data.products.filter((product) => product.status === "draft").length;
-    const sentQuotes = data.quotes.filter((quote) => ["sent", "accepted", "rejected"].includes(quote.status ?? ""));
-    const acceptedQuotes = data.quotes.filter((quote) => quote.status === "accepted");
-    const quotePipeline = data.quotes
+    const sentQuotes = filteredQuotes.filter((quote) => ["sent", "accepted", "rejected"].includes(quote.status ?? ""));
+    const acceptedQuotes = filteredQuotes.filter((quote) => quote.status === "accepted");
+    const quotePipeline = filteredQuotes
       .filter((quote) => ["draft", "sent"].includes(quote.status ?? ""))
       .reduce((sum, quote) => sum + numberValue(quote.total_amount), 0);
     const acceptedRevenue = acceptedQuotes.reduce((sum, quote) => sum + numberValue(quote.total_amount), 0);
 
-    const quoteCountByProduct = data.quoteItems.reduce<Record<string, number>>((acc, item) => {
+    const quoteCountByProduct = filteredQuoteItems.reduce<Record<string, number>>((acc, item) => {
       if (item.product_id) acc[item.product_id] = (acc[item.product_id] ?? 0) + 1;
       return acc;
     }, {});
@@ -173,7 +212,7 @@ export default function AdminReports() {
       acceptedRevenue,
       productPerformance,
     };
-  }, [data]);
+  }, [data, dateRange]);
 
   const REPORT_TABS = [
     { key: "overview", label: "Overview", icon: BarChart2 },

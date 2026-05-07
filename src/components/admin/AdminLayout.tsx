@@ -60,6 +60,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const { profile, user, signOut } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
 
   const userName = profile?.full_name || user?.email || "Admin";
   const userInitials = (profile?.full_name || user?.email || "AD")
@@ -81,6 +82,33 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   const currentSection = NAV_ITEMS.find((item) => isActive(item.path))?.label ?? "Dashboard";
+
+  const handleGlobalSearch = () => {
+    const query = globalSearch.trim().toLowerCase();
+    if (!query) return;
+
+    if (query.includes("user") || query.includes("role")) {
+      navigate("/admin/users");
+      return;
+    }
+
+    if (query.includes("report")) {
+      navigate("/admin/reports");
+      return;
+    }
+
+    if (query.includes("setting")) {
+      navigate("/admin/settings");
+      return;
+    }
+
+    if (query.includes("cms") || query.includes("content")) {
+      navigate("/admin/cms");
+      return;
+    }
+
+    navigate("/admin/products");
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -213,6 +241,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <input
                 type="text"
                 placeholder="Search products, content, users..."
+                value={globalSearch}
+                onChange={(event) => setGlobalSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") handleGlobalSearch();
+                }}
                 className="w-full pl-9 pr-4 py-2.5 bg-secondary/70 border border-border rounded-md text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/60 focus:bg-card transition-all"
               />
             </div>
@@ -221,7 +254,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           {/* Right: Actions */}
           <div className="flex items-center gap-2 ml-auto">
             <Link 
-              to="/"
+              to="/home"
               className="hidden sm:flex items-center gap-1.5 px-3.5 py-2 border border-border hover:bg-secondary text-xs font-semibold text-muted-foreground transition-colors mr-2"
             >
               <Globe size={14} />
@@ -234,9 +267,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <Plus size={14} />
               Quick Add
             </button>
-            <button className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+            <button
+              onClick={() => toast.info("No new notifications")}
+              className="relative p-2 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
               <Bell size={18} />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-accent rounded-full ring-2 ring-card"></span>
             </button>
           </div>
         </header>

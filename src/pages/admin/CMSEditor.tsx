@@ -14,20 +14,29 @@ import ProductDetail from "@/pages/ProductDetail";
 export default function CMSEditor() {
   const { pageId } = useParams<{ pageId: string }>();
   const navigate = useNavigate();
+  const searchParams = new URLSearchParams(window.location.search);
+  const productId = searchParams.get("productId");
+  const productSlug = searchParams.get("slug");
   const { 
     setIsEditMode, 
     undo, redo, canUndo, canRedo, 
-    discard, saveAll
+    discard, saveAll, loadProductCMS, setCurrentProductId
   } = useCMSState();
   const [saving, setSaving] = useState(false);
   const appliedRef = useRef(false);
 
   useEffect(() => {
     setIsEditMode(true);
+    if (productId) {
+      void loadProductCMS(productId);
+    } else {
+      setCurrentProductId(null);
+    }
     return () => {
       setIsEditMode(false);
+      setCurrentProductId(null);
     };
-  }, [setIsEditMode]);
+  }, [loadProductCMS, productId, setCurrentProductId, setIsEditMode]);
 
   const handleApply = async () => {
     setSaving(true);
@@ -55,8 +64,7 @@ export default function CMSEditor() {
   const getPagePath = () => {
     if (pageId === "products") return "/products";
     if (pageId === "dgSetsCategory") return "/products/dg-sets";
-    if (pageId?.startsWith("showcaseData")) return "/products/silent-62-5";
-    if (pageId === "ekl15ShowcaseData") return "/products/ekl-15-2cyl";
+    if (pageId?.startsWith("showcaseData") && productSlug) return `/products/${productSlug}`;
     return "/";
   };
 
@@ -64,7 +72,7 @@ export default function CMSEditor() {
   let ContentComponent = Home;
   if (pageId === "products") ContentComponent = Products;
   if (pageId === "dgSetsCategory") ContentComponent = DGSetsCategory;
-  if (pageId?.startsWith("showcaseData") || pageId === "ekl15ShowcaseData") ContentComponent = ProductDetail;
+  if (pageId?.startsWith("showcaseData")) ContentComponent = ProductDetail;
 
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col">
