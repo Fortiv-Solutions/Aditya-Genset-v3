@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
-  LayoutDashboard, Package, Users, FileText, Image as ImageIcon,
+  LayoutDashboard, Package, FileText, Image as ImageIcon,
   ClipboardList, Handshake, Wrench, ShieldCheck, BarChart2,
   Settings, ChevronRight, Bell, Search, Plus, LogOut,
   Menu, X, Zap, Globe
@@ -27,22 +27,6 @@ const NAV_ITEMS: NavItem[] = [
     label: "Products",
     icon: Package,
     path: "/admin/products",
-    sub: [
-      { label: "All Products", path: "/admin/products" },
-      { label: "Add Product", path: "/admin/products/add" },
-      { label: "Categories", path: "/admin/products/categories" },
-    ],
-  },
-  {
-    label: "Leads & Inquiries",
-    icon: Users,
-    path: "/admin/leads",
-    badge: 8,
-    sub: [
-      { label: "All Leads", path: "/admin/leads" },
-      { label: "Pipeline Board", path: "/admin/leads/pipeline" },
-      { label: "Follow-ups", path: "/admin/leads/followups" },
-    ],
   },
   {
     label: "CMS / Content",
@@ -262,7 +246,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
               <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
               <input
                 type="text"
-                placeholder="Search products, leads, content..."
+                placeholder="Search products, content, users..."
                 className="w-full pl-9 pr-4 py-2 bg-secondary border border-border rounded-lg text-sm text-muted-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 focus:bg-secondary transition-all"
               />
             </div>

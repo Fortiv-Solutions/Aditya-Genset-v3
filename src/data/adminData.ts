@@ -1,4 +1,4 @@
-// ─── Admin Dashboard Mock Data ───────────────────────────────────────────────
+// Shared admin data types used by Supabase-backed admin screens.
 
 export type LeadStage =
   | "new"

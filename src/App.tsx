@@ -28,7 +28,6 @@ import AdminLayout from "./components/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AddProduct from "./pages/admin/AddProduct";
-import AdminLeads from "./pages/admin/AdminLeads";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -68,13 +67,7 @@ const App = () => {
                 } />
                 <Route path="/admin/products/:id/edit" element={<AdminRoute><AddProduct /></AdminRoute>} />
 
-                <Route path="/admin/leads" element={<AdminRoute><AdminLeads /></AdminRoute>} />
-                <Route path="/admin/leads/pipeline" element={<AdminRoute><AdminLeads /></AdminRoute>} />
-                <Route path="/admin/leads/followups" element={
-                  <AdminRoute>
-                    <AdminComingSoon title="Follow-up Manager" description="View and manage all scheduled follow-ups, overdue tasks, and daily sales rep reminders." />
-                  </AdminRoute>
-                } />
+                <Route path="/admin/leads/*" element={<Navigate to="/admin" replace />} />
 
                 <Route path="/admin/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
                 <Route path="/admin/cms/edit/:pageId" element={<AdminRoute><CMSEditor /></AdminRoute>} />

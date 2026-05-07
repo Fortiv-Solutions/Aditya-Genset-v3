@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import { createPortal } from "react-dom";
 import {
   CheckCircle,
   Edit2,
@@ -43,6 +44,15 @@ interface AdminUsersFunctionUser {
 interface AdminUsersFunctionResponse {
   users?: AdminUsersFunctionUser[];
   error?: string;
+}
+
+interface ProfileRow {
+  user_id: string;
+  role: AppRole;
+  full_name: string | null;
+  phone: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
 }
 
 const ROLES: Array<{
@@ -134,6 +144,22 @@ function mapUser(user: AdminUsersFunctionUser): AdminUser {
   };
 }
 
+function mapProfile(profile: ProfileRow): AdminUser {
+  const fullName = profile.full_name || "Unnamed User";
+
+  return {
+    id: profile.user_id,
+    name: fullName,
+    email: "Managed in Supabase Auth",
+    phone: profile.phone || "",
+    role: profile.role || "Sales Executive",
+    status: "active",
+    lastLogin: "Auth details unavailable",
+    initials: getInitials(fullName, ""),
+    color: "bg-accent/20 text-accent",
+  };
+}
+
 export default function AdminUsers() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
@@ -154,8 +180,22 @@ export default function AdminUsers() {
 
       setUsers((data?.users ?? []).map(mapUser));
     } catch (error) {
-      console.error("Error fetching users:", error);
-      toast.error("Unable to load users. Deploy the admin-users Edge Function and confirm admin access.");
+      console.warn("admin-users Edge Function unavailable, falling back to profiles table:", error);
+
+      const { data: profiles, error: profilesError } = await supabase
+        .from("profiles")
+        .select("user_id, role, full_name, phone, created_at, updated_at")
+        .order("created_at", { ascending: false });
+
+      if (profilesError) {
+        console.error("Error fetching users:", profilesError);
+        toast.error("Unable to load users. Confirm the admin-users Edge Function is deployed or admin profile RLS is enabled.");
+        setUsers([]);
+        return;
+      }
+
+      setUsers(((profiles ?? []) as ProfileRow[]).map(mapProfile));
+      toast.warning("Showing profile data only. Deploy the admin-users Edge Function for emails and auth status.");
     } finally {
       setLoading(false);
     }
@@ -224,127 +264,130 @@ export default function AdminUsers() {
     }
   };
 
+  const createUserModal = showCreateModal ? createPortal(
+    <div className="fixed inset-x-0 bottom-0 top-[85px] z-50 flex items-start justify-center overflow-y-auto p-4 sm:p-6">
+      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={resetModal} />
+      <form
+        onSubmit={handleCreateUser}
+        className="relative z-10 my-auto w-full max-w-xl bg-card border border-border rounded-xl shadow-2xl p-5 sm:p-6 animate-scale-in"
+      >
+        <div className="flex items-start gap-3 mb-5">
+          <div className="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
+            <UserPlus size={18} />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-foreground">Create User</h3>
+            <p className="text-xs text-muted-foreground mt-1">
+              Creates a Supabase Auth account and matching profile record.
+            </p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-1.5 md:col-span-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Full Name</label>
+            <div className="relative">
+              <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={form.fullName}
+                onChange={(e) => updateForm("fullName", e.target.value)}
+                placeholder="Rahul Sharma"
+                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5 md:col-span-2">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</label>
+            <div className="relative">
+              <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => updateForm("email", e.target.value)}
+                placeholder="sales@adityagenset.com"
+                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Password</label>
+            <div className="relative">
+              <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="password"
+                value={form.password}
+                onChange={(e) => updateForm("password", e.target.value)}
+                placeholder="Minimum 8 characters"
+                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Confirm Password</label>
+            <input
+              type="password"
+              value={form.confirmPassword}
+              onChange={(e) => updateForm("confirmPassword", e.target.value)}
+              placeholder="Repeat password"
+              className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Phone</label>
+            <div className="relative">
+              <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+              <input
+                value={form.phone}
+                onChange={(e) => updateForm("phone", e.target.value)}
+                placeholder="+91 98765 43210"
+                className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assign Role</label>
+            <select
+              value={form.role}
+              onChange={(e) => updateForm("role", e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
+            >
+              {ROLES.map((role) => (
+                <option key={role.name} value={role.name}>{role.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-6">
+          <button
+            type="button"
+            onClick={resetModal}
+            disabled={saving}
+            className="w-full py-2.5 bg-secondary border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="w-full py-2.5 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors disabled:opacity-60"
+          >
+            {saving ? "Creating..." : "Create User"}
+          </button>
+        </div>
+      </form>
+    </div>,
+    document.body,
+  ) : null;
+
   return (
     <div className="space-y-5 animate-fade-in">
-      {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-background/80 backdrop-blur-sm" onClick={resetModal} />
-          <form
-            onSubmit={handleCreateUser}
-            className="relative z-10 w-full max-w-lg bg-card border border-border rounded-xl shadow-2xl p-6 animate-scale-in"
-          >
-            <div className="flex items-start gap-3 mb-5">
-              <div className="w-10 h-10 rounded-lg bg-accent/10 text-accent flex items-center justify-center">
-                <UserPlus size={18} />
-              </div>
-              <div>
-                <h3 className="text-lg font-bold text-foreground">Create User</h3>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Creates a Supabase Auth account and matching profile record.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Full Name</label>
-                <div className="relative">
-                  <User size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    value={form.fullName}
-                    onChange={(e) => updateForm("fullName", e.target.value)}
-                    placeholder="Rahul Sharma"
-                    className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5 md:col-span-2">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Email Address</label>
-                <div className="relative">
-                  <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="email"
-                    value={form.email}
-                    onChange={(e) => updateForm("email", e.target.value)}
-                    placeholder="sales@adityagenset.com"
-                    className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Password</label>
-                <div className="relative">
-                  <Lock size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => updateForm("password", e.target.value)}
-                    placeholder="Minimum 8 characters"
-                    className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Confirm Password</label>
-                <input
-                  type="password"
-                  value={form.confirmPassword}
-                  onChange={(e) => updateForm("confirmPassword", e.target.value)}
-                  placeholder="Repeat password"
-                  className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Phone</label>
-                <div className="relative">
-                  <Phone size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    value={form.phone}
-                    onChange={(e) => updateForm("phone", e.target.value)}
-                    placeholder="+91 98765 43210"
-                    className="w-full pl-9 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Assign Role</label>
-                <select
-                  value={form.role}
-                  onChange={(e) => updateForm("role", e.target.value)}
-                  className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60"
-                >
-                  {ROLES.map((role) => (
-                    <option key={role.name} value={role.name}>{role.name}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="flex gap-2 pt-6">
-              <button
-                type="button"
-                onClick={resetModal}
-                disabled={saving}
-                className="flex-1 py-2.5 bg-secondary border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors disabled:opacity-60"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="flex-1 py-2.5 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors disabled:opacity-60"
-              >
-                {saving ? "Creating..." : "Create User"}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      {createUserModal}
 
       <div className="flex items-center justify-between">
         <div>
