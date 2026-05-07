@@ -33,7 +33,6 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminProducts from "./pages/admin/AdminProducts";
 import AddProduct from "./pages/admin/AddProduct";
 import AdminUsers from "./pages/admin/AdminUsers";
-import AdminLeads from "./pages/admin/AdminLeads";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCMS from "./pages/admin/AdminCMS";
@@ -84,8 +83,16 @@ const App = () => {
             } />
             <Route path="/admin/products/:id/edit" element={<AdminRoute><AddProduct /></AdminRoute>} />
 
-            <Route path="/admin/leads" element={<AdminRoute><AdminLeads /></AdminRoute>} />
-            <Route path="/admin/leads/pipeline" element={<AdminRoute><AdminLeads /></AdminRoute>} />
+            <Route path="/admin/leads" element={
+              <AdminRoute>
+                <AdminComingSoon title="Lead Management" description="Manage customer leads, inquiries, and sales pipeline." />
+              </AdminRoute>
+            } />
+            <Route path="/admin/leads/pipeline" element={
+              <AdminRoute>
+                <AdminComingSoon title="Sales Pipeline" description="Visual sales pipeline with drag-and-drop lead management." />
+              </AdminRoute>
+            } />
             <Route path="/admin/leads/followups" element={
               <AdminRoute>
                 <AdminComingSoon title="Follow-up Manager" description="View and manage all scheduled follow-ups, overdue tasks, and daily sales rep reminders." />
