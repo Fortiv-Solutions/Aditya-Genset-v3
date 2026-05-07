@@ -1,71 +1,86 @@
-import { supabase, isDemoMode } from '../supabase'
+import { supabase } from '../supabase'
 import type { Product, ProductMedia, ProductSpec } from '../supabase'
-import { DEMO_PRODUCTS } from '@/data/demoProducts'
 
 /**
  * Fetch all published products with their media and specs
  */
 export async function fetchPublishedProducts() {
-  // Use demo data if in demo mode
-  if (isDemoMode) {
-    console.info('📦 Loading demo products')
-    return DEMO_PRODUCTS
+  console.log('🔍 Fetching products from Supabase...')
+  
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      *,
+      product_media (*),
+      product_specs (*)
+    `)
+    .eq('status', 'published')
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('❌ Error fetching products:', error)
+    throw error
   }
 
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select(`
-        *,
-        product_media (*),
-        product_specs (*)
-      `)
-      .eq('status', 'published')
-      .order('created_at', { ascending: false })
+  console.log('✅ Raw data from Supabase:', data)
+  console.log(`📊 Found ${data?.length || 0} products`)
 
-    if (error) {
-      console.warn('Supabase error, using demo data:', error)
-      return DEMO_PRODUCTS
-    }
+  // Transform the data to match the expected format
+  const transformedData = (data || []).map(product => ({
+    ...product,
+    product_media: product.product_media?.map((media: any) => ({
+      ...media,
+      url: media.public_url, // Map public_url to url for compatibility
+    })),
+    product_specs: product.product_specs?.map((spec: any) => ({
+      ...spec,
+      label: spec.spec_label, // Map spec_label to label
+      value: spec.spec_value, // Map spec_value to value
+    })),
+  }))
 
-    return data || DEMO_PRODUCTS
-  } catch (err) {
-    console.warn('Failed to connect to Supabase, using demo data:', err)
-    return DEMO_PRODUCTS
-  }
+  console.log('✅ Transformed data:', transformedData)
+
+  return transformedData
 }
 
 /**
  * Fetch a single product by slug with all related data
  */
 export async function fetchProductBySlug(slug: string) {
-  // Use demo data if in demo mode
-  if (isDemoMode) {
-    return DEMO_PRODUCTS.find(p => p.slug === slug) || null
+  const { data, error } = await supabase
+    .from('products')
+    .select(`
+      *,
+      product_media (*),
+      product_specs (*)
+    `)
+    .eq('slug', slug)
+    .eq('status', 'published')
+    .single()
+
+  if (error) {
+    console.error('Error fetching product:', error)
+    return null
   }
 
-  try {
-    const { data, error } = await supabase
-      .from('products')
-      .select(`
-        *,
-        product_media (*),
-        product_specs (*)
-      `)
-      .eq('slug', slug)
-      .eq('status', 'published')
-      .single()
-
-    if (error) {
-      console.warn('Supabase error, checking demo data:', error)
-      return DEMO_PRODUCTS.find(p => p.slug === slug) || null
+  // Transform the data
+  if (data) {
+    return {
+      ...data,
+      product_media: data.product_media?.map((media: any) => ({
+        ...media,
+        url: media.public_url,
+      })),
+      product_specs: data.product_specs?.map((spec: any) => ({
+        ...spec,
+        label: spec.spec_label,
+        value: spec.spec_value,
+      })),
     }
-
-    return data
-  } catch (err) {
-    console.warn('Failed to connect to Supabase, checking demo data:', err)
-    return DEMO_PRODUCTS.find(p => p.slug === slug) || null
   }
+
+  return null
 }
 
 /**
@@ -78,92 +93,46 @@ export async function fetchProductsWithFilters(filters: {
   type?: string
   search?: string
 }) {
-  // Use demo data if in demo mode
-  if (isDemoMode) {
-    return filterDemoProducts(filters)
-  }
+  let query = supabase
+    .from('products')
+    .select(`
+      *,
+      product_media!inner(*)
+    `)
+    .eq('status', 'published')
+    .eq('product_media.kind', 'primary')
 
-  try {
-    let query = supabase
-      .from('products')
-      .select(`
-        *,
-        product_media!inner(*)
-      `)
-      .eq('status', 'published')
-      .eq('product_media.kind', 'primary')
-
-    // Apply filters
-    if (filters.engineBrand && filters.engineBrand !== 'All') {
-      query = query.eq('engine_brand', filters.engineBrand)
-    }
-
-    if (filters.kvaMin !== undefined) {
-      query = query.gte('kva', filters.kvaMin)
-    }
-
-    if (filters.kvaMax !== undefined) {
-      query = query.lte('kva', filters.kvaMax)
-    }
-
-    if (filters.type && filters.type !== 'All') {
-      query = query.eq('type', filters.type)
-    }
-
-    if (filters.search) {
-      query = query.or(`name.ilike.%${filters.search}%,model.ilike.%${filters.search}%`)
-    }
-
-    query = query.order('kva', { ascending: true })
-
-    const { data, error } = await query
-
-    if (error) {
-      console.warn('Supabase error, using filtered demo data:', error)
-      return filterDemoProducts(filters)
-    }
-
-    return data || filterDemoProducts(filters)
-  } catch (err) {
-    console.warn('Failed to connect to Supabase, using filtered demo data:', err)
-    return filterDemoProducts(filters)
-  }
-}
-
-function filterDemoProducts(filters: {
-  engineBrand?: string
-  kvaMin?: number
-  kvaMax?: number
-  type?: string
-  search?: string
-}) {
-  let filtered = [...DEMO_PRODUCTS]
-
+  // Apply filters
   if (filters.engineBrand && filters.engineBrand !== 'All') {
-    filtered = filtered.filter(p => p.engine_brand === filters.engineBrand)
+    query = query.eq('engine_brand', filters.engineBrand)
   }
 
   if (filters.kvaMin !== undefined) {
-    filtered = filtered.filter(p => p.kva >= filters.kvaMin!)
+    query = query.gte('kva', filters.kvaMin)
   }
 
   if (filters.kvaMax !== undefined) {
-    filtered = filtered.filter(p => p.kva <= filters.kvaMax!)
+    query = query.lte('kva', filters.kvaMax)
   }
 
   if (filters.type && filters.type !== 'All') {
-    filtered = filtered.filter(p => p.type === filters.type)
+    query = query.eq('type', filters.type)
   }
 
   if (filters.search) {
-    const searchLower = filters.search.toLowerCase()
-    filtered = filtered.filter(p => 
-      p.name.toLowerCase().includes(searchLower) || 
-      p.model.toLowerCase().includes(searchLower)
-    )
+    query = query.or(`name.ilike.%${filters.search}%,model.ilike.%${filters.search}%`)
   }
 
-  return filtered.sort((a, b) => a.kva - b.kva)
+  query = query.order('kva', { ascending: true })
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('Error fetching filtered products:', error)
+    throw error
+  }
+
+  return data || []
 }
 
 /**

@@ -72,7 +72,7 @@ export default function ProductDetail() {
   if (!isCMSPreview && !product) {
     return (
       <section className="container-x py-32 text-center">
-        <SEO title="Coming soon — Adityagenset" />
+        <SEO title="Coming soon | Adityagenset" />
         <div className="font-display text-xs uppercase tracking-[0.3em] text-accent">Coming soon</div>
         <h1 className="mt-3 font-display text-5xl font-semibold">This story is on its way.</h1>
         <p className="mt-4 text-muted-foreground">Verified specs and imagery for this product are being prepared.</p>
@@ -100,7 +100,7 @@ export default function ProductDetail() {
 
   return (
     <div className="relative">
-      <SEO title={`${productName} — Adityagenset`} description={`Explore the ${activeProduct.kva} kVA Silent DG Set: engine, power, sound, dimensions — a guided scroll story.`} />
+      <SEO title={`${productName} | Adityagenset`} description={`Explore the ${activeProduct.kva} kVA Silent DG Set: engine, power, sound, dimensions — a guided scroll story.`} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld) }} />
 
       {/* ── Header overlay — visible only on chapter 1 ── */}
@@ -152,9 +152,11 @@ export default function ProductDetail() {
 
         {/* Row 2 — Product identity */}
         <div className="mt-5">
-          <div className="font-display text-[10px] uppercase tracking-[0.4em] text-accent">
-            {activeProduct.sections[0]?.number} / {activeProduct.sections[0]?.id}
-          </div>
+          {activeProduct.sections && activeProduct.sections.length > 0 && (
+            <div className="font-display text-[10px] uppercase tracking-[0.4em] text-accent">
+              {activeProduct.sections[0]?.number} / {activeProduct.sections[0]?.id}
+            </div>
+          )}
           <EditableText
             section={sectionKey}
             contentKey="productName"

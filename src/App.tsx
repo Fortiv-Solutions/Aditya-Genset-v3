@@ -30,6 +30,7 @@ import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCMS from "./pages/admin/AdminCMS";
 import CMSEditor from "./pages/admin/CMSEditor";
 import AdminComingSoon from "./pages/admin/AdminComingSoon";
+import ProductDiagnostic from "./pages/admin/ProductDiagnostic";
 // import SoftwareRoadmap from "./pages/admin/SoftwareRoadmap";
 import MigrationRunner from "./pages/MigrationRunner";
 
@@ -79,6 +80,7 @@ const App = () => {
             <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
             <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
             <Route path="/admin/products/add" element={<AdminRoute><AddProduct /></AdminRoute>} />
+            <Route path="/admin/products/diagnostic" element={<AdminRoute><ProductDiagnostic /></AdminRoute>} />
             <Route path="/admin/products/categories" element={
               <AdminRoute>
                 <AdminComingSoon title="Product Categories" description="Manage the hierarchical category tree for DG Sets, Open DG Sets, Industrial Sets, and Accessories." />

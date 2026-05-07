@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchPublishedProducts } from "@/lib/api/products";
+import { createQuote, createQuoteItems, generateQuoteNumber } from "@/lib/api/quotes";
 import { SEO } from "@/components/site/SEO";
-import { ArrowLeft, Plus, Trash2, Download, Send, Calculator } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Download, Send, Calculator, Save } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -59,9 +60,22 @@ export default function QuoteBuilder() {
 
   useEffect(() => {
     async function loadProducts() {
-      const data = await fetchPublishedProducts();
-      setProducts(data);
-      setLoading(false);
+      try {
+        console.log('🔍 Quote Builder: Loading products...');
+        const data = await fetchPublishedProducts();
+        console.log('✅ Quote Builder: Loaded products:', data);
+        console.log('📊 Quote Builder: Product count:', data.length);
+        setProducts(data);
+      } catch (error) {
+        console.error('❌ Quote Builder: Error loading products:', error);
+        toast({
+          title: "Error loading products",
+          description: "Could not load products from database. Please refresh the page.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     }
     loadProducts();
   }, []);
@@ -192,6 +206,100 @@ export default function QuoteBuilder() {
     });
   };
 
+  const saveQuoteToDatabase = async () => {
+    if (quoteItems.length === 0) {
+      toast({
+        title: "No items",
+        description: "Please add at least one product to the quote.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!customerInfo.name || !customerInfo.email) {
+      toast({
+        title: "Missing information",
+        description: "Please enter customer name and email.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      toast({
+        title: "Saving quote",
+        description: "Creating quote in database...",
+      });
+
+      // Generate quote number
+      const quoteNumber = await generateQuoteNumber();
+
+      // Calculate expiry date
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + validityDays);
+
+      // Create quote
+      const quote = await createQuote({
+        total_amount: calculateFinalTotal(),
+        currency: 'INR',
+        expires_at: expiresAt.toISOString(),
+        payload: {
+          customerInfo,
+          quoteNotes,
+          validityDays,
+          subtotal: calculateSubtotal(),
+          discount: calculateTotalDiscount(),
+          tax: calculateTax(),
+          grandTotal: calculateGrandTotal(),
+        },
+      });
+
+      // Create quote items
+      const items = quoteItems.map((item, index) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        line_total: calculateItemTotal(item),
+        product_snapshot: {
+          name: item.product.name,
+          model: item.product.model,
+          kva: item.product.kva,
+          engine_brand: item.product.engine_brand,
+          notes: item.notes,
+          discount: item.discount,
+        },
+        display_order: index,
+      }));
+
+      await createQuoteItems(quote.id, items);
+
+      toast({
+        title: "Quote saved!",
+        description: `Quote ${quoteNumber} has been created successfully.`,
+      });
+
+      // Clear the form
+      setQuoteItems([]);
+      setCustomerInfo({
+        name: "",
+        email: "",
+        phone: "",
+        company: "",
+        address: "",
+      });
+      setQuoteNotes("");
+      localStorage.removeItem("quote_draft");
+
+    } catch (error) {
+      console.error("Error saving quote:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save quote. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const loadQuoteDraft = () => {
     const saved = localStorage.getItem("quote_draft");
     if (saved) {
@@ -217,7 +325,7 @@ export default function QuoteBuilder() {
 
   return (
     <>
-      <SEO title="Quote Builder — Aditya Genset" />
+      <SEO title="Quote Builder | Aditya Genset" />
       
       <div className="min-h-screen bg-gray-50 py-12">
         <div className="container-x max-w-7xl">
@@ -328,18 +436,25 @@ export default function QuoteBuilder() {
                   <CardDescription>Select products to include in the quote</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Select onValueChange={addQuoteItem}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a product to add" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {products.map((product) => (
-                        <SelectItem key={product.id} value={product.id}>
-                          {product.name} ({product.kva} kVA - {product.engine_brand})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {products.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p className="mb-2">No products available</p>
+                      <p className="text-sm">Please add products to the database first</p>
+                    </div>
+                  ) : (
+                    <Select onValueChange={addQuoteItem}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a product to add" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {products.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name} ({product.kva} kVA - {product.engine_brand})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </CardContent>
               </Card>
 
@@ -526,6 +641,15 @@ export default function QuoteBuilder() {
 
                   <div className="pt-4 space-y-2">
                     <Button
+                      className="w-full"
+                      onClick={saveQuoteToDatabase}
+                      disabled={quoteItems.length === 0}
+                    >
+                      <Save className="mr-2" size={16} />
+                      Save to Database
+                    </Button>
+                    <Button
+                      variant="outline"
                       className="w-full"
                       onClick={generateQuotePDF}
                       disabled={quoteItems.length === 0}

@@ -8,6 +8,7 @@ import logo from "@/assets/brand/logo.png";
 const links = [
   { to: "/", label: "Welcome", icon: Home },
   { to: "/products", label: "Products", icon: Box },
+  { to: "/compare", label: "Compare", icon: BarChart2 },
   { to: "/quote-builder", label: "Quote Builder", icon: FileText },
 ];
 
@@ -18,8 +19,13 @@ export function Navbar() {
   const { selectedIds } = useCompare();
 
   const allLinks = [
-    ...links,
-    ...(selectedIds.length > 0 ? [{ to: "/compare", label: `Compare (${selectedIds.length})`, icon: BarChart2 }] : []),
+    ...links.map(link => {
+      // Add count badge to Compare link
+      if (link.to === "/compare" && selectedIds.length > 0) {
+        return { ...link, label: `Compare (${selectedIds.length})` };
+      }
+      return link;
+    }),
   ];
 
   // Close mobile menu on route change

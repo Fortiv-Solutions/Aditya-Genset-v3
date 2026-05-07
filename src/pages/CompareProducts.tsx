@@ -155,7 +155,7 @@ export default function CompareProducts() {
 
   return (
     <>
-      <SEO title="Compare Products — Aditya Genset" />
+      <SEO title="Compare Products | Aditya Genset" />
       
       <style>{`
         @media print {

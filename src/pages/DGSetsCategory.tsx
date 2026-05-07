@@ -50,10 +50,23 @@ export default function DGSetsCategory() {
     async function loadSets() {
       setLoading(true);
       try {
+        console.log('🔍 DGSetsCategory: Fetching products...')
         const products = await fetchPublishedProducts();
+        console.log('📦 DGSetsCategory: Received products:', products)
+        console.log('📊 DGSetsCategory: Product count:', products.length)
+        
         const mapped: DGSet[] = products.map(p => {
           const primaryMedia = p.product_media?.find(m => m.kind === 'primary' || m.kind === 'card');
           const specs = p.product_specs || [];
+          
+          console.log(`📝 Mapping product: ${p.name}`, {
+            id: p.id,
+            status: p.status,
+            engine_brand: p.engine_brand,
+            kva: p.kva,
+            hasImage: !!primaryMedia,
+            specCount: specs.length
+          })
           
           return {
             id: p.id,
@@ -69,9 +82,11 @@ export default function DGSetsCategory() {
             isHidden: p.status !== 'published'
           };
         });
+        console.log('✅ DGSetsCategory: Mapped products:', mapped)
+        console.log('📊 DGSetsCategory: Mapped count:', mapped.length)
         setSets(mapped);
       } catch (err) {
-        console.error("Failed to load DG sets:", err);
+        console.error("❌ DGSetsCategory: Failed to load DG sets:", err);
       } finally {
         setLoading(false);
       }
@@ -87,8 +102,22 @@ export default function DGSetsCategory() {
     const matchesKva = set.kva >= selectedKvaRange.min && set.kva <= selectedKvaRange.max;
     const matchesApplication = selectedApplication === "All" || set.application.includes(selectedApplication);
     
-    return !set.isHidden && matchesSearch && matchesEngine && matchesKva && matchesApplication;
+    const passes = !set.isHidden && matchesSearch && matchesEngine && matchesKva && matchesApplication;
+    
+    if (!passes) {
+      console.log(`🚫 Product filtered out: ${set.model}`, {
+        isHidden: set.isHidden,
+        matchesSearch,
+        matchesEngine,
+        matchesKva,
+        matchesApplication
+      })
+    }
+    
+    return passes;
   });
+
+  console.log('📊 Filtered products count:', filteredSets.length, 'out of', sets.length)
 
   return (
     <>
