@@ -68,13 +68,23 @@ export default function Login() {
       if (data.user) {
         console.log("🔍 Fetching user profile...");
         
-        const { data: profile, error: profileError } = await supabase
+        // Add timeout to profile query
+        const profilePromise = supabase
           .from("profiles")
           .select("role")
           .eq("user_id", data.user.id)
           .maybeSingle();
+        
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("Profile query timeout - check RLS policies")), 10000)
+        );
+        
+        const { data: profile, error: profileError } = await Promise.race([
+          profilePromise,
+          timeoutPromise
+        ]) as any;
 
-        console.log("Profile query result:", { profile, profileError });
+        console.log("Profile query result:", { profile, profileError, userId: data.user.id });
 
         if (profileError) {
           console.error("❌ Profile error:", profileError);
@@ -83,6 +93,8 @@ export default function Login() {
         
         if (!profile?.role) {
           console.error("❌ No profile found for user:", data.user.id);
+          console.error("💡 Solution: Run this SQL in Supabase:");
+          console.error(`INSERT INTO profiles (user_id, role, full_name) VALUES ('${data.user.id}', 'Admin', 'Admin User');`);
           await supabase.auth.signOut();
           throw new Error("Your account does not have an assigned profile. Contact an administrator.");
         }
