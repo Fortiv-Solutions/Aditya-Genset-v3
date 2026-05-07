@@ -49,9 +49,10 @@ export default function AdminCMS() {
   };
 
   return (
-    <div className="space-y-8 animate-fade-in max-w-5xl">
+    <div className="admin-page admin-page-narrow space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold text-foreground font-display">Visual CMS</h1>
+        <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Content Studio</p>
+        <h1 className="mt-2 text-3xl font-bold text-foreground font-display">Visual CMS</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Select a page to edit all its content in-place. Every text field on the page will become clickable.
         </p>
@@ -62,7 +63,7 @@ export default function AdminCMS() {
           <div
             key={page.id}
             onClick={() => handlePageClick(page.id)}
-            className="bg-card border border-border hover:border-accent/50 rounded-xl p-6 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
+            className="admin-card bg-card border border-border hover:border-accent/50 p-6 transition-all cursor-pointer group relative overflow-hidden"
           >
             <div className={`absolute inset-0 bg-gradient-to-br ${page.color} opacity-0 group-hover:opacity-100 transition-opacity`} />
             <div className="absolute -right-4 -top-4 w-24 h-24 bg-accent/5 rounded-full blur-2xl group-hover:bg-accent/10 transition-colors" />

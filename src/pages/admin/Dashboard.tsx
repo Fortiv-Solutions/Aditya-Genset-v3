@@ -396,7 +396,7 @@ export default function AdminDashboard() {
       ["Draft Products", stats.draftProducts],
       ["Archived Products", stats.archivedProducts],
       ["Product Sync Rate", `${stats.productSyncRate}%`],
-      ["Product Inquiries", stats.totalInquiries],
+      ["Product Requests", stats.totalInquiries],
       ["Sales Users", stats.activeSalesUsers],
       ["Quotes Sent", stats.quotesSent],
       ["Open Quotes", stats.openQuotes],
@@ -414,10 +414,11 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="admin-page space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-display">Command Center</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Operations Overview</p>
+          <h1 className="mt-2 text-3xl font-bold text-foreground font-display">Command Center</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {new Date().toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long", year: "numeric" })} - Product Operations
           </p>
@@ -525,7 +526,7 @@ export default function AdminDashboard() {
           <div className="flex items-center justify-between px-5 py-4 border-b border-border">
             <div>
               <h3 className="text-sm font-semibold text-foreground">Product Performance</h3>
-              <p className="text-[11px] text-muted-foreground mt-0.5">Top models by presentations, comparisons, quotes, and inquiries</p>
+              <p className="text-[11px] text-muted-foreground mt-0.5">Top models by presentations, comparisons, quotes, and product requests</p>
             </div>
           </div>
           <div className="overflow-x-auto">
@@ -537,7 +538,7 @@ export default function AdminDashboard() {
                   <th className="px-5 py-3 text-right">Presentations</th>
                   <th className="px-5 py-3 text-right">Comparisons</th>
                   <th className="px-5 py-3 text-right">Quotes</th>
-                  <th className="px-5 py-3 text-right">Inquiries</th>
+                  <th className="px-5 py-3 text-right">Requests</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -579,7 +580,7 @@ export default function AdminDashboard() {
               <p className="text-sm font-bold text-foreground">{stats.productSyncRate}%</p>
             </div>
             <div className="text-right">
-              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Inquiries</p>
+              <p className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Requests</p>
               <p className="text-sm font-bold text-accent">{stats.totalInquiries}</p>
             </div>
           </div>
@@ -738,7 +739,7 @@ export default function AdminDashboard() {
               { label: "Published", value: stats.activeProducts, color: "text-green-400" },
               { label: "Draft", value: stats.draftProducts, color: "text-muted-foreground" },
               { label: "Archived", value: stats.archivedProducts, color: "text-red-400" },
-              { label: "Inquiries", value: stats.totalInquiries, color: "text-accent" },
+              { label: "Requests", value: stats.totalInquiries, color: "text-accent" },
             ].map((item) => (
               <div key={item.label} className="rounded-lg border border-border bg-secondary/40 p-4">
                 <p className={`text-2xl font-bold ${item.color}`}>{item.value}</p>
@@ -783,7 +784,7 @@ export default function AdminDashboard() {
                 <span className="text-orange-400 font-medium">{stats.openQuotes}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-muted-foreground">Product inquiries</span>
+                <span className="text-muted-foreground">Product requests</span>
                 <span className="text-accent font-medium">{stats.totalInquiries}</span>
               </div>
               <div className="flex justify-between text-xs">

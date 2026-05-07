@@ -88,7 +88,7 @@ export default function AdminSettings() {
     email: "info@adityagenset.com",
     adminEmail: "admin@adityagenset.com",
     whatsapp: "+91 99099 24242",
-    address: "Plot No. 12, GIDC Industrial Area, Silvassa, DNH – 396230",
+    address: "Plot No. 12, GIDC Industrial Area, Silvassa, DNH - 396230",
     linkedin: "https://linkedin.com/company/adityatechmech",
     facebook: "https://facebook.com/adityagenset",
     instagram: "https://instagram.com/adityagenset",
@@ -99,8 +99,8 @@ export default function AdminSettings() {
 
   // Notification toggles
   const [notifs, setNotifs] = useState({
-    newLead: true,
-    leadAssigned: true,
+    newRequest: true,
+    requestAssigned: true,
     quoteSent: true,
     followupDue: true,
     amcRenewal: true,
@@ -151,8 +151,8 @@ export default function AdminSettings() {
         if (notifData) {
           setRecordIds((current) => ({ ...current, notifications: notifData.id }));
           setNotifs({
-            newLead: Boolean(notifData.new_lead),
-            leadAssigned: Boolean(notifData.lead_assigned),
+            newRequest: Boolean(notifData.new_lead),
+            requestAssigned: Boolean(notifData.lead_assigned),
             quoteSent: Boolean(notifData.quote_sent),
             followupDue: Boolean(notifData.followup_due),
             amcRenewal: Boolean(notifData.amc_renewal),
@@ -215,8 +215,8 @@ export default function AdminSettings() {
           gmaps_key: site.gmapsKey,
         }),
         upsertSingleton("notification_settings", recordIds.notifications, {
-          new_lead: notifs.newLead,
-          lead_assigned: notifs.leadAssigned,
+          new_lead: notifs.newRequest,
+          lead_assigned: notifs.requestAssigned,
           quote_sent: notifs.quoteSent,
           followup_due: notifs.followupDue,
           amc_renewal: notifs.amcRenewal,
@@ -252,11 +252,12 @@ export default function AdminSettings() {
   ] as const;
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-4xl">
+    <div className="admin-page admin-page-narrow space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-display">Settings</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">System Preferences</p>
+          <h1 className="mt-2 text-3xl font-bold text-foreground font-display">Settings</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Configure your admin portal and site preferences</p>
         </div>
         <button
@@ -311,7 +312,7 @@ export default function AdminSettings() {
             <FormRow label="Email Address">
               <TextInput value={site.email} onChange={(v) => setSite({ ...site, email: v })} />
             </FormRow>
-            <FormRow label="Admin Email" hint="Receives lead notifications">
+            <FormRow label="Admin Email" hint="Receives product, quote, and system notifications">
               <TextInput value={site.adminEmail} onChange={(v) => setSite({ ...site, adminEmail: v })} />
             </FormRow>
             <FormRow label="WhatsApp Number">
@@ -368,8 +369,8 @@ export default function AdminSettings() {
           <p className="text-sm text-muted-foreground mb-2">Configure which events trigger email/SMS alerts to your team.</p>
           <div className="space-y-4 divide-y divide-border">
             {[
-              { key: "newLead", label: "New Lead Received", hint: "Alert when a form submission arrives" },
-              { key: "leadAssigned", label: "Lead Assigned to Rep", hint: "Notify the rep when a lead is assigned" },
+              { key: "newRequest", label: "New Product Request", hint: "Alert when a customer product request arrives" },
+              { key: "requestAssigned", label: "Request Assigned to Rep", hint: "Notify the rep when a request is assigned" },
               { key: "quoteSent", label: "Quotation Sent", hint: "Confirm when a quote is emailed to customer" },
               { key: "followupDue", label: "Follow-up Reminders", hint: "1 hour before scheduled follow-up" },
               { key: "amcRenewal", label: "AMC Renewal Alerts", hint: "30, 14, 7 days before AMC expiry" },
@@ -488,10 +489,10 @@ export default function AdminSettings() {
             {[
               { name: "Google Analytics 4", desc: "Track website traffic and conversions", status: "not_connected", color: "text-orange-400" },
               { name: "Google Search Console", desc: "Monitor SEO performance and crawl errors", status: "not_connected", color: "text-blue-400" },
-              { name: "IndiaMART Lead API", desc: "Auto-sync leads from IndiaMART listing", status: "not_connected", color: "text-green-400" },
-              { name: "WhatsApp Business API", desc: "Receive & reply to WhatsApp inquiries", status: "not_connected", color: "text-green-400" },
+              { name: "IndiaMART Catalogue API", desc: "Sync catalogue visibility and product requests from IndiaMART", status: "not_connected", color: "text-green-400" },
+              { name: "WhatsApp Business API", desc: "Receive and reply to product requests", status: "not_connected", color: "text-green-400" },
               { name: "SendGrid (Email)", desc: "Transactional email delivery", status: "not_connected", color: "text-blue-400" },
-              { name: "MSG91 (SMS)", desc: "Indian SMS gateway for lead alerts", status: "not_connected", color: "text-purple-400" },
+              { name: "MSG91 (SMS)", desc: "Indian SMS gateway for request alerts", status: "not_connected", color: "text-purple-400" },
               { name: "Razorpay", desc: "Online advance payment links", status: "not_connected", color: "text-blue-400" },
               { name: "Tally / Zoho Books", desc: "Push orders to accounting software", status: "not_connected", color: "text-accent" },
             ].map(({ name, desc, status, color }) => (
@@ -528,8 +529,8 @@ export default function AdminSettings() {
           </p>
           <div className="space-y-2">
             {[
-              { name: "New Lead Notification", trigger: "On lead capture", audience: "Sales team" },
-              { name: "Lead Acknowledgement", trigger: "On lead capture", audience: "Customer" },
+              { name: "New Product Request", trigger: "On request capture", audience: "Sales team" },
+              { name: "Request Acknowledgement", trigger: "On request capture", audience: "Customer" },
               { name: "Quotation Email", trigger: "When quote is sent", audience: "Customer" },
               { name: "Follow-up Reminder", trigger: "1 hr before follow-up", audience: "Sales rep" },
               { name: "AMC Renewal – 30 days", trigger: "30 days before expiry", audience: "Customer" },

@@ -218,7 +218,7 @@ export default function AddProduct() {
     cpcb: "iv-plus",
     price: "",
     moq: "1",
-    leadTime: "21",
+    deliveryTime: "21",
     stock: "in_stock",
     seoTitle: "",
     metaDesc: "",
@@ -259,7 +259,7 @@ export default function AddProduct() {
           cpcb: product.cpcb === "II" || product.cpcb === "ii" ? "ii" : "iv-plus",
           price: product.price ? String(product.price) : "",
           moq: product.moq ? String(product.moq) : "1",
-          leadTime: product.lead_time_days ? String(product.lead_time_days) : "21",
+          deliveryTime: product.lead_time_days ? String(product.lead_time_days) : "21",
           stock: product.stock || "in_stock",
           seoTitle: product.seo_title || "",
           metaDesc: product.meta_desc || "",
@@ -341,7 +341,7 @@ export default function AddProduct() {
         price: priceOnRequest || !form.price ? null : Number(form.price),
         price_on_request: priceOnRequest,
         moq: Number(form.moq || 1),
-        lead_time_days: Number(form.leadTime || 21),
+        lead_time_days: Number(form.deliveryTime || 21),
         stock: form.stock,
         short_desc: form.shortDesc || null,
         full_desc: form.fullDesc || null,
@@ -399,7 +399,7 @@ export default function AddProduct() {
   const handlePublish = () => saveProduct("published");
 
   return (
-    <div className="space-y-5 animate-fade-in max-w-5xl">
+    <div className="admin-page admin-page-narrow space-y-6 animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
@@ -410,7 +410,8 @@ export default function AddProduct() {
             <ArrowLeft size={18} />
           </button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground font-display">{isEditing ? "Edit Product" : "Add New Product"}</h1>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Product Catalogue</p>
+            <h1 className="mt-2 text-3xl font-bold text-foreground font-display">{isEditing ? "Edit Product" : "Add New Product"}</h1>
             <p className="text-sm text-muted-foreground mt-0.5">{isEditing ? "Update generator listing details" : "Create a new generator listing for the catalogue"}</p>
           </div>
         </div>
@@ -561,8 +562,8 @@ export default function AddProduct() {
               { value: "discontinued", label: "Discontinued" },
             ]} />
 
-          <Input label="Lead Time (days)" placeholder="21" type="number" hint="Days from order to delivery"
-            value={form.leadTime} onChange={(v) => updateForm("leadTime", v)} />
+          <Input label="Delivery Time (days)" placeholder="21" type="number" hint="Days from order to delivery"
+            value={form.deliveryTime} onChange={(v) => updateForm("deliveryTime", v)} />
         </div>
 
         {/* kVA Sub-category */}

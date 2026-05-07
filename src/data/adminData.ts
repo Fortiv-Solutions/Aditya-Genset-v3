@@ -1,43 +1,5 @@
 // Shared admin data types used by Supabase-backed admin screens.
 
-export type LeadStage =
-  | "new"
-  | "contacted"
-  | "qualified"
-  | "site_assessment"
-  | "quotation_sent"
-  | "negotiation"
-  | "won"
-  | "lost";
-
-export type LeadSource =
-  | "website_form"
-  | "whatsapp"
-  | "phone"
-  | "referral"
-  | "indiamart"
-  | "trade_show"
-  | "dealer";
-
-export interface Lead {
-  id: string;
-  name: string;
-  company: string;
-  designation: string;
-  phone: string;
-  email: string;
-  city: string;
-  state: string;
-  kvaRequired: string;
-  application: string;
-  stage: LeadStage;
-  source: LeadSource;
-  assignedTo: string;
-  createdAt: string;
-  lastActivity: string;
-  score: number;
-}
-
 export interface AdminProduct {
   id: string;
   name: string;
@@ -66,7 +28,7 @@ export interface Dealer {
   id: string;
   name: string;
   region: string;
-  activeLeads: number;
+  activeAccounts: number;
   totalSales: number;
   status: "active" | "inactive";
 }
@@ -82,16 +44,7 @@ export interface SalesRep {
 
 export interface AppNotification {
   id: string;
-  type: "lead" | "quote" | "dealer" | "system";
-  title: string;
-  message: string;
-  time: string;
-  unread: boolean;
-}
-
-export interface AppNotification {
-  id: string;
-  type: "lead" | "quote" | "dealer" | "system";
+  type: "request" | "quote" | "dealer" | "system";
   title: string;
   message: string;
   time: string;

@@ -67,8 +67,6 @@ const App = () => {
                 } />
                 <Route path="/admin/products/:id/edit" element={<AdminRoute><AddProduct /></AdminRoute>} />
 
-                <Route path="/admin/leads/*" element={<Navigate to="/admin" replace />} />
-
                 <Route path="/admin/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
                 <Route path="/admin/cms/edit/:pageId" element={<AdminRoute><CMSEditor /></AdminRoute>} />
                 <Route path="/admin/roadmap" element={

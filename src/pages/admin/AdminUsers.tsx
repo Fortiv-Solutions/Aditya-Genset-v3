@@ -64,31 +64,31 @@ const ROLES: Array<{
   {
     name: "Super Admin",
     desc: "Full unrestricted access to all modules, settings, and user management.",
-    badge: "bg-red-900/40 text-red-300 border-red-700/40",
+    badge: "bg-red-50 text-red-700 border-red-200",
     permissions: ["All Modules", "User Management", "System Settings", "Delete Access"],
   },
   {
     name: "Admin",
     desc: "Full access excluding system-level settings and user deletion.",
-    badge: "bg-orange-900/40 text-orange-300 border-orange-700/40",
-    permissions: ["Dashboard", "Products", "Leads", "Media Library", "Reports"],
+    badge: "bg-orange-50 text-orange-700 border-orange-200",
+    permissions: ["Dashboard", "Products", "CMS", "Reports"],
   },
   {
     name: "Sales Manager",
-    desc: "Full access to Leads, Products, and Presentations.",
-    badge: "bg-amber-900/40 text-accent border-amber-700/40",
-    permissions: ["Leads (All)", "Products", "Reports"],
+    desc: "Access to product catalogue, presentations, quotes, and reports.",
+    badge: "bg-amber-50 text-amber-700 border-amber-200",
+    permissions: ["Products", "Quotes", "Reports"],
   },
   {
     name: "Sales Executive",
-    desc: "Access only to assigned leads and products.",
-    badge: "bg-blue-900/40 text-blue-300 border-blue-700/40",
-    permissions: ["Leads (Own)", "Products"],
+    desc: "Access to assigned product presentations and quote workflows.",
+    badge: "bg-blue-50 text-blue-700 border-blue-200",
+    permissions: ["Products", "Presentations"],
   },
   {
     name: "Media Editor",
     desc: "Access to Media Library and Product assets.",
-    badge: "bg-purple-900/40 text-purple-300 border-purple-700/40",
+    badge: "bg-purple-50 text-purple-700 border-purple-200",
     permissions: ["Media Library", "Products"],
   },
 ];
@@ -96,7 +96,7 @@ const ROLES: Array<{
 const PERMISSION_MATRIX = [
   { module: "Dashboard", superAdmin: true, admin: true, salesMgr: true, salesExec: true, mediaEd: true },
   { module: "Products", superAdmin: true, admin: true, salesMgr: true, salesExec: true, mediaEd: true },
-  { module: "Leads (All)", superAdmin: true, admin: true, salesMgr: true, salesExec: false, mediaEd: false },
+  { module: "Quotes", superAdmin: true, admin: true, salesMgr: true, salesExec: true, mediaEd: false },
   { module: "Media Library", superAdmin: true, admin: true, salesMgr: false, salesExec: false, mediaEd: true },
   { module: "Users & Roles", superAdmin: true, admin: false, salesMgr: false, salesExec: false, mediaEd: false },
   { module: "Reports", superAdmin: true, admin: true, salesMgr: true, salesExec: false, mediaEd: false },
@@ -386,12 +386,13 @@ export default function AdminUsers() {
   ) : null;
 
   return (
-    <div className="space-y-5 animate-fade-in">
+    <div className="admin-page space-y-6 animate-fade-in">
       {createUserModal}
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground font-display">Users & Roles</h1>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Access Control</p>
+          <h1 className="mt-2 text-3xl font-bold text-foreground font-display">Users & Roles</h1>
           <p className="text-sm text-muted-foreground mt-0.5">
             {users.filter((user) => user.status === "active").length} active - {users.length} total users
           </p>
