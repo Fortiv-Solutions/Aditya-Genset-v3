@@ -51,17 +51,18 @@ export default function DGSetsCategory() {
         const mapped: DGSet[] = products.map(p => {
           const primaryMedia = p.product_media?.find(m => m.kind === 'primary' || m.kind === 'card');
           const specs = p.product_specs || [];
+          const engineBrand = String(p.engine_brand || "").toLowerCase();
           
           return {
             id: p.id,
             slug: p.slug,
             model: p.model || p.name,
             kva: p.kva,
-            engine: (p.engine_brand === 'Escorts' ? 'Escorts' : 'Baudouin') as any,
+            engine: ((engineBrand.includes("escort") || engineBrand.includes("kubota")) ? 'Escorts' : 'Baudouin') as any,
             application: specs.find(s => s.label.toLowerCase().includes('application'))?.value || 'Prime',
             fuel: specs.find(s => s.label.toLowerCase().includes('fuel consumption'))?.value || 'Variable',
             noise: specs.find(s => s.label.toLowerCase().includes('noise'))?.value || '70 dB(A)',
-            image: primaryMedia?.url || gensetFallback,
+            image: primaryMedia?.public_url || gensetFallback,
             compliance: specs.find(s => s.label.toLowerCase().includes('compliance'))?.value || 'CPCB IV+',
             isHidden: p.status !== 'published'
           };

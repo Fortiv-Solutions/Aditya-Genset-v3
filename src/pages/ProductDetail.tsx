@@ -30,7 +30,10 @@ export default function ProductDetail() {
         const data = await fetchProductShowcase(slug);
         if (data && data.product) {
           const productMedia = (data.product as any).product_media || [];
-          const primaryImage = productMedia.find((m: any) => m.kind === 'primary' || m.kind === 'hero')?.public_url || "";
+          const primaryImage =
+            productMedia.find((m: any) => m.kind === 'primary' || m.kind === 'hero')?.public_url ||
+            data.showcase?.sections?.[0]?.image ||
+            "";
           
           // Map DB product and CMS content to ShowcaseProduct shape
           const mappedProduct: ShowcaseProduct = {

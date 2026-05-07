@@ -228,7 +228,7 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
           }}
         >
           {product.sections.map((s, i) => {
-            const isEscorts = product.engineBrand === "Escorts";
+            const isEscortsTemplateProduct = product.engineBrand === "Escorts" && product.slug === "ekl-15-2cyl";
             const ekl15Data = EKL15_CHAPTER_DATA[s.id];
             return (
               <article
@@ -241,7 +241,7 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
                   scrollSnapAlign: "start",
                 }}
               >
-                {isEscorts && ekl15Data ? (
+                {isEscortsTemplateProduct && ekl15Data ? (
                   <ChapterInteractive
                     chapterId={s.id}
                     data={ekl15Data}

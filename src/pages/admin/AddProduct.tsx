@@ -5,6 +5,7 @@ import {
   ChevronDown,
   Cpu,
   Eye,
+  Film,
   Image as ImageIcon,
   IndianRupee,
   Package,
@@ -14,12 +15,23 @@ import {
   Sparkles,
   Tag,
   Trash2,
+  Upload,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { PDFImportZone } from "@/components/admin/PDFImportZone";
-import type { ExtractedProduct } from "@/lib/pdfExtractor";
-import { generateShowcaseFromTemplate, saveDynamicProduct } from "@/lib/productGenerator";
+import type { ExtractedProduct, PdfImportPayload } from "@/lib/pdfExtractor";
 import { supabase } from "@/lib/supabase";
+import { updateCMSSection } from "@/lib/api/cms";
+import {
+  ensureProductCategory,
+  generateProductAutomation,
+  getEngineBrandLabel,
+  inferCategorySlug,
+  inferProductType,
+  normalizeEngineBrandKey,
+} from "@/lib/productAutomation";
+import { uploadExtractedPdfAssets, uploadProductMediaFile } from "@/lib/productMediaUpload";
 
 type ProductFormState = {
   name: string;
@@ -92,7 +104,18 @@ const DEFAULT_MEDIA: MediaState = {
   videoUrl: "",
 };
 
+const CATEGORY_OPTIONS = [
+  { value: "dg-sets-baudouin", label: "DG Sets / Baudouin" },
+  { value: "dg-sets-escort", label: "DG Sets / Escort" },
+  { value: "silent-dg-sets", label: "Silent DG Sets" },
+  { value: "open-dg-sets", label: "Open DG Sets" },
+  { value: "industrial", label: "Industrial DG Sets" },
+  { value: "accessories", label: "Accessories & Parts" },
+];
+
 const TAG_OPTIONS = ["Hospital Grade", "CPCB IV+", "Weatherproof", "Export Quality", "AMF Ready", "Soundproof"];
+const MAX_VIDEO_UPLOAD_BYTES = 50 * 1024 * 1024;
+const MAX_VIDEO_UPLOAD_MB = Math.round(MAX_VIDEO_UPLOAD_BYTES / 1024 / 1024);
 
 function FormSection({
   title,
@@ -295,6 +318,9 @@ export default function AddProduct() {
   const [media, setMedia] = useState<MediaState>(DEFAULT_MEDIA);
   const [form, setForm] = useState<ProductFormState>(DEFAULT_FORM);
   const [extractedData, setExtractedData] = useState<ExtractedProduct | null>(null);
+  const [importPayload, setImportPayload] = useState<PdfImportPayload | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
 
   const updateForm = (key: keyof ProductFormState, value: string | string[]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -316,6 +342,39 @@ export default function AddProduct() {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
+  const handleVideoFileChange = (file?: File) => {
+    if (!file) return;
+
+    if (!file.type.startsWith("video/")) {
+      toast.error("Please upload a valid video file.");
+      return;
+    }
+
+    if (file.size > MAX_VIDEO_UPLOAD_BYTES) {
+      toast.error(`Video must be ${MAX_VIDEO_UPLOAD_MB} MB or smaller.`);
+      return;
+    }
+
+    setVideoFile(file);
+    setMedia((current) => ({ ...current, videoUrl: "" }));
+  };
+
+  const clearVideoFile = () => {
+    setVideoFile(null);
+  };
+
+  useEffect(() => {
+    if (!videoFile) {
+      setVideoPreviewUrl(null);
+      return;
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(videoFile);
+    setVideoPreviewUrl(nextPreviewUrl);
+
+    return () => URL.revokeObjectURL(nextPreviewUrl);
+  }, [videoFile]);
+
   useEffect(() => {
     if (!id) return;
 
@@ -336,7 +395,7 @@ export default function AddProduct() {
           category: product.product_categories?.slug || "silent-dg-sets",
           shortDesc: product.short_desc || "",
           fullDesc: product.full_desc || "",
-          engineBrand: product.engine_brand || "baudouin",
+          engineBrand: normalizeEngineBrandKey(product.engine_brand) === "other" ? "baudouin" : normalizeEngineBrandKey(product.engine_brand),
           type: product.type || "silent",
           kva: product.kva ? String(product.kva) : "",
           cpcb: product.cpcb === "II" || product.cpcb === "ii" ? "ii" : "iv-plus",
@@ -375,35 +434,60 @@ export default function AddProduct() {
     void loadProduct();
   }, [id, navigate]);
 
-  const handleExtracted = (data: ExtractedProduct) => {
+  const handleExtracted = (payload: PdfImportPayload) => {
+    const data = payload.data;
+    setImportPayload(payload);
     setExtractedData(data);
+    const inferredBrand = normalizeEngineBrandKey(data.engineBrand || form.engineBrand);
+    const inferredType = inferProductType(data.category, form.type);
+    const inferredCategory = inferCategorySlug({
+      brandKey: inferredBrand,
+      type: inferredType,
+      extractedCategory: data.category,
+      selectedCategory: form.category,
+    });
+
     setForm((current) => ({
       ...current,
       name: data.name || current.name,
       model: data.model || current.model,
+      category: inferredCategory,
       kva: data.kva || current.kva,
-      engineBrand: data.engineBrand || current.engineBrand,
+      engineBrand: inferredBrand === "other" ? current.engineBrand : inferredBrand,
+      type: inferredType,
       shortDesc: data.shortDesc || current.shortDesc,
+      fullDesc: data.fullDesc || current.fullDesc,
       cpcb: data.cpcb === "ii" ? "ii" : "iv-plus",
       seoTitle: data.name ? `${data.name} | Aditya Tech Mech` : current.seoTitle,
+      metaDesc: data.shortDesc || current.metaDesc,
     }));
 
     const extractedSpecs: SpecRow[] = [];
     if (data.engineModel) extractedSpecs.push({ label: "Engine Model", value: data.engineModel });
     if (data.alternatorBrand) extractedSpecs.push({ label: "Alternator Brand", value: data.alternatorBrand });
+    if (data.application) extractedSpecs.push({ label: "Application", value: data.application });
     if (data.fuelConsumption) extractedSpecs.push({ label: "Fuel Consumption", value: data.fuelConsumption });
+    if (data.fuelTankCapacity) extractedSpecs.push({ label: "Fuel Tank Capacity", value: data.fuelTankCapacity });
     if (data.noiseLevel) extractedSpecs.push({ label: "Noise Level", value: data.noiseLevel });
     if (data.dimensions) extractedSpecs.push({ label: "Dimensions (LxWxH)", value: data.dimensions });
     if (data.dryWeight) extractedSpecs.push({ label: "Dry Weight", value: data.dryWeight });
     if (data.voltage) extractedSpecs.push({ label: "Voltage Output", value: data.voltage });
     if (data.frequency) extractedSpecs.push({ label: "Frequency", value: data.frequency });
+    if (data.phase) extractedSpecs.push({ label: "Phase", value: data.phase });
+    if (data.powerFactor) extractedSpecs.push({ label: "Power Factor", value: data.powerFactor });
+    if (data.coolingType) extractedSpecs.push({ label: "Cooling", value: data.coolingType });
+    if (data.controllerModel) extractedSpecs.push({ label: "Controller", value: data.controllerModel });
     if (data.specs?.length) extractedSpecs.push(...data.specs);
 
     if (extractedSpecs.length > 0) {
       setSpecs(extractedSpecs);
     }
 
-    toast.success("AI extraction applied. Review the fields and publish when ready.");
+    toast.success(
+      data.extractionSource === "local-fallback"
+        ? "PDF extraction applied with local fallback. Review the fields before publishing."
+        : "AI extraction applied. Review the fields and publish when ready."
+    );
   };
 
   const saveProduct = async (status: "draft" | "published") => {
@@ -416,21 +500,24 @@ export default function AddProduct() {
     setLoading(true);
 
     try {
-      const { data: category } = await supabase
-        .from("product_categories")
-        .select("id")
-        .eq("slug", form.category)
-        .maybeSingle();
+      const slug = slugify(form.model || form.name);
+      const draftAutomation = generateProductAutomation({
+        form,
+        specs,
+        media,
+        extracted: extractedData,
+      });
+      const categoryId = await ensureProductCategory(draftAutomation.categorySlug);
 
       const payload = {
-        category_id: category?.id || null,
+        category_id: categoryId || null,
         status,
-        type: form.type,
+        type: draftAutomation.type,
         name: form.name.trim(),
         model: form.model.trim(),
-        slug: slugify(form.model || form.name),
+        slug,
         kva: Number(form.kva),
-        engine_brand: form.engineBrand,
+        engine_brand: draftAutomation.brandLabel || getEngineBrandLabel(normalizeEngineBrandKey(form.engineBrand), form.engineBrand),
         cpcb: form.cpcb === "ii" ? "II" : "IV+",
         price: priceOnRequest || !form.price ? null : Number(form.price),
         price_on_request: priceOnRequest,
@@ -453,6 +540,57 @@ export default function AddProduct() {
       if (error) throw error;
 
       const productId = savedProduct.id;
+      const shouldUploadImportedAssets =
+        Boolean(importPayload) &&
+        (
+          !media.primaryImage.trim() ||
+          media.primaryImage.startsWith("blob:") ||
+          !media.galleryUrls
+            .split(/\r?\n/)
+            .map((url) => url.trim())
+            .filter(Boolean)
+            .some((url) => !url.startsWith("blob:")) ||
+          !media.datasheetUrl.trim() ||
+          media.datasheetUrl.startsWith("blob:")
+        );
+
+      const uploadedAssets = shouldUploadImportedAssets && importPayload
+        ? await uploadExtractedPdfAssets({
+            productId,
+            slug,
+            assets: importPayload.assets,
+          })
+        : null;
+      const uploadedVideo = videoFile
+        ? await uploadProductMediaFile({
+            productId,
+            slug,
+            file: videoFile,
+            kind: "video",
+          })
+        : null;
+
+      const resolvedMedia: MediaState = {
+        primaryImage:
+          media.primaryImage.trim() && !media.primaryImage.startsWith("blob:")
+            ? media.primaryImage.trim()
+            : uploadedAssets?.primaryImage?.publicUrl || media.primaryImage.trim(),
+        galleryUrls: (() => {
+          const manualGallery = media.galleryUrls
+            .split(/\r?\n/)
+            .map((url) => url.trim())
+            .filter(Boolean)
+            .filter((url) => !url.startsWith("blob:"));
+
+          if (manualGallery.length > 0) return manualGallery.join("\n");
+          return (uploadedAssets?.galleryImages || []).map((asset) => asset.publicUrl).join("\n");
+        })(),
+        datasheetUrl:
+          media.datasheetUrl.trim() && !media.datasheetUrl.startsWith("blob:")
+            ? media.datasheetUrl.trim()
+            : uploadedAssets?.datasheet?.publicUrl || media.datasheetUrl.trim(),
+        videoUrl: uploadedVideo?.publicUrl || media.videoUrl.trim(),
+      };
 
       const { error: specDeleteError } = await supabase.from("product_specs").delete().eq("product_id", productId);
       if (specDeleteError) throw specDeleteError;
@@ -478,49 +616,60 @@ export default function AddProduct() {
         product_id: string;
         kind: string;
         public_url: string;
+        storage_path?: string | null;
+        mime_type?: string | null;
         alt_text: string;
         display_order: number;
       }> = [];
 
-      if (media.primaryImage.trim()) {
+      if (resolvedMedia.primaryImage.trim()) {
         mediaRows.push({
           product_id: productId,
           kind: "primary",
-          public_url: media.primaryImage.trim(),
+          public_url: resolvedMedia.primaryImage.trim(),
+          storage_path: uploadedAssets?.primaryImage?.storagePath || null,
+          mime_type: uploadedAssets?.primaryImage?.mimeType || null,
           alt_text: form.name.trim(),
           display_order: 0,
         });
       }
 
-      media.galleryUrls
+      resolvedMedia.galleryUrls
         .split(/\r?\n/)
         .map((url) => url.trim())
         .filter(Boolean)
         .forEach((url, index) => {
+          const uploadedMatch = uploadedAssets?.galleryImages.find((asset) => asset.publicUrl === url);
           mediaRows.push({
             product_id: productId,
             kind: "gallery",
             public_url: url,
+            storage_path: uploadedMatch?.storagePath || null,
+            mime_type: uploadedMatch?.mimeType || null,
             alt_text: `${form.name.trim()} gallery ${index + 1}`,
             display_order: index + 1,
           });
         });
 
-      if (media.datasheetUrl.trim()) {
+      if (resolvedMedia.datasheetUrl.trim()) {
         mediaRows.push({
           product_id: productId,
           kind: "datasheet",
-          public_url: media.datasheetUrl.trim(),
+          public_url: resolvedMedia.datasheetUrl.trim(),
+          storage_path: uploadedAssets?.datasheet?.storagePath || null,
+          mime_type: uploadedAssets?.datasheet?.mimeType || null,
           alt_text: `${form.name.trim()} datasheet`,
           display_order: 100,
         });
       }
 
-      if (media.videoUrl.trim()) {
+      if (resolvedMedia.videoUrl.trim()) {
         mediaRows.push({
           product_id: productId,
           kind: "video",
-          public_url: media.videoUrl.trim(),
+          public_url: resolvedMedia.videoUrl.trim(),
+          storage_path: uploadedVideo?.storagePath || null,
+          mime_type: uploadedVideo?.mimeType || null,
           alt_text: `${form.name.trim()} video`,
           display_order: 101,
         });
@@ -531,14 +680,17 @@ export default function AddProduct() {
         if (mediaInsertError) throw mediaInsertError;
       }
 
-      if (extractedData) {
-        try {
-          const dynamicShowcase = generateShowcaseFromTemplate(extractedData);
-          saveDynamicProduct(dynamicShowcase);
-        } catch (error) {
-          console.error("Failed to generate dynamic showcase:", error);
-        }
-      }
+      const finalAutomation = generateProductAutomation({
+        form,
+        specs,
+        media: resolvedMedia,
+        extracted: extractedData,
+      });
+
+      await Promise.all([
+        updateCMSSection("showcaseData", finalAutomation.showcaseData, "product", productId),
+        updateCMSSection("presentationData", finalAutomation.presentationData, "product", productId),
+      ]);
 
       toast.success(status === "published" ? "Product published successfully" : "Product saved as draft");
       navigate("/admin/products");
@@ -600,6 +752,25 @@ export default function AddProduct() {
         </div>
         <div className="p-5">
           <PDFImportZone onExtracted={handleExtracted} />
+          {importPayload && (
+            <div className="mt-4 flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/40 px-4 py-3">
+              <div>
+                <p className="text-xs font-semibold text-foreground">
+                  PDF media automation is enabled for this product
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  {importPayload.assets.pageImages.length} rendered page image{importPayload.assets.pageImages.length === 1 ? "" : "s"} and the source datasheet will upload on save/publish unless you switch back to manual media.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setImportPayload(null)}
+                className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Use manual media instead
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -612,12 +783,7 @@ export default function AddProduct() {
             required
             value={form.category}
             onChange={(value) => updateForm("category", value)}
-            options={[
-              { value: "silent-dg-sets", label: "Silent DG Sets" },
-              { value: "open-dg-sets", label: "Open DG Sets" },
-              { value: "industrial", label: "Industrial DG Sets" },
-              { value: "accessories", label: "Accessories & Parts" },
-            ]}
+            options={CATEGORY_OPTIONS}
           />
           <Select
             label="Type"
@@ -778,28 +944,83 @@ export default function AddProduct() {
               placeholder="https://youtube.com/watch?v=..."
               value={media.videoUrl}
               onChange={(value) => setMedia((current) => ({ ...current, videoUrl: value }))}
-              hint="Saved as product video media."
+              hint={videoFile ? "A selected upload will be used instead of this URL." : "Optional external video URL."}
             />
+          </div>
+          <div className="space-y-3 rounded-lg border border-dashed border-border bg-secondary/30 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent">
+                  <Film size={16} />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    Upload Product Video
+                  </label>
+                  <p className="text-[11px] text-muted-foreground">
+                    MP4, WebM, MOV, or other video files up to {MAX_VIDEO_UPLOAD_MB} MB.
+                  </p>
+                </div>
+              </div>
+              <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-accent/50 hover:text-accent">
+                <Upload size={13} />
+                Choose Video
+                <input
+                  type="file"
+                  accept="video/*"
+                  className="hidden"
+                  onChange={(event) => handleVideoFileChange(event.target.files?.[0])}
+                />
+              </label>
+            </div>
+
+            {videoFile && (
+              <div className="overflow-hidden rounded-lg border border-border bg-background">
+                {videoPreviewUrl && (
+                  <video
+                    src={videoPreviewUrl}
+                    controls
+                    className="aspect-video w-full bg-black object-contain"
+                  />
+                )}
+                <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-semibold text-foreground">{videoFile.name}</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {(videoFile.size / 1024 / 1024).toFixed(1)} MB. Uploads when you save or publish.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={clearVideoFile}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    title="Remove selected video"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </FormSection>
 
-      <FormSection title="E. SEO" icon={SearchIcon}>
+      <FormSection title="E. SEO (Optional)" icon={SearchIcon}>
         <div className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="SEO Title" placeholder="250 kVA Silent DG Set | Aditya Tech Mech" hint="Optimal: 50-60 characters" value={form.seoTitle} onChange={(value) => updateForm("seoTitle", value)} />
+            <Input label="SEO Title" placeholder="250 kVA Silent DG Set | Aditya Tech Mech" hint="Optional. Leave blank to use the product name." value={form.seoTitle} onChange={(value) => updateForm("seoTitle", value)} />
             <Input label="Canonical URL" value={`/products/${slugify(form.model || form.name)}`} hint="Generated from the product slug" readOnly />
           </div>
           <Textarea
             label="Meta Description"
             placeholder="Buy 250 kVA CPCB IV+ silent diesel generator set from Aditya Tech Mech..."
             maxLen={160}
-            hint="Optimal: 140-160 characters"
+            hint="Optional. Leave blank to use the product description."
             value={form.metaDesc}
             onChange={(value) => updateForm("metaDesc", value)}
           />
           <p className="text-xs text-muted-foreground">
-            Search visibility and featured placement are now driven by saved product content and tags, not separate mock toggles.
+            SEO fields can be skipped. Search visibility and featured placement still use the saved product content, tags, and category.
           </p>
         </div>
       </FormSection>

@@ -1,10 +1,10 @@
 import { useState, useRef, useCallback } from "react";
 import { FileText, Sparkles, AlertCircle, CheckCircle2, Loader2, X, ChevronDown, ChevronUp } from "lucide-react";
-import { extractTextFromPdf, extractProductDataWithAI, ExtractedProduct } from "@/lib/pdfExtractor";
+import { extractPdfAssets, extractTextFromPdf, extractProductDataWithAI, type PdfImportPayload } from "@/lib/pdfExtractor";
 import { cn } from "@/lib/utils";
 
 interface PDFImportZoneProps {
-  onExtracted: (data: ExtractedProduct) => void;
+  onExtracted: (payload: PdfImportPayload) => void;
 }
 
 type Stage = "idle" | "reading" | "extracting" | "done" | "error";
@@ -12,8 +12,8 @@ type Stage = "idle" | "reading" | "extracting" | "done" | "error";
 const STAGE_LABELS: Record<Stage, string> = {
   idle: "Drop your datasheet PDF here",
   reading: "Reading PDF...",
-  extracting: "AI is extracting product data...",
-  done: "Extraction complete — review below",
+  extracting: "Extracting product data...",
+  done: "Extraction complete - review below",
   error: "Extraction failed",
 };
 
@@ -27,7 +27,7 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
   const [stage, setStage] = useState<Stage>("idle");
   const [error, setError] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
-  const [result, setResult] = useState<ExtractedProduct | null>(null);
+  const [result, setResult] = useState<PdfImportPayload | null>(null);
   const [showPreview, setShowPreview] = useState(false);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -46,12 +46,18 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
 
     try {
       setStage("reading");
-      const text = await extractTextFromPdf(file);
+      const [text, assets] = await Promise.all([
+        extractTextFromPdf(file),
+        extractPdfAssets(file),
+      ]);
 
       setStage("extracting");
-      const extracted = await extractProductDataWithAI(text);
+      const extracted = await extractProductDataWithAI(text, file.name);
 
-      setResult(extracted);
+      setResult({
+        data: extracted,
+        assets,
+      });
       setStage("done");
       setShowPreview(true);
     } catch (e: any) {
@@ -147,7 +153,7 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
         {/* Sub-text */}
         {stage === "idle" && (
           <p className="text-xs text-muted-foreground mt-1.5">
-            Click or drag a PDF — AI will auto-fill the form fields below
+            Click or drag a PDF - product fields will auto-fill below
           </p>
         )}
         {fileName && stage !== "idle" && (
@@ -174,12 +180,19 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
           <div className="flex items-center justify-between px-4 py-3 bg-secondary border-b border-border">
             <div className="flex items-center gap-3">
               <Sparkles size={14} className="text-amber-400" />
-              <span className="text-sm font-semibold text-foreground">AI Extracted Fields</span>
+              <span className="text-sm font-semibold text-foreground">
+                {result.data.extractionSource === "local-fallback" ? "PDF Extracted Fields" : "AI Extracted Fields"}
+              </span>
+              {result.data.extractionSource === "local-fallback" && (
+                <span className="text-[11px] font-bold px-2 py-0.5 rounded-full border border-sky-500/20 bg-sky-500/10 text-sky-300">
+                  local fallback
+                </span>
+              )}
               <span className={cn(
                 "text-[11px] font-bold px-2 py-0.5 rounded-full border capitalize",
-                CONFIDENCE_COLORS[result.confidence] || CONFIDENCE_COLORS.medium
+                CONFIDENCE_COLORS[result.data.confidence] || CONFIDENCE_COLORS.medium
               )}>
-                {result.confidence} confidence
+                {result.data.confidence} confidence
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -200,22 +213,45 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
             </div>
           </div>
 
+          {showPreview && result.assets.pageImages.length > 0 && (
+            <div className="px-4 pt-4 bg-background">
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  PDF Media Capture
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {result.assets.pageImages.length} page image{result.assets.pageImages.length === 1 ? "" : "s"} ready for upload
+                </p>
+              </div>
+              <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
+                {result.assets.pageImages.slice(0, 4).map((image) => (
+                  <div key={image.pageNumber} className="overflow-hidden rounded-lg border border-border bg-muted/30">
+                    <img src={image.previewUrl} alt={`PDF page ${image.pageNumber}`} className="h-24 w-full object-cover" />
+                    <div className="px-2 py-1 text-[10px] text-muted-foreground border-t border-border">
+                      Page {image.pageNumber}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Extracted field preview */}
           {showPreview && (
             <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3 bg-background">
               {[
-                { label: "Product Name", value: result.name },
-                { label: "Model Number", value: result.model },
-                { label: "Power Output", value: result.kva ? `${result.kva} kVA` : null },
-                { label: "Engine Brand", value: result.engineBrand },
-                { label: "Engine Model", value: result.engineModel },
-                { label: "Fuel Consumption", value: result.fuelConsumption },
-                { label: "Noise Level", value: result.noiseLevel },
-                { label: "CPCB", value: result.cpcb },
-                { label: "Alternator", value: result.alternatorBrand },
-                { label: "Voltage", value: result.voltage },
-                { label: "Dimensions", value: result.dimensions },
-                { label: "Dry Weight", value: result.dryWeight },
+                { label: "Product Name", value: result.data.name },
+                { label: "Model Number", value: result.data.model },
+                { label: "Power Output", value: result.data.kva ? `${result.data.kva} kVA` : null },
+                { label: "Engine Brand", value: result.data.engineBrand },
+                { label: "Engine Model", value: result.data.engineModel },
+                { label: "Application", value: result.data.application },
+                { label: "Fuel Consumption", value: result.data.fuelConsumption },
+                { label: "Noise Level", value: result.data.noiseLevel },
+                { label: "CPCB", value: result.data.cpcb },
+                { label: "Alternator", value: result.data.alternatorBrand },
+                { label: "Voltage", value: result.data.voltage },
+                { label: "Dimensions", value: result.data.dimensions },
               ].map(({ label, value }) => (
                 <div key={label} className="space-y-0.5">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
@@ -231,10 +267,10 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
           )}
 
           {/* AI notes & extra specs */}
-          {showPreview && result.rawNotes && (
+          {showPreview && result.data.rawNotes && (
             <div className="px-4 pb-3 bg-background">
               <p className="text-[11px] text-amber-400/80 bg-amber-500/5 border border-amber-500/15 rounded-lg px-3 py-2">
-                ⚠ AI note: {result.rawNotes}
+                Extraction note: {result.data.rawNotes}
               </p>
             </div>
           )}
@@ -258,14 +294,14 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
       {/* API Key hint */}
       {!import.meta.env.VITE_GEMINI_API_KEY && stage === "idle" && (
         <p className="text-[11px] text-amber-500/70 bg-amber-500/5 border border-amber-500/15 rounded-lg px-3 py-2">
-          ⚠ Add <code className="font-mono">VITE_GEMINI_API_KEY=your_key</code> to your <code className="font-mono">.env</code> file to enable AI extraction.{" "}
+          Add <code className="font-mono">VITE_GEMINI_API_KEY=your_key</code> to your <code className="font-mono">.env</code> file to enable AI extraction. Local PDF parsing still works without it.{" "}
           <a
             href="https://aistudio.google.com/app/apikey"
             target="_blank"
             rel="noopener noreferrer"
             className="underline text-amber-400 hover:text-amber-300"
           >
-            Get a free key →
+            Get a free key
           </a>
         </p>
       )}
