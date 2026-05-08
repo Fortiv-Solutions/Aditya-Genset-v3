@@ -241,8 +241,8 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
         >
           {(product.sections || []).map((s, i) => {
             const isEscorts = product.engineBrand === "Escorts";
-            // Use the section data from the CMS instead of the hardcoded TS file
-            const ekl15Data = isEscorts ? (s as any) : null;
+            // Merge static technical data with CMS/Fallback sections to ensure tabs/reactance work
+            const ekl15Data = isEscorts ? { ...(EKL15_CHAPTER_DATA[s.id] || {}), ...s } : null;
             return (
               <article
                 key={s.id}
@@ -473,7 +473,7 @@ function SectionContent({ section, active, index, sectionId }: { section: Showca
         <div className="mt-8 grid grid-cols-3 gap-6 border-y border-border py-6">
           {section.highlight.map((h, hIdx) => {
             const hValueRaw = content?.[sectionKey]?.[`chapter_${index}_h${hIdx}_value`];
-            const hValue = Number(hValueRaw) || h.value;
+            const hValue = Number(hValueRaw) || Number(h.value) || 0;
             const hSuffix = content?.[sectionKey]?.[`chapter_${index}_h${hIdx}_suffix`] ?? h.suffix;
             return (
               <div key={h.label}>

@@ -348,7 +348,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       description: "Escorts-powered 15 kVA silent generator. Compact, CPCB IV compliant — built for demanding environments.",
       subImage: escort15KVA,
       zoom: 1, offsetX: 0, offsetY: 0,
-      specs: []
+      specs: [
+        { label: "Model", value: "EKL15-IV (2 Cyl)" },
+        { label: "Rating", value: "15 kVA / 12 kWe" },
+        { label: "Compliance", value: "CPCB IV+" },
+      ]
     },
     {
       id: "engine",
@@ -357,7 +361,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       description: "2-cylinder, naturally aspirated diesel engine with electronic governor for stable frequency output.",
       subImage: ekl15Engine,
       zoom: 1.8, offsetX: 8, offsetY: 2,
-      specs: []
+      specs: [
+        { label: "Make", value: "Escorts" },
+        { label: "Model", value: "G15-IV" },
+        { label: "Config", value: "2-cyl inline" },
+      ]
     },
     {
       id: "fuel",
@@ -366,7 +374,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       description: "Highly efficient fuel consumption with integrated radiator cooling and high-capacity lube oil system.",
       subImage: escort15KVA,
       zoom: 1.4, offsetX: -5, offsetY: -5,
-      specs: []
+      specs: [
+        { label: "Fuel (100%)", value: "3.78 L/hr" },
+        { label: "Tank", value: "70 L" },
+        { label: "Lube Oil", value: "5.5 L" },
+      ]
     },
     {
       id: "alternator",
@@ -375,7 +387,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       description: "Brushless, self-excited alternator with ±1% AVR and high-precision electrical output.",
       subImage: ekl15Alternator,
       zoom: 1.6, offsetX: 15, offsetY: -5,
-      specs: []
+      specs: [
+        { label: "Make", value: "Stamford" },
+        { label: "Voltage", value: "415 V" },
+        { label: "AVR", value: "AS540" },
+      ]
     },
     {
       id: "enclosure",
@@ -384,7 +400,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       description: "CPCB IV compliant acoustic enclosure for silent residential and commercial operation.",
       subImage: ekl15Enclosure,
       zoom: 1.5, offsetX: -15, offsetY: 5,
-      specs: []
+      specs: [
+        { label: "Sound level", value: "70 dB(A) @ 1m" },
+        { label: "Compliance", value: "CPCB IV" },
+        { label: "Protection", value: "IP23" },
+      ]
     },
     {
       id: "control",
@@ -393,7 +413,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       description: "Advanced DEIF SGC 120 microprocessor controller with full AMF support and CANbus.",
       subImage: ekl15Control,
       zoom: 2.0, offsetX: -20, offsetY: 15,
-      specs: []
+      specs: [
+        { label: "Controller", value: "DEIF SGC 120" },
+        { label: "Display", value: "Backlit LCD" },
+        { label: "Event Log", value: "100 events" },
+      ]
     },
     {
       id: "protection",
@@ -402,7 +426,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       description: "Comprehensive ANSI electrical and engine shutdown protections. CE compliant.",
       subImage: ekl15Protection,
       zoom: 2.2, offsetX: -15, offsetY: 12,
-      specs: []
+      specs: [
+        { label: "Compliance", value: "CE / ISO 9001" },
+        { label: "Electrical", value: "ANSI suite" },
+        { label: "Engine", value: "5 shutdowns" },
+      ]
     },
     {
       id: "supply",
@@ -411,7 +439,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       description: "Complete turnkey package with extensive standard inclusions and optional upgrades.",
       subImage: ekl15Supply,
       zoom: 1.2, offsetX: 0, offsetY: 0,
-      specs: []
+      specs: [
+        { label: "Standard items", value: "17" },
+        { label: "Warranty", value: "Standard" },
+        { label: "Docs", value: "Included" },
+      ]
     },
     {
       id: "dimensions",
@@ -420,7 +452,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       description: "Compact dimensions — easy to transport, site and service.",
       subImage: ekl15Dimensions,
       zoom: 1.2, offsetX: 0, offsetY: -10,
-      specs: []
+      specs: [
+        { label: "Length", value: "1760 mm" },
+        { label: "Width", value: "950 mm" },
+        { label: "Height", value: "1495 mm" },
+      ]
     }
   ],
   sections: [

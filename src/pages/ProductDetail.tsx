@@ -6,7 +6,7 @@ import { useRef, useState, useEffect } from "react";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import { fetchProductShowcase } from "@/lib/api/cms";
-import { ShowcaseProduct } from "@/data/products";
+import { ShowcaseProduct, getProductBySlug } from "@/data/products";
 import { useCompare } from "@/context/CompareContext";
 import { BarChart2 } from "lucide-react";
 
@@ -30,7 +30,9 @@ export default function ProductDetail() {
       if (!slug) return;
       setLoading(true);
       try {
+        console.log("Fetching product showcase for slug:", slug);
         const data = await fetchProductShowcase(slug);
+        console.log("Data received:", !!data);
         if (data && data.product) {
           const productMedia = (data.product as any).product_media || [];
           const primaryImage =
@@ -39,21 +41,24 @@ export default function ProductDetail() {
             "";
           
           // Map DB product and CMS content to ShowcaseProduct shape
+          const staticData = getProductBySlug(slug);
           const mappedProduct: ShowcaseProduct = {
             id: data.product.id,
             slug: data.product.slug,
             name: data.product.name,
             kva: data.product.kva,
-            engineBrand: (data.product as any).engine_brand,
+            engineBrand: (data.product as any).engine_brand || staticData?.engineBrand,
             range: "15-62.5", 
             status: "active",
             thumbnail: primaryImage, 
             hero: primaryImage, 
-            sections: data.showcase?.sections || [],
-            hotspots: data.showcase?.hotspots || [],
+            sections: data.showcase?.sections || staticData?.sections || [],
+            hotspots: data.showcase?.hotspots || staticData?.hotspots || [],
           };
           setProduct(mappedProduct);
+          console.log("Product state set, loading CMS...");
           await loadProductCMS(data.product.id);
+          console.log("CMS loaded.");
         }
       } catch (err) {
         console.error("Failed to load product detail:", err);
@@ -62,6 +67,10 @@ export default function ProductDetail() {
       }
     }
     loadData();
+
+    // Safety timeout to prevent stuck loading
+    const timer = setTimeout(() => setLoading(false), 10000);
+    return () => clearTimeout(timer);
   }, [slug, loadProductCMS]);
 
   if (loading) {
@@ -87,13 +96,18 @@ export default function ProductDetail() {
   }
 
   const activeProduct = product!;
+  const isEscorts = activeProduct.engineBrand === "Escorts";
+  
   // Decide which CMS section to use for editing (dynamic products use showcaseData as base)
-  const sectionId = isCMSPreview ? pageId : "showcaseData";
+  const sectionId = isCMSPreview ? pageId : (isEscorts ? "ekl15ShowcaseData" : "showcaseData");
   const sectionKey = sectionId as "showcaseData";
   
-  // If the DB CMS row is missing, content[sectionKey] falls back to global default (which says 62.5 kVA).
-  // We want to ignore that fallback for all other products.
-  const isFallback = content?.[sectionKey]?.productName === "62.5 kVA Silent DG Set" && activeProduct.slug !== "silent-62-5";
+  // If the DB CMS row is missing, content falls back to global defaults.
+  // We want to detect if we are seeing default template text for a product that isn't the template's subject.
+  const isBaudouinFallback = content?.showcaseData?.productName === "62.5 kVA Silent DG Set" && activeProduct.slug !== "silent-62-5";
+  const isEscortFallback = content?.ekl15ShowcaseData?.productName === "EKL 15 kVA (2 Cyl) DG Set" && activeProduct.slug !== "ekl-15-2cyl";
+  
+  const isFallback = isEscorts ? isEscortFallback : isBaudouinFallback;
   const productName = isFallback ? activeProduct.name : (content?.[sectionKey]?.productName || activeProduct.name);
 
   const ld = {

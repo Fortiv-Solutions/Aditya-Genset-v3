@@ -80,11 +80,11 @@
     --secondary-foreground: 48 24% 97%;
     --muted: 0 0% 14%;
     --muted-foreground: 30 5% 65%;
-    --accent: 3 76% 55%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 41 100% 48%;            /* Brand Amber */
+    --accent-foreground: 207 80% 14%;
     --border: 0 0% 18%;
     --input: 0 0% 18%;
-    --ring: 3 76% 55%;
+    --ring: 41 100% 48%;
   }
 }
 
@@ -379,4 +379,20 @@ body.present-mode footer {
 .admin-header button,
 .admin-header a {
   border-radius: 6px !important;
+}
+
+@layer utilities {
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: hsl(var(--accent) / 0.3);
+    border-radius: 10px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--accent) / 0.5);
+  }
 }

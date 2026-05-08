@@ -8,6 +8,8 @@ import { EditableImage } from "@/components/cms/EditableImage";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import { CMSSection as CMSSectionKey } from "@/lib/sanity";
 import type { ShowcaseProduct } from "@/data/products";
+import { ChapterInteractive } from "./ChapterInteractive";
+import { EKL15_CHAPTER_DATA } from "@/data/ekl15Data";
 
 // Fallback images
 import mainImageFallback from "@/assets/products/showcase/main-view.png";
@@ -16,7 +18,7 @@ import subProductFallback from "@/assets/products/parts/enclosure.jpg";
 export function GuidedPresentation({ onClose, sectionId = "presentationData", product }: { onClose: () => void, sectionId?: string, product?: ShowcaseProduct }) {
   const { isEditMode, content, updateContentLive, commitHistory } = useCMSState();
   const cmsContent = content[sectionId as keyof typeof content] as Record<string, any>;
-  const showcaseContent = content['showcaseData' as keyof typeof content] as Record<string, any>;
+  const showcaseContent = cmsContent; // Use the same section for both hotspot and showcase labels
   
   const wrapperRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -132,151 +134,158 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
               })}
             </div>
           </motion.div>
-        </div>
 
-        <header className="absolute top-0 inset-x-0 h-24 flex items-center justify-between px-12 pointer-events-auto">
-          <motion.div 
-            className="flex items-center gap-6"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            <div className="h-10 w-1 bg-accent rounded-full" />
-            <div>
-              <p className="text-[10px] uppercase tracking-[0.4em] text-accent font-bold">Guided Presentation</p>
-              <h2 className="font-display text-xl tracking-tight text-foreground">
-                {showcaseContent?.productName || product?.name}
-              </h2>
-            </div>
-          </motion.div>
-          <button
-            onClick={onClose}
-            className="group flex h-12 w-12 items-center justify-center bg-white shadow-md border border-border rounded-full transition-all active:scale-95"
-          >
-            <X size={20} className="text-foreground transition-transform group-hover:rotate-90" />
-          </button>
-        </header>
-
-        {/* Content Area */}
-        <div className="absolute inset-x-12 bottom-12 flex items-end justify-between pointer-events-none">
-          {/* Info Card */}
-          <motion.div className="w-[420px] pointer-events-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeHotspot.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                className="bg-[#0B3A5C] border border-white/10 shadow-2xl rounded-3xl p-8 text-white"
+          {/* Navigation Dots (Right Center Static) */}
+          <div className="absolute right-12 top-1/2 -translate-y-1/2 flex flex-col gap-6 pointer-events-auto z-50">
+            {presentationHotspots.map((h, i) => (
+              <button
+                key={h.id}
+                onClick={() => {
+                  if (!wrapperRef.current) return;
+                  const scrollHeight = containerRef.current?.scrollHeight || 0;
+                  const viewHeight = wrapperRef.current.clientHeight;
+                  const targetScroll = (i / (presentationHotspots.length - 1)) * (scrollHeight - viewHeight);
+                  wrapperRef.current.scrollTo({ top: targetScroll, behavior: 'smooth' });
+                }}
+                className="group flex items-center justify-end gap-4 text-right"
               >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="px-2 py-0.5 rounded bg-accent text-white text-[10px] font-bold uppercase tracking-widest">
-                    Chapter {currentIndex + 1}
-                  </div>
-                  <div className="h-px flex-1 bg-white/10" />
-                </div>
+                <span className={cn(
+                  "text-[10px] uppercase tracking-[0.2em] transition-all duration-500",
+                  currentIndex === i ? "text-accent opacity-100" : "text-foreground/20 opacity-0 group-hover:opacity-60"
+                )}>
+                  {h.title}
+                </span>
+                <div className={cn(
+                  "h-1.5 w-1.5 rounded-full transition-all duration-500",
+                  currentIndex === i ? "bg-accent scale-150 shadow-lg" : "bg-foreground/10 group-hover:bg-foreground/30"
+                )} />
+              </button>
+            ))}
+          </div>
 
-                <EditableText 
-                  section={sectionId as CMSSectionKey} 
-                  contentKey={`hotspot_${currentIndex}_title`} 
-                  className="font-display text-3xl font-semibold mb-3 leading-tight block" 
-                  as="h3" 
-                />
-                <EditableText 
-                  section={sectionId as CMSSectionKey} 
-                  contentKey={`hotspot_${currentIndex}_desc`} 
-                  className="text-white/70 text-sm leading-relaxed mb-8 block" 
-                  as="p" 
-                />
-
-                <div className="grid grid-cols-2 gap-4">
-                  {(activeHotspot.specs || []).map((spec, i) => (
-                    <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5">
-                      <EditableText 
-                        section={sectionId as CMSSectionKey} 
-                        contentKey={`hotspot_${currentIndex}_spec${i}_label`} 
-                        className="text-[9px] uppercase tracking-widest text-white/40 block mb-1" 
-                        as="span" 
-                      />
-                      <EditableText 
-                        section={sectionId as CMSSectionKey} 
-                        contentKey={`hotspot_${currentIndex}_spec${i}_value`} 
-                        className="text-sm font-semibold block" 
-                        as="span" 
-                      />
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-10 flex items-center gap-4">
-                  <div className="h-10 w-10 rounded-full bg-accent flex items-center justify-center">
-                    <ChevronDown className="animate-bounce text-white" size={18} />
-                  </div>
-                  <p className="text-[10px] uppercase tracking-widest text-white/40">
-                    {currentIndex === presentationHotspots.length - 1 ? "End of story" : "Scroll to continue"}
-                  </p>
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-
-          {/* Sub-Image Card */}
-          <motion.div className="w-[350px] pointer-events-auto">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={activeHotspot.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white border border-border shadow-2xl rounded-3xl p-2"
-              >
-                <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted">
-                  <EditableImage
-                    section={sectionId}
-                    contentKey={`hotspot_${currentIndex}_image`}
-                    defaultSrc={activeHotspot.subImage || subProductFallback}
-                    alt={activeHotspot.title}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              </motion.div>
-            </AnimatePresence>
-          </motion.div>
-        </div>
-
-        {/* Navigation Dots */}
-        <div className="absolute right-12 top-1/3 flex flex-col gap-6 pointer-events-auto">
-          {presentationHotspots.map((h, i) => (
-            <button
-              key={h.id}
-              onClick={() => {
-                if (!wrapperRef.current) return;
-                const scrollHeight = containerRef.current?.scrollHeight || 0;
-                const viewHeight = wrapperRef.current.clientHeight;
-                const targetScroll = (i / (presentationHotspots.length - 1)) * (scrollHeight - viewHeight);
-                wrapperRef.current.scrollTo({ top: targetScroll, behavior: 'smooth' });
-              }}
-              className="group flex items-center justify-end gap-4 text-right"
+          {/* Header (Top Right Exit) */}
+          <header className="absolute top-0 inset-x-0 h-24 flex items-center justify-between px-12 pointer-events-auto z-50">
+            <motion.div 
+              className="flex items-center gap-6"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
             >
-              <span className={cn(
-                "text-[10px] uppercase tracking-[0.2em] transition-all duration-500",
-                currentIndex === i ? "text-accent opacity-100" : "text-foreground/20 opacity-0 group-hover:opacity-60"
-              )}>
-                {h.title}
-              </span>
-              <div className={cn(
-                "h-1.5 w-1.5 rounded-full transition-all duration-500",
-                currentIndex === i ? "bg-accent scale-150 shadow-lg" : "bg-foreground/10 group-hover:bg-foreground/30"
-              )} />
+              <div className="h-10 w-1 bg-accent rounded-full" />
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.4em] text-accent font-bold">Guided Presentation</p>
+                <h2 className="font-display text-xl tracking-tight text-foreground">
+                  {showcaseContent?.productName || product?.name}
+                </h2>
+              </div>
+            </motion.div>
+            <button
+              onClick={onClose}
+              className="group flex h-12 w-12 items-center justify-center bg-white shadow-md border border-border rounded-full transition-all active:scale-95"
+            >
+              <X size={20} className="text-foreground transition-transform group-hover:rotate-90" />
             </button>
-          ))}
-        </div>
+          </header>
 
-        {/* Progress Bar */}
-        <div className="absolute bottom-0 inset-x-0 h-1 bg-foreground/5">
-          <motion.div 
-            className="h-full bg-accent"
-            style={{ scaleX: scrollYProgress, originX: 0 }}
-          />
+          {/* Content Area */}
+          <div className="absolute inset-x-12 bottom-12 flex items-end justify-between pointer-events-none z-50">
+            {/* Info Card */}
+            <motion.div className="w-[420px] pointer-events-auto">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeHotspot.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="bg-[#0B3A5C] border border-white/10 shadow-2xl rounded-3xl p-8 text-white dark h-[500px] flex flex-col"
+                >
+                  <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="px-2 py-0.5 rounded bg-accent text-white text-[10px] font-bold uppercase tracking-widest">
+                        Chapter {currentIndex + 1}
+                      </div>
+                      <div className="h-px flex-1 bg-white/10" />
+                    </div>
+
+                    <EditableText 
+                      section={sectionId as CMSSectionKey} 
+                      contentKey={`hotspot_${currentIndex}_title`} 
+                      className="font-display text-3xl font-semibold mb-3 leading-tight block" 
+                      as="h3" 
+                    />
+                    <EditableText 
+                      section={sectionId as CMSSectionKey} 
+                      contentKey={`hotspot_${currentIndex}_desc`} 
+                      className="text-white/70 text-sm leading-relaxed mb-8 block" 
+                      as="p" 
+                    />
+
+                    {product?.engineBrand === "Escorts" ? (
+                      <div className="mt-6">
+                        <ChapterInteractive 
+                          chapterId={activeHotspot.id} 
+                          data={{
+                            ...(EKL15_CHAPTER_DATA[activeHotspot.id] || {}),
+                            ...(product.sections.find(s => s.id === activeHotspot.id) || {})
+                          } as any} 
+                          active={true} 
+                        />
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-4">
+                        {(activeHotspot.specs || []).map((spec, i) => (
+                          <div key={i} className="p-4 rounded-xl bg-white/5 border border-white/5">
+                            <EditableText 
+                              section={sectionId as CMSSectionKey} 
+                              contentKey={`hotspot_${currentIndex}_spec${i}_label`} 
+                              className="text-[9px] uppercase tracking-widest text-white/40 block mb-1" 
+                              as="span" 
+                            />
+                            <EditableText 
+                              section={sectionId as CMSSectionKey} 
+                              contentKey={`hotspot_${currentIndex}_spec${i}_value`} 
+                              className="text-sm font-semibold block" 
+                              as="span" 
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+
+            {/* Sub-Image Card */}
+            <motion.div className="w-[350px] pointer-events-auto">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeHotspot.id}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-white border border-border shadow-2xl rounded-3xl p-2"
+                >
+                  <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted">
+                    <EditableImage
+                      section={sectionId}
+                      contentKey={`hotspot_${currentIndex}_image`}
+                      defaultSrc={activeHotspot.subImage || subProductFallback}
+                      alt={activeHotspot.title}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="fixed bottom-0 left-0 h-1 bg-white/10 w-full z-50">
+            <motion.div 
+              className="h-full bg-accent"
+              style={{ scaleX: scrollYProgress, originX: 0 }}
+            />
+          </div>
         </div>
       </div>
     </div>
