@@ -12,6 +12,7 @@ import {
   UserPlus,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "@/components/auth/AuthContext";
 import { supabase } from "@/lib/supabase";
 import type { AppRole } from "@/lib/supabase";
 
@@ -109,6 +110,22 @@ const defaultForm = {
   role: "Sales Executive" as AppRole,
 };
 
+async function getFunctionErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === "object" && "context" in error) {
+    const context = (error as { context?: unknown }).context;
+    if (context instanceof Response) {
+      try {
+        const payload = await context.clone().json();
+        if (typeof payload?.error === "string") return payload.error;
+      } catch {
+        // Fall back to the generic error message below.
+      }
+    }
+  }
+
+  return error instanceof Error ? error.message : fallback;
+}
+
 function Check({ yes }: { yes: boolean }) {
   return yes
     ? <CheckCircle size={14} className="text-green-400 mx-auto" />
@@ -158,6 +175,7 @@ function mapProfile(profile: ProfileRow): AdminUser {
 }
 
 export default function AdminUsers() {
+  const { profile } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -165,6 +183,7 @@ export default function AdminUsers() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [form, setForm] = useState(defaultForm);
   const [edgeFunctionAvailable, setEdgeFunctionAvailable] = useState(true);
+  const canCreateUsers = profile?.role === "Super Admin";
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -256,7 +275,7 @@ export default function AdminUsers() {
       toast.success("User created in Supabase Auth and profiles");
       resetModal();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unable to create user";
+      const message = await getFunctionErrorMessage(error, "Unable to create user");
       toast.error(message);
       console.error("Create user error:", error);
     } finally {
@@ -398,13 +417,14 @@ export default function AdminUsers() {
           </p>
           {!edgeFunctionAvailable && (
             <p className="text-xs text-muted-foreground mt-2">
-              Auth metadata is unavailable until the `admin-users` Edge Function is deployed.
+              Auth metadata is unavailable until the `admin-users` Edge Function is deployed. Super Admins can still try account creation.
             </p>
           )}
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
-          disabled={!edgeFunctionAvailable}
+          onClick={() => canCreateUsers && setShowCreateModal(true)}
+          disabled={!canCreateUsers}
+          title={canCreateUsers ? undefined : "Only Super Admin users can create accounts"}
           className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors disabled:opacity-60"
         >
           <Plus size={16} /> Create User

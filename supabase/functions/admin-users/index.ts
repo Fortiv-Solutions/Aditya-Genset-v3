@@ -8,7 +8,34 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const roles: AppRole[] = ["Super Admin", "Admin", "Sales Manager", "Sales Executive", "Media Editor"];
+function normalizeRole(value: unknown): AppRole | null {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim().toLowerCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+
+  switch (normalized) {
+    case "super admin":
+      return "Super Admin";
+    case "admin":
+      return "Admin";
+    case "sales manager":
+      return "Sales Manager";
+    case "sales executive":
+      return "Sales Executive";
+    case "media editor":
+      return "Media Editor";
+    default:
+      return null;
+  }
+}
+
+function isAdminRole(role: unknown) {
+  const normalizedRole = normalizeRole(role);
+  return normalizedRole === "Super Admin" || normalizedRole === "Admin";
+}
+
+function isSuperAdminRole(role: unknown) {
+  return normalizeRole(role) === "Super Admin";
+}
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
@@ -49,7 +76,12 @@ Deno.serve(async (req) => {
     .maybeSingle();
 
   if (profileError) return json({ error: profileError.message }, 500);
-  if (!callerProfile || !["Super Admin", "Admin"].includes(callerProfile.role)) {
+  const callerRole =
+    normalizeRole(callerProfile?.role) ||
+    normalizeRole(authData.user.app_metadata?.role) ||
+    normalizeRole(authData.user.user_metadata?.role);
+
+  if (!isAdminRole(callerRole)) {
     return json({ error: "Only admins can manage users" }, 403);
   }
 
@@ -57,11 +89,15 @@ Deno.serve(async (req) => {
   const action = body.action === "create" ? "create" : "list";
 
   if (action === "create") {
+    if (!isSuperAdminRole(callerRole)) {
+      return json({ error: "Only Super Admin users can create accounts" }, 403);
+    }
+
     const email = cleanString(body.email).toLowerCase();
     const password = cleanString(body.password);
     const fullName = cleanString(body.fullName);
     const phone = cleanString(body.phone);
-    const role = roles.includes(body.role) ? body.role as AppRole : "Sales Executive";
+    const role = normalizeRole(body.role) || "Sales Executive";
 
     if (!email || !password || !fullName) {
       return json({ error: "Email, password, and full name are required" }, 400);
@@ -76,7 +112,7 @@ Deno.serve(async (req) => {
       password,
       email_confirm: true,
       user_metadata: { full_name: fullName, role },
-      app_metadata: { role },
+      app_metadata: { full_name: fullName, role },
     });
 
     if (createError || !created.user) {
