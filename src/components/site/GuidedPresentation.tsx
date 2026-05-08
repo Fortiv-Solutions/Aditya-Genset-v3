@@ -68,18 +68,18 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
   const dotX = cmsContent?.[`hotspot_${currentIndex}_x`] !== undefined ? Number(cmsContent[`hotspot_${currentIndex}_x`]) : activeHotspot.x;
   const dotY = cmsContent?.[`hotspot_${currentIndex}_y`] !== undefined ? Number(cmsContent[`hotspot_${currentIndex}_y`]) : activeHotspot.y;
   
-  // Camera pan offset
-  const cameraOffsetX = 50 - dotX;
-  const cameraOffsetY = 50 - dotY;
+  // Camera pan offset - further dampened to keep image centered
+  const cameraOffsetX = (50 - dotX) * 0.4;
+  const cameraOffsetY = (50 - dotY) * 0.4;
 
   return (
-    <div ref={wrapperRef} className="fixed inset-0 z-[9999] overflow-y-auto bg-[#f8f9fa] pointer-events-auto">
+    <div ref={wrapperRef} className="fixed inset-0 z-[9999] overflow-y-auto bg-white pointer-events-auto">
       <div ref={containerRef} className="relative h-[600vh] w-full text-foreground selection:bg-accent selection:text-white">
         {/* Sticky Background Visuals */}
-        <div className="sticky top-0 h-screen w-full overflow-hidden bg-[#f8f9fa]">
+        <div className="sticky top-0 h-screen w-full overflow-hidden bg-white">
           <motion.div
             animate={{
-              scale: activeHotspot.zoom || 1,
+              scale: activeHotspot.zoom || 1.15,
               x: `${cameraOffsetX}%`,
               y: `${cameraOffsetY}%`,
             }}
@@ -189,14 +189,14 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
           {/* Content Area */}
           <div className="absolute inset-x-12 bottom-12 flex items-end justify-between pointer-events-none z-50">
             {/* Info Card */}
-            <motion.div className="w-[420px] pointer-events-auto">
+            <motion.div className="w-[440px] pointer-events-auto">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeHotspot.id}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="bg-[#0B3A5C] border border-white/10 shadow-2xl rounded-3xl p-8 text-white dark h-[500px] flex flex-col"
+                  className="bg-[#0B3A5C] border border-white/10 shadow-2xl rounded-3xl p-8 text-white dark h-[600px] flex flex-col"
                 >
                   <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
                     <div className="flex items-center gap-3 mb-4">
@@ -256,7 +256,7 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
             </motion.div>
 
             {/* Sub-Image Card */}
-            <motion.div className="w-[350px] pointer-events-auto">
+            <motion.div className="w-[360px] pointer-events-auto">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeHotspot.id}
