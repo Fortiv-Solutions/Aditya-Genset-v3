@@ -7,31 +7,69 @@
 import type { ExtractedProduct } from "./pdfExtractor";
 import type { SpecRow } from "@/data/products";
 
-export interface EnhancedProductExtraction {
-  // Basic product info
-  name: string;
-  model: string;
-  kva: number;
-  kwe: number;
-  
-  // Complete chapter data (10 chapters)
-  chapters: ChapterData[];
-  
-  // Presentation hotspots (10 hotspots)
-  hotspots: HotspotData[];
-  
-  // Metadata
-  confidence: "high" | "medium" | "low";
-  missingFields: string[];
-  extractionNotes: string;
+/** Raw data format returned by the locked AI prompt */
+export interface RawExtractedData {
+  basic_info: {
+    product_name: string | null;
+    model_number: string | null;
+    power_kva: number | null;
+    engine_brand: string | null;
+    engine_model: string | null;
+    alternator_brand: string | null;
+    cpcb_compliance: string | null;
+    application: string | null;
+    rated_voltage: string | null;
+    frequency_hz: number | null;
+    power_factor: number | null;
+    noise_level: string | null;
+    fuel_consumption_75: string | null;
+    fuel_tank_capacity: string | null;
+    dry_weight_kg: number | null;
+    dimensions: {
+      length_mm: number | null;
+      width_mm: number | null;
+      height_mm: number | null;
+      full_string: string | null;
+    } | null;
+  };
+  sections: Array<{
+    title: string;
+    type: "specs" | "features" | "mixed";
+    specs: Array<{ label: string; value: string }>;
+    features: string[];
+  }>;
 }
+
+export interface DimEntry { label: string; value: string; }
+export interface ReactanceRow { symbol: string; description: string; value: string; }
+export interface OptionalGroup { label: string; items: string[]; }
 
 export interface ChapterData {
   id: string;
   number: string;
   title: string;
-  tagline: string;
-  specs: SpecRow[];
+  tagline?: string;
+  description?: string;
+  badges?: string[];
+  specs?: SpecRow[];
+  aboutSpecs?: SpecRow[];
+  features?: string[];
+  lubeSpecs?: SpecRow[];
+  coolingSpecs?: SpecRow[];
+  perfSpecs?: SpecRow[];
+  reactanceData?: ReactanceRow[];
+  acousticDims?: DimEntry[];
+  openDims?: DimEntry[];
+  envSpecs?: SpecRow[];
+  engineParams?: string[];
+  electricalParams?: string[];
+  electricalSpecs?: SpecRow[];
+  engineProtections?: string[];
+  electricalProtections?: string[];
+  approvals?: string[];
+  standardItems?: string[];
+  optionalItems?: string[];
+  optionalGroups?: OptionalGroup[];
   highlights?: Array<{ value: number | string; suffix: string; label: string }>;
 }
 
@@ -47,6 +85,149 @@ export interface HotspotData {
   specs: SpecRow[];
 }
 
+export interface EnhancedProductExtraction {
+  name: string;
+  model: string;
+  kva: number;
+  kwe: number;
+  chapters: ChapterData[];
+  hotspots: HotspotData[];
+  confidence: "high" | "medium" | "low";
+  missingFields: string[];
+  extractionNotes: string;
+}
+
+/** Maps strict AI output to the application's ExtractedProduct format with fuzzy key matching */
+export function mapExtractedToFormFields(raw: any): Partial<ExtractedProduct> {
+  const clean = (val: any) => {
+    if (val === null || val === undefined || val === "null" || val === "N/A" || val === "Not found" || val === "") return null;
+    if (typeof val === 'string') {
+      let s = val.trim();
+      s = s.replace(/^(Features|Model|Brand|Engine|Alternator|Rating|Value|Label):\s*/i, "");
+      return s;
+    }
+    return val;
+  };
+
+  const flatDict: Record<string, any> = {};
+  
+  const flatten = (obj: any) => {
+    if (!obj || typeof obj !== 'object') return;
+    if (Array.isArray(obj)) {
+      obj.forEach(flatten);
+      return;
+    }
+    for (const [k, v] of Object.entries(obj)) {
+      if (v !== null && typeof v === 'object') {
+        flatten(v);
+      } else if (v !== null && v !== undefined) {
+        const cleanKey = k.toLowerCase().replace(/[^a-z0-9]/g, '');
+        flatDict[cleanKey] = v;
+      }
+    }
+  };
+  
+  flatten(raw);
+
+  const findKey = (matches: string[]) => {
+    const keys = Object.keys(flatDict);
+    for (const match of matches) {
+      const normalizedMatch = match.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const found = keys.find(k => k.includes(normalizedMatch));
+      if (found && clean(flatDict[found])) {
+        return clean(flatDict[found]);
+      }
+    }
+    return null;
+  };
+
+  const basic = raw.basic_info || (Array.isArray(raw.basic_info) ? raw.basic_info[0] : {});
+  
+  const getBasic = (key: string, fuzzyMatches: string[]) => {
+    if (basic[key] && clean(basic[key])) return clean(basic[key]);
+    return findKey(fuzzyMatches);
+  };
+
+  const withUnit = (val: string | null, unit: string) => {
+    if (!val) return "";
+    const s = val.toString();
+    if (s.toLowerCase().includes(unit.toLowerCase())) return s;
+    return `${s} ${unit}`;
+  };
+
+  const rawMake = getBasic("engine_brand", ["enginebrand", "enginemake", "brand", "make"]) || "";
+  const make = rawMake.toString().toLowerCase();
+  let engineBrand = ""; 
+  if (make.includes("baudouin")) engineBrand = "baudouin";
+  else if (make.includes("kubota") && !make.includes("escorts")) engineBrand = "kubota";
+  else if (make.includes("escorts")) engineBrand = "escorts-kubota";
+  else if (make.includes("cummins")) engineBrand = "cummins";
+  else if (make.includes("mahindra")) engineBrand = "mahindra";
+  else if (make.includes("kohler")) engineBrand = "kohler";
+
+  const rawVoltage = (getBasic("rated_voltage", ["voltage", "ratedvoltage", "outputvoltage"]) || "").toString();
+  const voltage = rawVoltage.includes("/") ? rawVoltage.split("/").pop()?.trim() || rawVoltage : rawVoltage;
+
+  const rawCpcb = (getBasic("cpcb_compliance", ["cpcb", "compliance", "emission"]) || "").toString().toLowerCase();
+  let cpcb = "";
+  if (rawCpcb.includes("iv") || rawCpcb.includes("4")) cpcb = "iv-plus";
+  else if (rawCpcb.includes("ii") || rawCpcb.includes("2")) cpcb = "ii";
+
+  let advancedSections: any[] = [];
+  if (raw.sections && Array.isArray(raw.sections)) {
+    advancedSections = raw.sections.map((s: any) => ({
+      title: clean(s.title) || "Unknown Section",
+      type: clean(s.type) || "mixed",
+      specs: Array.isArray(s.specs) ? s.specs.map((sp: any) => ({ label: clean(sp.label) || "", value: clean(sp.value) || "" })) : [],
+      features: Array.isArray(s.features) ? s.features.map(clean).filter(Boolean) : []
+    }));
+  }
+
+  let dimensions = "";
+  let dryWeight = "";
+  let fuelConsumption = "";
+  let noiseLevel = "";
+
+  for (const sec of advancedSections) {
+    if (sec.type === "specs" || sec.type === "mixed") {
+      for (const sp of sec.specs) {
+        if (!sp.label) continue;
+        const lbl = sp.label.toLowerCase();
+        if (lbl.includes("length") || lbl.includes("width") || lbl.includes("height") || lbl.includes("dimension") || lbl.includes("l x w x h")) {
+           if (!dimensions.toLowerCase().includes(lbl)) dimensions += `${sp.label}: ${sp.value} `;
+        }
+        if (lbl.includes("weight") || lbl.includes("dry mass")) dryWeight = sp.value;
+        if (lbl.includes("fuel") && (lbl.includes("75") || lbl.includes("consumption"))) fuelConsumption = sp.value;
+        if (lbl.includes("noise") || lbl.includes("sound") || lbl.includes("db")) noiseLevel = sp.value;
+      }
+    }
+  }
+
+  const dimObj = basic.dimensions || {};
+  const dimStr = dimObj.full_string || (dimObj.length_mm ? `${dimObj.length_mm} x ${dimObj.width_mm} x ${dimObj.height_mm} mm` : "");
+
+  const result = {
+    name: getBasic("product_name", ["productname", "name", "title"]) || "",
+    model: getBasic("model_number", ["modelnumber", "model", "gensetmodel"]) || "",
+    kva: (getBasic("power_kva", ["powerkva", "kva", "poweroutput", "rating"]) || "").toString().replace(/[^0-9.]/g, ""),
+    engineBrand,
+    engineModel: getBasic("engine_model", ["enginemodel", "engine"]) || "",
+    alternatorBrand: getBasic("alternator_brand", ["alternatorbrand", "alternatormake", "alternator"]) || "",
+    cpcb,
+    application: getBasic("application", ["application", "duty"]) || "",
+    frequency: withUnit(getBasic("frequency_hz", ["frequency", "hz"]), "Hz"),
+    voltage: withUnit(voltage, "Volts"),
+    powerFactor: getBasic("power_factor", ["powerfactor", "pf"]) || "0.8",
+    dimensions: dimStr || dimensions.trim() || (getBasic("dimensions", ["dimension", "size", "lxwxh"]) || ""),
+    dryWeight: withUnit(dryWeight ? dryWeight.replace(/kg/i, '').trim() : (getBasic("dry_weight", ["weight"]) || "").toString().replace(/kg/i, '').trim(), "kg"),
+    fuelConsumption: withUnit(fuelConsumption ? fuelConsumption.replace(/l\/hr|lph/i, '').trim() : (getBasic("fuel_consumption", ["fuel"]) || "").toString().replace(/l\/hr|lph/i, '').trim(), "L/hr"),
+    noiseLevel: withUnit(noiseLevel ? noiseLevel.replace(/db\(a\)|db/i, '').trim() : (getBasic("noise_level", ["noise", "sound"]) || "").toString().replace(/db\(a\)|db/i, '').trim(), "dB(A) @ 1m"),
+    advancedSections
+  };
+
+  return result;
+}
+
 /**
  * Enhanced extraction that generates complete 10-chapter structure
  * Fills in missing data with intelligent defaults based on available information
@@ -59,15 +240,19 @@ export function enhanceProductExtraction(
   const kwe = Math.round(kva * 0.8 * 10) / 10;
   const missingFields: string[] = [];
   
-  // Helper to find spec value
   const findSpec = (patterns: string[]) => {
     const found = additionalSpecs.find((spec) =>
       patterns.some((pattern) => spec.label.toLowerCase().includes(pattern.toLowerCase()))
     );
     return found?.value || "";
   };
+
+  const filterSpecs = (patterns: string[]) => {
+    return additionalSpecs.filter((spec) =>
+      patterns.some((pattern) => spec.label.toLowerCase().includes(pattern.toLowerCase()))
+    );
+  };
   
-  // Helper to check if field is missing
   const checkField = (value: string | undefined, fieldName: string) => {
     if (!value || value.trim() === "" || value === "Refer datasheet") {
       missingFields.push(fieldName);
@@ -76,69 +261,34 @@ export function enhanceProductExtraction(
     return true;
   };
   
-  // Extract all available data
   const engineModel = extracted.engineModel || findSpec(["engine model"]);
-  const cylinders = findSpec(["cylinder", "cylinders"]) || "Refer datasheet";
-  const displacement = findSpec(["displacement"]) || "Refer datasheet";
-  const boreStroke = findSpec(["bore", "stroke"]) || "Refer datasheet";
-  const grossPower = findSpec(["gross power", "engine power"]) || `${Math.round(kva * 0.9)} kWm`;
-  const speed = extracted.frequency === "50 Hz" ? "1500 RPM" : "1800 RPM";
+  const cpcbLabel = extracted.cpcb === "ii" ? "CPCB II" : "CPCB IV+";
   
-  const alternatorFrame = findSpec(["frame", "alternator frame"]) || "Refer datasheet";
-  const avrModel = findSpec(["avr", "voltage regulator"]) || "AVR";
-  const ratedCurrent = findSpec(["current", "rated current"]) || "Refer datasheet";
-  
-  const lubeOil = findSpec(["lube", "oil capacity"]) || "Refer datasheet";
-  const coolingCapacity = findSpec(["coolant", "cooling capacity"]) || "Refer datasheet";
-  const governor = findSpec(["governor"]) || "Mechanical";
-  
-  const shortCircuitRatio = findSpec(["short circuit"]) || "Refer datasheet";
-  const waveformDistortion = findSpec(["waveform", "distortion"]) || "< 5%";
-  const batterySize = findSpec(["battery"]) || "60 Ah";
-  
-  const protection = findSpec(["protection", "ip rating"]) || "IP23";
-  const designAmbient = findSpec(["ambient", "temperature"]) || "40°C";
-  const altitude = findSpec(["altitude"]) || "Up to 1000 m";
-  
-  const controller = extracted.controllerModel || findSpec(["controller", "control panel"]) || "DEIF SGC 120";
-  const display = findSpec(["display"]) || "Backlit LCD";
-  const communication = findSpec(["communication", "interface"]) || "USB, RS-485, CANbus";
-  
-  const isoCompliance = findSpec(["iso"]) || "ISO 8528";
-  const ceCompliant = findSpec(["ce"]) || "CE Compliant";
-  
-  const warranty = findSpec(["warranty"]) || "12 months";
-  
-  checkField(engineModel, "Engine Model");
-  checkField(extracted.alternatorBrand, "Alternator Brand");
-  checkField(extracted.fuelConsumption, "Fuel Consumption");
-  checkField(extracted.noiseLevel, "Noise Level");
-  checkField(extracted.dimensions, "Dimensions");
-  
-  // Build 10 complete chapters following EKL15 structure
   const chapters: ChapterData[] = [
-    // Chapter 01: Overview
     {
       id: "overview",
       number: "01",
       title: extracted.name,
-      tagline: extracted.shortDesc || `${extracted.cpcb.toUpperCase()} compliant, ISO 8528 certified — built for demanding environments.`,
+      badges: [cpcbLabel, "ISO 8528", "Silent Operation", "Industrial Grade", "ISO 9001:2015"],
       specs: [
         { label: "Model", value: extracted.model },
         { label: "Rating", value: `${kva} kVA / ${kwe} kWe` },
         { label: "Voltage", value: extracted.voltage || "415 V" },
         { label: "Frequency", value: extracted.frequency || "50 Hz" },
-        { label: "Speed", value: speed },
-        { label: "Compliance", value: extracted.cpcb === "ii" ? "CPCB II" : "CPCB IV+" },
+        { label: "Speed", value: extracted.frequency === "60 Hz" ? "1800 RPM" : "1500 RPM" },
+        { label: "Compliance", value: cpcbLabel },
+      ],
+      description: extracted.shortDesc || `${extracted.name} is an ${extracted.engineBrand}-powered ${kva} kVA silent diesel generator set.`,
+      aboutSpecs: [
+        { label: "Power Factor", value: extracted.powerFactor || "0.8 lagging" },
+        { label: "ISO Compliance", value: "ISO 8528" },
+        { label: "Overload", value: "10% per ISO 3046" },
       ],
       highlights: [
         { value: kva, suffix: " kVA", label: "Prime power" },
-        { value: parseFloat(extracted.noiseLevel) || 75, suffix: " dB(A)", label: "Sound @ 1m" },
-        { value: 27, suffix: "+ yrs", label: "Heritage" },
-      ],
+        { value: 27, suffix: "+ yrs", label: "Heritage" }
+      ]
     },
-    
-    // Chapter 02: Engine
     {
       id: "engine",
       number: "02",
@@ -147,276 +297,144 @@ export function enhanceProductExtraction(
       specs: [
         { label: "Make", value: extracted.engineBrand },
         { label: "Model", value: engineModel },
-        { label: "No. of Cylinders", value: cylinders },
-        { label: "Displacement", value: displacement },
-        { label: "Bore / Stroke", value: boreStroke },
-        { label: "Gross Engine Power", value: grossPower },
-        { label: "Speed", value: speed },
-        { label: "Frequency", value: extracted.frequency || "50 Hz" },
+        { label: "Cylinders", value: findSpec(["cylinder"]) || "Refer datasheet" },
+        { label: "Displacement", value: findSpec(["displacement"]) || "Refer datasheet" },
+        { label: "Bore / Stroke", value: findSpec(["bore", "stroke"]) || "Refer datasheet" },
+        { label: "Gross Power", value: findSpec(["gross power", "engine power"]) || `${Math.round(kva * 0.9)} kWm` },
       ],
+      features: [
+        "Cast iron cylinder block with rugged body construction",
+        "High carbon steel forged crankshaft",
+        "Electronic governing for fast load response",
+      ]
     },
-    
-    // Chapter 03: Fuel, Lube & Cooling
     {
       id: "fuel",
       number: "03",
       title: "Fuel, Lube & Cooling",
-      tagline: "Optimized for efficiency and reliability.",
       specs: [
         { label: "Recommended Fuel", value: "High Speed Diesel" },
-        { label: "Fuel Consumption", value: extracted.fuelConsumption || "Refer datasheet" },
-        { label: "Fuel Tank Capacity", value: extracted.fuelTankCapacity || "Refer datasheet" },
-        { label: "Governor", value: governor },
-        { label: "Lube Oil", value: lubeOil },
-        { label: "Cooling", value: extracted.coolingType || "Radiator (Water Cooled)" },
-        { label: "Coolant Capacity", value: coolingCapacity },
-        { label: "Silencer Type", value: "Residential" },
+        { label: "Governor", value: findSpec(["governor"]) || "Mechanical" },
+        { label: "Air Filter", value: findSpec(["air filter"]) || "Dry" },
       ],
+      lubeSpecs: [
+        { label: "Lube Oil Capacity", value: findSpec(["lube oil"]) || "Refer datasheet" },
+        { label: "Lube Oil Consumption", value: "< Normal limits" },
+      ],
+      coolingSpecs: [
+        { label: "Cooling Method", value: extracted.coolingType || "Radiator (Water Cooled)" },
+        { label: "Coolant Capacity", value: findSpec(["coolant"]) || "Refer datasheet" },
+        { label: "Silencer", value: "Residential" },
+      ]
     },
-    
-    // Chapter 04: Alternator
     {
       id: "alternator",
       number: "04",
       title: "Alternator",
-      tagline: "Clean, stable 3-phase power for sensitive loads.",
       specs: [
         { label: "Make", value: extracted.alternatorBrand || "Stamford" },
-        { label: "Frame", value: alternatorFrame },
-        { label: "Power Factor", value: extracted.powerFactor || "0.8" },
-        { label: "Phases", value: extracted.phase || "3-Phase" },
-        { label: "Voltage", value: extracted.voltage || "415 V" },
-        { label: "Current", value: ratedCurrent },
-        { label: "AVR Model", value: avrModel },
-        { label: "Protection", value: protection },
+        { label: "Frame", value: findSpec(["frame"]) || "Refer datasheet" },
+        { label: "Voltage Regulation", value: "±1%" },
+        { label: "Insulation", value: "H Class" },
       ],
+      perfSpecs: [
+        { label: "Excitation", value: "Self excited" },
+        { label: "AVR Type", value: findSpec(["avr"]) || "AS540" },
+      ],
+      features: [
+        "Brushless type, screen protected",
+        "Excellent motor start capability",
+      ]
     },
-    
-    // Chapter 05: Electrical Performance
     {
       id: "electrical",
       number: "05",
       title: "Electrical Performance",
-      tagline: "Precision power delivery with advanced protection.",
       specs: [
-        { label: "Short Circuit Ratio", value: shortCircuitRatio },
-        { label: "Waveform Distortion", value: waveformDistortion },
-        { label: "Voltage Regulation", value: "±1%" },
-        { label: "AVR Type", value: avrModel },
-        { label: "Battery Size", value: batterySize },
-        { label: "Starter Motor", value: "2.5 kW" },
-        { label: "System Voltage", value: "12 V DC" },
+        { label: "Short Circuit Ratio", value: findSpec(["short circuit"]) || "0.515" },
+        { label: "Battery Size", value: findSpec(["battery"]) || "60 Ah" },
+        { label: "Electrical System", value: "12 V DC" },
       ],
+      reactanceData: [
+        { symbol: "Xd", description: "Direct Axis Synchronous", value: findSpec(["xd"]) || "1.942" },
+        { symbol: "X'd", description: "Direct Axis Transient", value: findSpec(["x'd"]) || "0.109" },
+      ]
     },
-    
-    // Chapter 06: Enclosure & Sound
     {
       id: "enclosure",
       number: "06",
       title: "Enclosure & Sound",
-      tagline: `${extracted.cpcb === "ii" ? "CPCB II" : "CPCB IV+"} compliant. Engineered to disappear into its environment.`,
-      specs: [
-        { label: "Sound Level", value: extracted.noiseLevel || "Refer datasheet" },
-        { label: "Protection", value: protection },
-        { label: "Design Ambient", value: designAmbient },
-        { label: "Altitude", value: altitude },
-        { label: "CPCB", value: extracted.cpcb === "ii" ? "CPCB II" : "CPCB IV+" },
-        { label: "Construction", value: "1.6 mm CRCA panels" },
-        { label: "Insulation", value: "PU foam, 50 mm" },
+      acousticDims: [
+        { label: "Length", value: extracted.dimensions.split("x")[0]?.trim() || "Refer datasheet" },
+        { label: "Width", value: extracted.dimensions.split("x")[1]?.trim() || "Refer datasheet" },
+        { label: "Height", value: extracted.dimensions.split("x")[2]?.trim() || "Refer datasheet" },
+        { label: "Fuel Tank", value: extracted.fuelTankCapacity || "Refer datasheet" },
       ],
+      envSpecs: [
+        { label: "Noise Level", value: extracted.noiseLevel },
+        { label: "CPCB", value: cpcbLabel },
+      ]
     },
-    
-    // Chapter 07: Control Panel
     {
       id: "control",
       number: "07",
       title: "Control Panel",
-      tagline: "Real-time telemetry. Auto-start. Remote monitoring ready.",
       specs: [
-        { label: "Controller", value: controller },
-        { label: "Display", value: display },
-        { label: "Modes", value: "Auto / Manual / Remote" },
-        { label: "AMF", value: "Supported" },
-        { label: "Communication", value: communication },
-        { label: "Protection", value: "IP65" },
-        { label: "Operating Temp", value: "-20 to 65°C" },
+        { label: "Controller", value: extracted.controllerModel || "SGC 120" },
+        { label: "Display", value: "Backlit LCD" },
+        { label: "Communication", value: "USB, RS-485" },
       ],
+      engineParams: ["Engine Speed", "Oil Pressure", "Coolant Temp", "Battery Voltage"],
+      electricalParams: ["Gen Voltage", "Gen Current", "Frequency", "Power Factor"],
+      electricalSpecs: [
+        { label: "Supply Voltage", value: "12 / 24 V DC" },
+      ]
     },
-    
-    // Chapter 08: Protection & Approvals
     {
       id: "protection",
       number: "08",
       title: "Protection & Approvals",
-      tagline: "Comprehensive safety systems and international certifications.",
-      specs: [
-        { label: "Engine Protection", value: "Temp, Oil, Fuel, Speed" },
-        { label: "Electrical Protection", value: "UV, OV, UF, OF, OC" },
-        { label: "ISO Compliance", value: isoCompliance },
-        { label: "CE", value: ceCompliant },
-        { label: "EMC", value: "EN 61000-6-2/4" },
-        { label: "Low Voltage Directive", value: "EN 61010-1" },
-      ],
+      engineProtections: ["High Water Temp", "Low Oil Pressure", "Over Speed"],
+      electricalProtections: ["Under/Over Voltage", "Under/Over Frequency", "Over Current"],
+      approvals: ["CE Compliant", "ISO 8528", "CPCB IV+"]
     },
-    
-    // Chapter 09: Standard Supply & Options
     {
       id: "supply",
       number: "09",
-      title: "Standard Supply & Options",
-      tagline: "Complete package with optional upgrades available.",
-      specs: [
-        { label: "Engine", value: "Water-cooled diesel" },
-        { label: "Alternator", value: "Single bearing IP23" },
-        { label: "Controller", value: "Microprocessor-based" },
-        { label: "Base Frame", value: "Anti-vibration mounts" },
-        { label: "Fuel Tank", value: extracted.fuelTankCapacity || "Integrated" },
-        { label: "Documentation", value: "Complete manuals" },
-        { label: "Warranty", value: warranty },
+      title: "Standard Supply",
+      standardItems: [
+        "Water-cooled diesel engine",
+        "Electric starter",
+        "Acoustic enclosure",
+        "Base frame with AVM",
+        "DG Control panel"
       ],
+      optionalItems: ["Coolant heater", "ATS", "Remote monitoring"]
     },
-    
-    // Chapter 10: Dimensions & Weight
     {
       id: "dimensions",
       number: "10",
       title: "Dimensions & Weight",
-      tagline: "Compact footprint, easy to site and service.",
       specs: [
-        { label: "Dimensions (L×W×H)", value: extracted.dimensions || "Refer datasheet" },
-        { label: "Dry Weight", value: extracted.dryWeight || "Refer datasheet" },
-        { label: "Fuel Tank", value: extracted.fuelTankCapacity || "Refer datasheet" },
-        { label: "Rating", value: `${kva} kVA / ${kwe} kWe` },
-        { label: "Power Factor", value: extracted.powerFactor || "0.8" },
-      ],
-    },
+        { label: "Dimensions", value: extracted.dimensions },
+        { label: "Dry Weight", value: extracted.dryWeight },
+        { label: "Rating", value: `${kva} kVA` },
+      ]
+    }
   ];
   
-  // Build 10 presentation hotspots matching the chapters
   const hotspots: HotspotData[] = [
-    {
-      id: "overview",
-      title: extracted.name,
-      description: extracted.shortDesc || `The ${extracted.model} is an ${extracted.engineBrand}-powered ${kva} kVA silent diesel generator set, designed to comply with ISO 8528.`,
-      x: 50,
-      y: 50,
-      zoom: 1,
-      offsetX: 0,
-      offsetY: 0,
-      specs: chapters[0].specs.slice(0, 5),
-    },
-    {
-      id: "engine",
-      title: "Engine",
-      description: `${extracted.engineBrand} ${engineModel}. Built for continuous duty and tight load response.`,
-      x: 42,
-      y: 48,
-      zoom: 1.8,
-      offsetX: 8,
-      offsetY: 2,
-      specs: chapters[1].specs.slice(0, 5),
-    },
-    {
-      id: "fuel",
-      title: "Fuel, Lube & Cooling",
-      description: "Optimized fuel system with efficient cooling for extended runtime.",
-      x: 35,
-      y: 55,
-      zoom: 1.6,
-      offsetX: 15,
-      offsetY: -5,
-      specs: chapters[2].specs.slice(0, 5),
-    },
-    {
-      id: "alternator",
-      title: "Alternator",
-      description: `${extracted.alternatorBrand || "Stamford"} brushless alternator. Clean, stable 3-phase power.`,
-      x: 65,
-      y: 45,
-      zoom: 1.5,
-      offsetX: -15,
-      offsetY: 5,
-      specs: chapters[3].specs.slice(0, 5),
-    },
-    {
-      id: "electrical",
-      title: "Electrical Performance",
-      description: "Precision power delivery with advanced voltage regulation.",
-      x: 78,
-      y: 38,
-      zoom: 2.0,
-      offsetX: -25,
-      offsetY: 10,
-      specs: chapters[4].specs.slice(0, 5),
-    },
-    {
-      id: "enclosure",
-      title: "Enclosure & Sound",
-      description: `${extracted.cpcb === "ii" ? "CPCB II" : "CPCB IV+"} compliant acoustic enclosure. ${extracted.noiseLevel || "Low noise"} operation.`,
-      x: 50,
-      y: 75,
-      zoom: 1.2,
-      offsetX: 0,
-      offsetY: -10,
-      specs: chapters[5].specs.slice(0, 5),
-    },
-    {
-      id: "control",
-      title: "Control Panel",
-      description: `${controller} digital controller with real-time monitoring.`,
-      x: 70,
-      y: 30,
-      zoom: 1.8,
-      offsetX: -20,
-      offsetY: 15,
-      specs: chapters[6].specs.slice(0, 5),
-    },
-    {
-      id: "protection",
-      title: "Protection & Approvals",
-      description: "Comprehensive safety systems and international certifications.",
-      x: 60,
-      y: 60,
-      zoom: 1.4,
-      offsetX: -10,
-      offsetY: 0,
-      specs: chapters[7].specs.slice(0, 5),
-    },
-    {
-      id: "supply",
-      title: "Standard Supply",
-      description: "Complete package with all essential components included.",
-      x: 40,
-      y: 65,
-      zoom: 1.3,
-      offsetX: 10,
-      offsetY: -5,
-      specs: chapters[8].specs.slice(0, 5),
-    },
-    {
-      id: "dimensions",
-      title: "Dimensions & Weight",
-      description: `Compact footprint: ${extracted.dimensions || "Refer datasheet"}`,
-      x: 50,
-      y: 50,
-      zoom: 1,
-      offsetX: 0,
-      offsetY: 0,
-      specs: chapters[9].specs.slice(0, 5),
-    },
+    { id: "overview", title: extracted.name, description: extracted.shortDesc, x: 50, y: 50, zoom: 1, offsetX: 0, offsetY: 0, specs: chapters[0].specs || [] },
+    { id: "engine", title: "Engine", description: "High-performance engine", x: 42, y: 48, zoom: 1.8, offsetX: 8, offsetY: 2, specs: chapters[1].specs || [] },
+    { id: "fuel", title: "Fuel System", description: "Efficient fuel management", x: 35, y: 55, zoom: 1.6, offsetX: 15, offsetY: -5, specs: chapters[2].specs || [] },
+    { id: "alternator", title: "Alternator", description: "Stable power generation", x: 65, y: 45, zoom: 1.5, offsetX: -15, offsetY: 5, specs: chapters[3].specs || [] },
+    { id: "control", title: "Control Panel", description: "Smart monitoring", x: 70, y: 30, zoom: 1.8, offsetX: -20, offsetY: 15, specs: chapters[6].specs || [] },
+    { id: "dimensions", title: "Size", description: "Compact design", x: 50, y: 75, zoom: 1.2, offsetX: 0, offsetY: -10, specs: chapters[9].specs || [] },
   ];
   
-  // Calculate confidence based on missing fields
   let confidence: "high" | "medium" | "low" = "high";
-  if (missingFields.length > 5) {
-    confidence = "low";
-  } else if (missingFields.length > 2) {
-    confidence = "medium";
-  }
-  
-  const extractionNotes = missingFields.length > 0
-    ? `Some fields are missing or incomplete: ${missingFields.slice(0, 5).join(", ")}${missingFields.length > 5 ? `, and ${missingFields.length - 5} more` : ""}. Please review and update before publishing.`
-    : "All major fields extracted successfully. Ready for review.";
+  if (missingFields.length > 5) confidence = "low";
+  else if (missingFields.length > 2) confidence = "medium";
   
   return {
     name: extracted.name,
@@ -427,6 +445,6 @@ export function enhanceProductExtraction(
     hotspots,
     confidence,
     missingFields,
-    extractionNotes,
+    extractionNotes: missingFields.length > 0 ? `Missing: ${missingFields.join(", ")}` : "Extraction successful",
   };
 }

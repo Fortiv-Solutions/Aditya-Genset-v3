@@ -8,11 +8,11 @@ import ekl15Overview from "@/assets/products/escorts/escort_15kva.jpg"
 import ekl15Engine from "@/assets/products/parts/engine-real.jpg"
 import ekl15Fuel from "@/assets/products/escorts/escort_20kva_1.jpg"
 import ekl15Alternator from "@/assets/products/escorts/escort_15kva_2.jpg"
-import ekl15Electrical from "@/assets/products/escorts/escort_30kva.jpg"
+import ekl15Electrical from "@/assets/products/escorts/escort_20kva_2.jpg"
 import ekl15Enclosure from "@/assets/products/parts/enclosure.jpg"
-import ekl15Control from "@/assets/products/escorts/escort_15kva_2.jpg"
+import ekl15Control from "@/assets/products/escorts/escort_30kva_1.jpg"
 import ekl15Protection from "@/assets/products/escorts/escort_30kva.jpg"
-import ekl15Supply from "@/assets/products/escorts/escort_20kva_1.jpg"
+import ekl15Supply from "@/assets/products/escorts/escort_40kva_2.jpg"
 import ekl15Dimensions from "@/assets/products/escorts/escort_40kva_main.jpg"
 import ekl15Main1 from "@/assets/products/escorts/escort_15kva.jpg"
 import ekl15Main2 from "@/assets/products/escorts/escort_15kva_2.jpg"
@@ -79,7 +79,11 @@ const EKL15_DATA: EscortsProductData = {
     dimensions: ekl15Dimensions,
   },
   
-  // Images - Presentation
+  // Video
+  videoUrl: "/src/assets/products/showcase/product-video.mp4",
+  videoThumb: ekl15Overview,
+  
+  // Presentation Images
   presentationMainImage1: ekl15Main1,
   presentationMainImage2: ekl15Main2,
   presentationSubImages: {

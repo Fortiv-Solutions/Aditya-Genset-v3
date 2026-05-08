@@ -52,10 +52,19 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
       ]);
 
       setStage("extracting");
-      const extracted = await extractProductDataWithAI(text, file.name);
+      
+      // Convert first 3 page blobs to base64 for Gemini Vision
+      const { blobToBase64 } = await import("@/lib/pdfExtractor");
+      const pageBase64Promises = assets.pageImages
+        .slice(0, 3)
+        .map(img => blobToBase64(img.blob));
+      
+      const pageBase64s = await Promise.all(pageBase64Promises);
+
+      const mappedData = await extractProductDataWithAI(text, file.name, pageBase64s);
 
       setResult({
-        data: extracted,
+        data: mappedData as any,
         assets,
       });
       setStage("done");
@@ -223,8 +232,8 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
                   {result.assets.pageImages.length} page image{result.assets.pageImages.length === 1 ? "" : "s"} ready for upload
                 </p>
               </div>
-              <div className="grid grid-cols-3 md:grid-cols-4 gap-3">
-                {result.assets.pageImages.slice(0, 4).map((image) => (
+              <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {result.assets.pageImages.map((image) => (
                   <div key={image.pageNumber} className="overflow-hidden rounded-lg border border-border bg-muted/30">
                     <img src={image.previewUrl} alt={`PDF page ${image.pageNumber}`} className="h-24 w-full object-cover" />
                     <div className="px-2 py-1 text-[10px] text-muted-foreground border-t border-border">
@@ -238,7 +247,8 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
 
           {/* Extracted field preview */}
           {showPreview && (
-            <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3 bg-background">
+            <div className="bg-background">
+              <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3 border-b border-border/50">
               {[
                 { label: "Product Name", value: result.data.name },
                 { label: "Model Number", value: result.data.model },
@@ -264,6 +274,44 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
                 </div>
               ))}
             </div>
+
+            {result.data.advancedSections && result.data.advancedSections.length > 0 && (
+              <div className="mt-2 pb-4 px-4 bg-background">
+                <div className="py-2 border-b border-border/50 overflow-x-auto no-scrollbar flex gap-2">
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold flex items-center">
+                    Detailed Sections
+                  </p>
+                </div>
+                <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar">
+                  {result.data.advancedSections.map((sec, i) => (
+                    <div key={i} className="bg-secondary/50 rounded-lg p-3 border border-border/50">
+                      <h4 className="text-xs font-bold text-accent mb-2 uppercase tracking-wide">{sec.title}</h4>
+                      {sec.features && sec.features.length > 0 && (
+                        <ul className="space-y-1 mb-3">
+                          {sec.features.map((feat, j) => (
+                            <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5 leading-tight">
+                              <span className="text-accent/60 mt-[1px]">•</span>
+                              <span>{feat}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      {sec.specs && sec.specs.length > 0 && (
+                        <div className="space-y-1.5">
+                          {sec.specs.map((spec, j) => (
+                            <div key={j} className="flex items-start justify-between gap-4 text-xs border-b border-border/30 pb-1.5 last:border-0 last:pb-0">
+                              <span className="text-muted-foreground">{spec.label}</span>
+                              <span className="text-foreground font-medium text-right">{spec.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           )}
 
           {/* AI notes & extra specs */}

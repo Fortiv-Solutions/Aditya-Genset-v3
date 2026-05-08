@@ -122,6 +122,7 @@ export function normalizeEngineBrandKey(raw?: string | null): EngineBrandKey {
   if (!value) return "other";
   if (value.includes("baudouin")) return "baudouin";
   if (value.includes("escort")) return "escorts-kubota";
+  if (value.includes("ekl")) return "escorts-kubota";
   if (value.includes("kubota")) return "kubota";
   if (value.includes("kohler")) return "kohler";
   if (value.includes("cummins")) return "cummins";
@@ -595,7 +596,7 @@ function buildGenericContent(source: ProductSource, brandLabel: string, type: Pr
   };
 }
 
-function buildEscortsTemplateContent(source: ProductSource): ProductAutomationResult {
+function buildEnhancedTemplateContent(source: ProductSource, brandKey: EngineBrandKey, brandLabel: string, type: ProductType): ProductAutomationResult {
   const assets = resolveAssetBank(source, true);
   const specs = source.specs.filter((spec) => spec.label.trim() && spec.value.trim());
   
@@ -604,16 +605,25 @@ function buildEscortsTemplateContent(source: ProductSource): ProductAutomationRe
     const enhanced = enhanceProductExtraction(source.extracted, specs);
     
     // Map enhanced chapters to showcase sections with images
-    const sections: ShowcaseSection[] = enhanced.chapters.map((chapter, index) => ({
-      id: chapter.id,
-      number: chapter.number,
-      title: chapter.title,
-      tagline: chapter.tagline,
-      image: (assets.showcaseImages as any)[chapter.id] || assets.primary || escort15kva,
-      alt: `${chapter.title} section`,
-      specs: chapter.specs,
-      highlight: chapter.highlights,
-    }));
+    const sections: ShowcaseSection[] = enhanced.chapters.map((chapter) => {
+      const section: ShowcaseSection = {
+        id: chapter.id,
+        number: chapter.number,
+        title: chapter.title,
+        tagline: chapter.tagline,
+        image: (assets.showcaseImages as any)[chapter.id] || assets.primary || escort15kva,
+        alt: `${chapter.title} section`,
+        specs: chapter.specs,
+        highlight: chapter.highlights,
+      };
+
+      // Inject video URL if this is the video chapter
+      if (chapter.id === "video" && source.media.videoUrl.trim()) {
+        section.videoUrl = source.media.videoUrl.trim();
+      }
+
+      return section;
+    });
     
     // Map enhanced hotspots with images
     const hotspots: Hotspot[] = enhanced.hotspots.map((hotspot) => ({
@@ -629,30 +639,18 @@ function buildEscortsTemplateContent(source: ProductSource): ProductAutomationRe
       specs: hotspot.specs,
     }));
     
-    // Add video chapter if video URL exists
-    if (source.media.videoUrl.trim()) {
-      sections.push({
-        id: "video",
-        number: String(sections.length + 1).padStart(2, "0"),
-        title: "Product Video",
-        tagline: "Walkthrough media and product footage for review.",
-        image: assets.primary || escort15kva,
-        videoUrl: source.media.videoUrl.trim(),
-        alt: `${source.form.name} product video`,
-        specs: [
-          { label: "Format", value: "Video" },
-          { label: "Source", value: "Linked media" },
-        ],
-      });
+    // Remove the following lines (manual video push):
+    if (false as boolean) {
+      // Logic moved into the map above
     }
     
     const showcaseData = flattenShowcaseContent({
       productName: source.form.name,
-      pageSubtitle: `${sections.length}-chapter walkthrough of the Escorts-powered generator. ${enhanced.extractionNotes}`,
+      pageSubtitle: `${sections.length}-chapter walkthrough of the ${brandLabel}-powered generator. ${enhanced.extractionNotes}`,
       sections,
       hotspots,
       extra: {
-        description: getFullDescription(source, "Escorts"),
+        description: getFullDescription(source, brandLabel),
         extractionConfidence: enhanced.confidence,
         missingFields: enhanced.missingFields,
       },
@@ -661,10 +659,10 @@ function buildEscortsTemplateContent(source: ProductSource): ProductAutomationRe
     const presentationData = flattenPresentationContent(assets.mainImage1, assets.mainImage2, hotspots);
     
     return {
-      brandKey: "escorts-kubota",
-      brandLabel: "Escorts",
-      categorySlug: inferCategorySlug({
-        brandKey: "escorts-kubota",
+      brandKey,
+    brandLabel,
+    categorySlug: inferCategorySlug({
+      brandKey,
         type: inferProductType(source.extracted?.category, source.form.type),
         extractedCategory: source.extracted?.category,
         selectedCategory: source.form.category,
@@ -698,7 +696,7 @@ function buildEscortsTemplateContent(source: ProductSource): ProductAutomationRe
     kva,
     kwe,
     slug: source.form.model.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""),
-    engineMake: "Escorts",
+    engineMake: brandLabel,
     engineModel,
     cylinders: parseNumeric(findSpecValue(specs, ["cylinder"]), 3),
     displacement: findSpecValue(specs, ["displacement"]) || "Refer datasheet",
@@ -775,21 +773,21 @@ function buildEscortsTemplateContent(source: ProductSource): ProductAutomationRe
 
   const showcaseData = flattenShowcaseContent({
     productName: source.form.name,
-    pageSubtitle: getShowcaseSubtitle("Escorts", inferProductType(source.extracted?.category, source.form.type), sections.length),
+    pageSubtitle: getShowcaseSubtitle(brandLabel, type, sections.length),
     sections,
     hotspots,
     extra: {
-      description: getFullDescription(source, "Escorts"),
+      description: getFullDescription(source, brandLabel),
     },
   });
 
   const presentationData = flattenPresentationContent(assets.mainImage1, assets.mainImage2, hotspots);
 
   return {
-    brandKey: "escorts-kubota",
-    brandLabel: "Escorts",
+    brandKey,
+    brandLabel,
     categorySlug: inferCategorySlug({
-      brandKey: "escorts-kubota",
+      brandKey,
       type: inferProductType(source.extracted?.category, source.form.type),
       extractedCategory: source.extracted?.category,
       selectedCategory: source.form.category,
@@ -805,17 +803,19 @@ export function generateProductAutomation(source: ProductSource): ProductAutomat
   const type = inferProductType(source.extracted?.category, source.form.type);
   const brandLabel = getEngineBrandLabel(brandKey, source.form.engineBrand);
 
-  if (brandKey === "escorts-kubota" || brandKey === "kubota") {
-    return buildEscortsTemplateContent({
+  // If we have AI extraction data, or if it's an Escorts product, ALWAYS generate the full 10-slide enhanced layout
+  if (source.extracted || brandKey === "escorts-kubota" || brandKey === "kubota") {
+    return buildEnhancedTemplateContent({
       ...source,
       form: {
         ...source.form,
         type,
-        engineBrand: "escorts-kubota",
+        engineBrand: brandKey,
       },
-    });
+    }, brandKey, brandLabel, type);
   }
 
+  // Fallback for manual entry non-escorts
   return buildGenericContent(
     {
       ...source,

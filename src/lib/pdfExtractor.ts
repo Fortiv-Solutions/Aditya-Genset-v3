@@ -1,7 +1,13 @@
 /**
  * PDF → Structured Product Data Extractor
  * Uses pdf.js (browser-native) to read text, then calls Gemini to extract structured data.
+ *
+ * FIX: AI JSON keys (product_name, power_kva, etc.) are now mapped to form keys
+ * (name, kva, engineBrand, etc.) via mapExtractedToFormFields before returning.
  */
+
+import { mapExtractedToFormFields } from "./enhancedPdfExtractor";
+import type { RawExtractedData } from "./enhancedPdfExtractor";
 
 // Lazy-load pdfjs to avoid bundling its worker in the main thread
 let pdfjsLib: any = null;
@@ -29,7 +35,6 @@ export interface PdfImportPayload {
 async function getPdfjsLib() {
   if (!pdfjsLib) {
     const mod = await import("pdfjs-dist");
-    // Use a CDN-hosted worker so we don't need to copy it to public/
     mod.GlobalWorkerOptions.workerSrc = new URL(
       "pdfjs-dist/build/pdf.worker.min.mjs",
       import.meta.url
@@ -39,7 +44,18 @@ async function getPdfjsLib() {
   return pdfjsLib;
 }
 
-/** Extracts all raw text from a PDF File object */
+export function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      resolve(result.split(",")[1]);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 export async function extractTextFromPdf(file: File): Promise<string> {
   const pdfjs = await getPdfjsLib();
   const buffer = await file.arrayBuffer();
@@ -56,7 +72,7 @@ export async function extractTextFromPdf(file: File): Promise<string> {
   return fullText.trim();
 }
 
-export async function extractPdfAssets(file: File, maxPages = 8): Promise<ExtractedPdfAssets> {
+export async function extractPdfAssets(file: File, maxPages = 15): Promise<ExtractedPdfAssets> {
   const pdfjs = await getPdfjsLib();
   const buffer = await file.arrayBuffer();
   const pdf = await pdfjs.getDocument({ data: buffer }).promise;
@@ -74,16 +90,17 @@ export async function extractPdfAssets(file: File, maxPages = 8): Promise<Extrac
     canvas.width = viewport.width;
     canvas.height = viewport.height;
 
-    await page.render({
-      canvasContext: context,
-      viewport,
-    }).promise;
+    await page.render({ canvasContext: context, viewport }).promise;
 
     const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((value) => {
-        if (value) resolve(value);
-        else reject(new Error(`Unable to render preview image for PDF page ${i}.`));
-      }, "image/png");
+      canvas.toBlob(
+        (value) => {
+          if (value) resolve(value);
+          else reject(new Error(`Unable to render preview image for PDF page ${i}.`));
+        },
+        "image/jpeg",
+        0.8
+      );
     });
 
     pageImages.push({
@@ -92,7 +109,7 @@ export async function extractPdfAssets(file: File, maxPages = 8): Promise<Extrac
       previewUrl: URL.createObjectURL(blob),
       width: canvas.width,
       height: canvas.height,
-      mimeType: "image/png",
+      mimeType: "image/jpeg",
     });
 
     canvas.width = 0;
@@ -104,6 +121,13 @@ export async function extractPdfAssets(file: File, maxPages = 8): Promise<Extrac
     sourcePdfPreviewUrl: URL.createObjectURL(file),
     pageImages,
   };
+}
+
+export interface ExtractedSection {
+  title: string;
+  type: "specs" | "features" | "mixed";
+  specs: { label: string; value: string }[];
+  features: string[];
 }
 
 export interface ExtractedProduct {
@@ -130,40 +154,66 @@ export interface ExtractedProduct {
   controllerModel: string;
   alternatorBrand: string;
   specs: { label: string; value: string }[];
+  highlights: string[];
+  features: string[];
+  advancedSections: ExtractedSection[];
   confidence: "high" | "medium" | "low";
   rawNotes: string;
   extractionSource?: "ai" | "local-fallback";
 }
 
-const SCHEMA = `{
-  "name": "full product name e.g. 250 kVA Silent DG Set",
-  "model": "model number e.g. ATM-250S or ATMBD250",
-  "category": "one of: silent-dg-sets | open-dg-sets | industrial",
-  "shortDesc": "one-sentence product description (max 160 chars)",
-  "fullDesc": "2-4 sentence detailed product description for the product page",
-  "kva": "numeric kVA value only e.g. 250",
-  "engineBrand": "one of: baudouin | escorts-kubota | kubota | kohler | cummins | mahindra",
-  "engineModel": "engine model number e.g. 6M11G165/5",
-  "application": "prime | standby | continuous or closest matching application label from the PDF",
-  "fuelConsumption": "fuel consumption in L/h e.g. 52.5 L/h",
-  "fuelTankCapacity": "fuel tank capacity e.g. 120 L",
-  "noiseLevel": "noise level e.g. 75 dB(A) @ 1m",
-  "dimensions": "L×W×H in mm",
-  "dryWeight": "dry weight in kg",
-  "cpcb": "one of: iv-plus | ii",
-  "voltage": "output voltage e.g. 415V / 3-phase",
-  "frequency": "frequency e.g. 50 Hz",
-  "phase": "phase configuration e.g. 3-phase, 4-wire",
-  "powerFactor": "power factor e.g. 0.8 lagging",
-  "coolingType": "cooling system e.g. water-cooled or radiator cooled",
-  "controllerModel": "controller or control panel model if present",
-  "alternatorBrand": "alternator brand e.g. Stamford or Leroy Somer",
-  "specs": [
-    { "label": "any additional spec label", "value": "corresponding value" }
-  ],
-  "confidence": "your confidence level: high | medium | low",
-  "rawNotes": "brief note on anything unclear or missing from the PDF"
-}`;
+// ─── Schema sent to Gemini ────────────────────────────────────────────────────
+const EXTRACTION_SYSTEM_PROMPT = `
+You are an advanced Data Extraction AI for Aditya Tech Mech (Escorts-Kubota) DG sets.
+Your task is to comprehensively parse the ENTIRE PDF and extract ALL technical data, features, highlights, and specifications.
+
+You MUST return ONLY a valid JSON object following this EXACT structure:
+
+{
+  "basic_info": {
+    "product_name": "string or null",
+    "model_number": "string or null",
+    "power_kva": "number or null",
+    "engine_brand": "string or null (e.g., 'Escorts Kubota', 'Baudouin', 'Cummins')",
+    "engine_model": "string or null",
+    "alternator_brand": "string or null (e.g., 'Stamford', 'Leroy Somer')",
+    "cpcb_compliance": "string or null (e.g., 'iv-plus' or 'ii')",
+    "application": "string or null (e.g., 'prime', 'standby')",
+    "rated_voltage": "string or null (e.g., '415V')",
+    "frequency_hz": "number or null (e.g., 50)",
+    "power_factor": "number or null (e.g., 0.8)",
+    "noise_level": "string or null (e.g., '75 dB(A)')",
+    "fuel_consumption_75": "string or null (e.g., '2.5 L/hr')",
+    "fuel_tank_capacity": "string or null (e.g., '60 Litres')",
+    "dry_weight_kg": "number or null",
+    "dimensions": {
+      "length_mm": "number or null",
+      "width_mm": "number or null",
+      "height_mm": "number or null",
+      "full_string": "string or null (e.g., '1450 x 850 x 1100 mm')"
+    }
+  },
+  "sections": [
+    {
+      "title": "string (e.g., 'Engine Features', 'Alternator Data', 'DG Control Panel')",
+      "type": "string (MUST BE exactly 'specs' OR 'features' OR 'mixed')",
+      "specs": [
+        { "label": "string", "value": "string" }
+      ],
+      "features": [
+        "string (bullet points or textual descriptions)"
+      ]
+    }
+  ]
+}
+
+CRITICAL RULES:
+1. CAPTURE EVERYTHING: Do not summarize. If there is a table (e.g., Cooling System, Fuel System, Alternator Options), extract every row into the "specs" array of a new section.
+2. EXTRACT FEATURES: Look for bullet points under headings like "Product Highlights", "Engine Features", "DG Control Panel", etc., and put them in the "features" array of that section.
+3. SILENT/ACOUSTIC PRIORITY: If there is data for both "Open" and "Acoustic/Silent" sets (like Dimensions & Weights), prioritize the Acoustic/Silent data in the main basic_info.
+4. CLEAN STRINGS: For models and brands, extract ONLY the model name (e.g., 'EKL15-IV') and not descriptive text.
+5. NO CONVERSATION: Return ONLY the JSON object. Do not wrap in markdown fences if possible.
+`;
 
 const EMPTY_PRODUCT: ExtractedProduct = {
   name: "",
@@ -174,7 +224,7 @@ const EMPTY_PRODUCT: ExtractedProduct = {
   kva: "",
   engineBrand: "",
   engineModel: "",
-  application: "",
+  application: "prime",
   fuelConsumption: "",
   fuelTankCapacity: "",
   noiseLevel: "",
@@ -182,17 +232,22 @@ const EMPTY_PRODUCT: ExtractedProduct = {
   dryWeight: "",
   cpcb: "iv-plus",
   voltage: "",
-  frequency: "",
+  frequency: "50 Hz",
   phase: "",
-  powerFactor: "",
+  powerFactor: "0.8",
   coolingType: "",
   controllerModel: "",
   alternatorBrand: "",
   specs: [],
+  highlights: [],
+  features: [],
+  advancedSections: [],
   confidence: "low",
   rawNotes: "",
   extractionSource: "local-fallback",
 };
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const normalizeWhitespace = (value: string) => value.replace(/\s+/g, " ").trim();
 
@@ -210,7 +265,6 @@ const uniqueSpecs = (specs: { label: string; value: string }[]) => {
     const label = normalizeWhitespace(spec.label);
     const value = normalizeWhitespace(spec.value);
     if (!label || !value) return false;
-
     const key = `${label.toLowerCase()}::${value.toLowerCase()}`;
     if (seen.has(key)) return false;
     seen.add(key);
@@ -221,6 +275,7 @@ const uniqueSpecs = (specs: { label: string; value: string }[]) => {
 function inferBrandFromText(text: string) {
   const lower = text.toLowerCase();
   if (lower.includes("escorts kubota") || lower.includes("escort kubota")) return "escorts-kubota";
+  if (lower.includes("escorts")) return "escorts-kubota"; // "Escorts" alone → brand slug
   if (lower.includes("kubota")) return "kubota";
   if (lower.includes("baudouin")) return "baudouin";
   if (lower.includes("cummins")) return "cummins";
@@ -232,16 +287,16 @@ function inferBrandFromText(text: string) {
 function inferCategoryFromText(text: string) {
   const lower = text.toLowerCase();
   if (lower.includes("open") && !lower.includes("acoustic")) return "open-dg-sets";
-  if (lower.includes("silent") || lower.includes("acoustic") || lower.includes("canopy")) return "silent-dg-sets";
   return "silent-dg-sets";
 }
 
 function inferCpcbFromText(text: string, sourceFileName?: string) {
   const combined = `${text} ${sourceFileName || ""}`.toLowerCase();
   if (/\bcpcb\s*(ii|2)\b/.test(combined)) return "ii";
-  if (/\bcpcb\s*(iv|4)\s*\+?/.test(combined) || /\biv\s*\+?\b/.test(combined)) return "iv-plus";
   return "iv-plus";
 }
+
+// ─── Local fallback (no API key / API down) ───────────────────────────────────
 
 function buildLocalProductFromText(
   rawText: string,
@@ -250,100 +305,121 @@ function buildLocalProductFromText(
 ): ExtractedProduct {
   const text = normalizeWhitespace(rawText);
   const fileStem = sourceFileName?.replace(/\.pdf$/i, "").replace(/[_-]+/g, " ");
+
   const kva = firstMatch(text, [
     /\b(\d+(?:\.\d+)?)\s*kva\b/i,
     /\bpower\s*(?:output|rating|prime)?\s*[:\-]?\s*(\d+(?:\.\d+)?)\b/i,
   ]);
+
   const model =
     firstMatch(text, [
-      /\bmodel\s*(?:no\.?|number)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9 ./_-]{2,35})\b/i,
-      /\b(EKL\s*[-/]?\s*\d+(?:\.\d+)?\s*KVA\s*[-/]?\s*(?:IV|II|4|2)?)\b/i,
+      /\bmodel\s*(?:no\.?|number)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9 -]{2,20})\b/i,
+      /\b(EKL\s*[-/]?\s*\d+(?:\.\d+)?\s*(?:IV|II|4|2)?)\b/i,
       /\b(ATM[A-Z0-9 ./_-]{3,30})\b/i,
     ]) ||
     fileStem ||
     "";
+
   const engineBrand = inferBrandFromText(text) || inferBrandFromText(fileStem || "");
   const engineLabel = engineBrand
-    ? engineBrand
-        .split("-")
-        .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-        .join("-")
+    ? engineBrand.split("-").map((p) => p.charAt(0).toUpperCase() + p.slice(1)).join("-")
     : "Diesel";
+
   const category = inferCategoryFromText(text);
   const cpcb = inferCpcbFromText(text, sourceFileName);
+
   const engineModel = firstMatch(text, [
     /\bengine\s*(?:model|type)\s*[:\-]?\s*([A-Z0-9][A-Z0-9 ./_-]{2,35})\b/i,
     /\bengine\s*[:\-]?\s*([A-Z0-9][A-Z0-9 ./_-]{2,35})\b/i,
   ]);
+
   const alternatorBrand = firstMatch(text, [
     /\balternator\s*(?:make|brand)?\s*[:\-]?\s*([A-Z][A-Z0-9 &./_-]{2,30})\b/i,
   ]);
+
   const frequency = firstMatch(text, [/\b(50\s*hz)\b/i, /\b(60\s*hz)\b/i]);
+
   const voltage = firstMatch(text, [
     /\b(415\s*v(?:olts?)?(?:\s*\/?\s*3\s*phase)?)\b/i,
     /\b(230\s*v(?:olts?)?)\b/i,
   ]);
+
   const fuelConsumption = firstMatch(text, [
-    /\bfuel\s*consumption\s*[:\-]?\s*([0-9.]+\s*(?:l\/h|ltr\/hr|litre\/hr|lph|liter\/hour)[^,;]*)/i,
+    /75%\s*[Ll]oad\s*[:\-]?\s*([0-9.]+)/i,
+    /\bfuel\s*cons(?:umption)?\s*(?:@\s*75%)?\s*[:\-]?\s*([0-9.]+\s*(?:l\/h|ltr\/hr|lph)[^,;]*)/i,
+    /\b([0-9.]+\s*(?:l\/h|ltr\/hr|lph))\b/i,
   ]);
+
   const fuelTankCapacity = firstMatch(text, [
     /\bfuel\s*tank\s*(?:capacity)?\s*[:\-]?\s*([0-9.]+\s*(?:l|ltr|litre|liter)s?)\b/i,
+    /\b([0-9.]+\s*(?:l|ltr))\s*(?:fuel|day)\s*tank\b/i,
   ]);
+
   const noiseLevel = firstMatch(text, [
     /\bnoise\s*(?:level)?\s*[:\-]?\s*([0-9.]+\s*dB(?:\(A\))?(?:\s*@\s*[0-9.]+\s*m)?)/i,
-    /\b([0-9.]+\s*dB(?:\(A\))?(?:\s*@\s*[0-9.]+\s*m)?)\b/i,
+    /\b([0-9.]+\s*dB(?:\(A\))?)\b/i,
   ]);
-  const dimensions = firstMatch(text, [
-    /\bdimensions?\s*(?:\(?.*?mm\)?)?\s*[:\-]?\s*([0-9]{3,5}\s*[x×]\s*[0-9]{3,5}\s*[x×]\s*[0-9]{3,5}\s*mm?)/i,
-    /\b([0-9]{3,5}\s*[x×]\s*[0-9]{3,5}\s*[x×]\s*[0-9]{3,5}\s*mm?)\b/i,
-  ]);
+
+  // Acoustic dimensions: look for the acoustic/silent row specifically
+  const dimensions =
+    firstMatch(text, [
+      /acoustic\s*(?:set)?\s*(?:length|l)\s*[=:\-]?\s*([0-9]{3,5})\s*.*?width.*?([0-9]{3,5})\s*.*?height.*?([0-9]{3,5})/i,
+    ]) ||
+    firstMatch(text, [
+      /([0-9]{3,5}\s*[x×]\s*[0-9]{3,5}\s*[x×]\s*[0-9]{3,5}\s*mm?)/i,
+    ]);
+
+  // Prefer acoustic weight
   const dryWeight = firstMatch(text, [
-    /\b(?:dry\s*)?weight\s*[:\-]?\s*([0-9.]+\s*kg)\b/i,
+    /acoustic\b.*?\b([0-9]{3,4})\s*kg/i,
+    /weight\s*,?\s*dry\s*[:\-]?\s*([0-9]{3,4})\s*kg/i,
+    /\b([0-9]{3,4})\s*kg\b/i,
   ]);
+
   const phase = firstMatch(text, [
     /\b(3\s*phase(?:\s*,?\s*4\s*wire)?)\b/i,
     /\b(single\s*phase)\b/i,
   ]);
+
   const powerFactor = firstMatch(text, [
-    /\bpower\s*factor\s*[:\-]?\s*([0-9.]+\s*(?:lagging)?)\b/i,
-    /\bpf\s*[:\-]?\s*([0-9.]+\s*(?:lagging)?)\b/i,
+    /\bpower\s*factor\s*[:\-]?\s*([0-9.]+)\b/i,
+    /\bpf\s*[:\-]?\s*([0-9.]+)\b/i,
   ]);
+
   const coolingType = firstMatch(text, [
     /\b(radiator\s*cooled|water\s*cooled|air\s*cooled|liquid\s*cooled)\b/i,
   ]);
+
   const controllerModel = firstMatch(text, [
     /\bcontroller\s*(?:model)?\s*[:\-]?\s*([A-Z0-9][A-Z0-9 ./_-]{2,30})\b/i,
-    /\bcontrol\s*panel\s*[:\-]?\s*([A-Z0-9][A-Z0-9 ./_-]{2,30})\b/i,
+    /\b(DEIF\s*[A-Z0-9 ._-]{2,20}|Deep\s*Sea\s*[A-Z0-9 ._-]{2,20})\b/i,
   ]);
-  const application = firstMatch(text, [
-    /\bapplication\s*[:\-]?\s*([A-Z][A-Z &/,-]{2,40})\b/i,
-    /\b(prime|standby|continuous)\s*(?:power|rating)?\b/i,
-  ]);
+
+  const application = /\bstandby\b/i.test(text) ? "standby" : "prime";
 
   const name = kva
     ? `${kva} kVA ${engineLabel} DG Set`
     : model
       ? `${model} DG Set`
       : "Diesel Generator Set";
-  const shortDesc = kva
-    ? `${kva} kVA diesel generator set extracted from the uploaded datasheet for admin review.`
-    : "Diesel generator set extracted from the uploaded datasheet for admin review.";
-  const fullDesc = `${name} details were extracted from the uploaded PDF using local parsing because AI extraction was unavailable. Please review the generated fields, specifications, and media before publishing.`;
+
+  const fuelDisplay = fuelConsumption.match(/[0-9.]+/)?.[0]
+    ? `${fuelConsumption.match(/[0-9.]+/)![0]} L/hr`
+    : fuelConsumption;
 
   const specs = uniqueSpecs([
     { label: "Power Output (kVA)", value: kva ? `${kva} kVA` : "" },
-    { label: "Engine Make", value: engineLabel === "Diesel" ? "" : engineLabel },
-    { label: "Engine Model", value: engineModel },
+    { label: "Engine Make & Model", value: [engineLabel === "Diesel" ? "" : engineLabel, engineModel].filter(Boolean).join(" ") },
     { label: "Alternator Brand", value: alternatorBrand },
     { label: "Frequency", value: frequency },
     { label: "Voltage Output", value: voltage },
     { label: "Phase", value: phase },
     { label: "Power Factor", value: powerFactor },
-    { label: "Fuel Consumption", value: fuelConsumption },
+    { label: "Fuel Consumption (75%)", value: fuelDisplay },
     { label: "Fuel Tank Capacity", value: fuelTankCapacity },
     { label: "Noise Level", value: noiseLevel },
-    { label: "Dimensions", value: dimensions },
-    { label: "Dry Weight", value: dryWeight },
+    { label: "Dimensions (L×W×H)", value: dimensions },
+    { label: "Dry Weight", value: dryWeight ? `${dryWeight} kg` : "" },
     { label: "Cooling", value: coolingType },
     { label: "Controller", value: controllerModel },
     { label: "CPCB Compliance", value: cpcb === "ii" ? "CPCB II" : "CPCB IV+" },
@@ -356,89 +432,189 @@ function buildLocalProductFromText(
     name,
     model,
     category,
-    shortDesc,
-    fullDesc,
+    shortDesc: kva
+      ? `${kva} kVA diesel generator set — extracted from uploaded datasheet. Review before publishing.`
+      : "Diesel generator set extracted from uploaded datasheet. Review before publishing.",
+    fullDesc: `${name} — fields extracted locally from the uploaded PDF because the AI service was unavailable. Please verify and update before publishing.`,
     kva,
     engineBrand,
     engineModel,
     application,
-    fuelConsumption,
+    fuelConsumption: fuelDisplay,
     fuelTankCapacity,
     noiseLevel,
     dimensions,
-    dryWeight,
+    dryWeight: dryWeight ? `${dryWeight} kg` : "",
     cpcb,
     voltage,
-    frequency,
+    frequency: frequency || "50 Hz",
     phase,
-    powerFactor,
+    powerFactor: powerFactor || "0.8",
     coolingType,
     controllerModel,
     alternatorBrand,
     specs,
     confidence: filledCoreFields >= 5 ? "medium" : "low",
     rawNotes: fallbackReason
-      ? `Gemini extraction was unavailable, so local PDF parsing filled a draft. Reason: ${fallbackReason}`
-      : "Local PDF parsing filled a draft. Please review before publishing.",
+      ? `AI extraction unavailable — local parsing used. Reason: ${fallbackReason}`
+      : "Local PDF parsing used. Please review before publishing.",
     extractionSource: "local-fallback",
   };
 }
 
-/** Uses Gemini first, then falls back to local text parsing when the API is unavailable. */
-export async function extractProductDataWithAI(rawText: string, sourceFileName?: string): Promise<ExtractedProduct> {
+// ─── Main export ──────────────────────────────────────────────────────────────
+
+export async function extractProductDataWithAI(
+  rawText: string,
+  sourceFileName?: string,
+  pageImages?: string[],
+  retries = 2
+): Promise<ExtractedProduct> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
   if (!apiKey) {
     return buildLocalProductFromText(rawText, sourceFileName, "VITE_GEMINI_API_KEY is not set.");
   }
 
-  const prompt = `You are a technical data extraction specialist for industrial diesel generator sets.
-Extract product specifications from the following PDF text and return ONLY valid JSON matching the exact schema below.
-If a field cannot be found, use null. Do not add any text outside the JSON.
+  const prompt = `${EXTRACTION_SYSTEM_PROMPT}
 
-SCHEMA:
-${SCHEMA}
+PDF FILENAME: ${sourceFileName || "unknown"}
+PDF TEXT CONTENT:
+${rawText.slice(0, 15000)}`;
 
-PDF TEXT:
-${rawText.slice(0, 12000)}`;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  { text: prompt },
+                  // Send up to 4 page images so Gemini can see table layouts,
+                  // badges, and multi-column data that plain text extraction misses
+                  ...(pageImages || []).slice(0, 4).map((img) => ({
+                    inline_data: {
+                      mime_type: "image/jpeg",
+                      data: img.includes(",") ? img.split(",")[1] : img,
+                    },
+                  })),
+                ],
+              },
+            ],
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 8192,
+            },
+          }),
+        }
+      );
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 1500,
-        },
-      }),
+      if (response.status === 503 && attempt < retries) {
+        await new Promise((res) => setTimeout(res, 1500 * (attempt + 1)));
+        continue;
+      }
+
+      if (!response.ok) {
+        const err = await response.text();
+        return buildLocalProductFromText(
+          rawText,
+          sourceFileName,
+          `Gemini API error ${response.status}: ${normalizeWhitespace(err).slice(0, 260)}`
+        );
+      }
+
+      const data = await response.json();
+      const rawJson: string = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
+
+      // Strip markdown fences if Gemini adds them despite the instruction
+      const stripped = rawJson
+        .replace(/^```(?:json)?\s*/i, "")
+        .replace(/\s*```\s*$/, "")
+        .replace(/[\u201C\u201D]/g, '"')
+        .replace(/[\u2018\u2019]/g, "'")
+        .trim();
+
+      const firstBrace = stripped.indexOf("{");
+      const lastBrace = stripped.lastIndexOf("}");
+
+      if (firstBrace === -1 || lastBrace === -1) {
+        return buildLocalProductFromText(rawText, sourceFileName, "Gemini returned no JSON object.");
+      }
+
+      const cleaned = stripped.slice(firstBrace, lastBrace + 1);
+
+      let rawAiData: RawExtractedData;
+      try {
+        rawAiData = JSON.parse(cleaned) as RawExtractedData;
+      } catch (parseError) {
+        console.error("JSON Parse Error:", parseError, "\nRaw response:", cleaned);
+        return buildLocalProductFromText(rawText, sourceFileName, "Gemini returned malformed JSON.");
+      }
+
+      // ─── THE KEY FIX ──────────────────────────────────────────────────────
+      // mapExtractedToFormFields converts AI key names (product_name, power_kva…)
+      // into the form field names (name, kva, engineBrand…) your form expects.
+      // Without this step, spreading rawAiData onto EMPTY_PRODUCT fills no fields.
+      const mappedFields = mapExtractedToFormFields(rawAiData);
+
+      // Build specs table from the mapped data
+      const specs = uniqueSpecs([
+        { label: "Power Output (kVA)", value: mappedFields.kva ? `${mappedFields.kva} kVA` : "" },
+        { label: "Engine Make & Model", value: [mappedFields.engineBrand, mappedFields.engineModel].filter(Boolean).join(" ") },
+        { label: "Alternator Brand", value: mappedFields.alternatorBrand || "" },
+        { label: "Frequency", value: mappedFields.frequency || "" },
+        { label: "Voltage Output", value: mappedFields.voltage || "" },
+        { label: "Power Factor", value: mappedFields.powerFactor || "" },
+        { label: "Fuel Consumption (75%)", value: mappedFields.fuelConsumption || "" },
+        { label: "Dimensions (L×W×H)", value: mappedFields.dimensions || "" },
+        { label: "Dry Weight", value: mappedFields.dryWeight || "" },
+        { label: "Noise Level", value: mappedFields.noiseLevel || "" },
+        { label: "CPCB Compliance", value: mappedFields.cpcb === "ii" ? "CPCB II" : "CPCB IV+" },
+      ]);
+
+      const kvaNum = parseFloat(mappedFields.kva || "0") || 0;
+      const engineLabel = (mappedFields.engineBrand || "Diesel")
+        .split("-")
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join("-");
+
+      const filledFields = Object.values(mappedFields).filter(
+        (v) => v !== "" && v !== null && v !== undefined
+      ).length;
+
+      return {
+        ...EMPTY_PRODUCT,
+        name: mappedFields.name || (kvaNum ? `${kvaNum} kVA ${engineLabel} DG Set` : "Diesel Generator Set"),
+        model: mappedFields.model || "",
+        category: inferCategoryFromText(rawText),
+        shortDesc: kvaNum
+          ? `${kvaNum} kVA ${engineLabel} silent diesel generator set. CPCB ${mappedFields.cpcb === "ii" ? "II" : "IV+"} compliant.`
+          : "Diesel generator set.",
+        fullDesc: `The ${mappedFields.model || "DG Set"} is a ${kvaNum} kVA silent diesel generator powered by ${engineLabel}. Designed to comply with ISO 8528 and CPCB ${mappedFields.cpcb === "ii" ? "II" : "IV+"} norms.`,
+        ...mappedFields,
+        specs,
+        highlights: [],
+        features: [],
+        confidence: filledFields >= 8 ? "high" : filledFields >= 5 ? "medium" : "low",
+        rawNotes: `AI keys found: ${Object.keys(rawAiData).join(", ")}`,
+        extractionSource: "ai",
+      };
+    } catch (err) {
+      if (attempt < retries) {
+        await new Promise((res) => setTimeout(res, 1500 * (attempt + 1)));
+        continue;
+      }
+      return buildLocalProductFromText(
+        rawText,
+        sourceFileName,
+        `Connection failed: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
-  );
-
-  if (!response.ok) {
-    const err = await response.text();
-    return buildLocalProductFromText(
-      rawText,
-      sourceFileName,
-      `Gemini API error ${response.status}. ${normalizeWhitespace(err).slice(0, 260)}`
-    );
   }
 
-  const data = await response.json();
-  const rawJson = data?.candidates?.[0]?.content?.parts?.[0]?.text || "";
-
-  // Strip markdown code fences if present
-  const cleaned = rawJson.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
-
-  try {
-    return {
-      ...EMPTY_PRODUCT,
-      ...JSON.parse(cleaned),
-      extractionSource: "ai",
-    } as ExtractedProduct;
-  } catch {
-    return buildLocalProductFromText(rawText, sourceFileName, "Gemini returned invalid JSON.");
-  }
+  return buildLocalProductFromText(rawText, sourceFileName, "Max retries reached.");
 }

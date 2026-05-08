@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   ChevronDown,
+  ChevronUp,
   Cpu,
   Eye,
   Film,
@@ -32,6 +33,8 @@ import {
   normalizeEngineBrandKey,
 } from "@/lib/productAutomation";
 import { uploadExtractedPdfAssets, uploadProductMediaFile } from "@/lib/productMediaUpload";
+import { MappingReview } from "@/components/admin/MappingReview";
+import { enhanceProductExtraction, type EnhancedProductExtraction } from "@/lib/enhancedPdfExtractor";
 
 type ProductFormState = {
   name: string;
@@ -321,6 +324,8 @@ export default function AddProduct() {
   const [importPayload, setImportPayload] = useState<PdfImportPayload | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [enhancedMapping, setEnhancedMapping] = useState<EnhancedProductExtraction | null>(null);
+  const [showReview, setShowReview] = useState(false);
 
   const updateForm = (key: keyof ProductFormState, value: string | string[]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -462,26 +467,49 @@ export default function AddProduct() {
       metaDesc: data.shortDesc || current.metaDesc,
     }));
 
-    const extractedSpecs: SpecRow[] = [];
-    if (data.engineModel) extractedSpecs.push({ label: "Engine Model", value: data.engineModel });
-    if (data.alternatorBrand) extractedSpecs.push({ label: "Alternator Brand", value: data.alternatorBrand });
-    if (data.application) extractedSpecs.push({ label: "Application", value: data.application });
-    if (data.fuelConsumption) extractedSpecs.push({ label: "Fuel Consumption", value: data.fuelConsumption });
-    if (data.fuelTankCapacity) extractedSpecs.push({ label: "Fuel Tank Capacity", value: data.fuelTankCapacity });
-    if (data.noiseLevel) extractedSpecs.push({ label: "Noise Level", value: data.noiseLevel });
-    if (data.dimensions) extractedSpecs.push({ label: "Dimensions (LxWxH)", value: data.dimensions });
-    if (data.dryWeight) extractedSpecs.push({ label: "Dry Weight", value: data.dryWeight });
-    if (data.voltage) extractedSpecs.push({ label: "Voltage Output", value: data.voltage });
-    if (data.frequency) extractedSpecs.push({ label: "Frequency", value: data.frequency });
-    if (data.phase) extractedSpecs.push({ label: "Phase", value: data.phase });
-    if (data.powerFactor) extractedSpecs.push({ label: "Power Factor", value: data.powerFactor });
-    if (data.coolingType) extractedSpecs.push({ label: "Cooling", value: data.coolingType });
-    if (data.controllerModel) extractedSpecs.push({ label: "Controller", value: data.controllerModel });
-    if (data.specs?.length) extractedSpecs.push(...data.specs);
+    const updatedSpecs = [...specs];
+    const updateLabel = (searchString: string, newValue: string | null) => {
+      if (!newValue || newValue.trim() === "") return;
+      const index = updatedSpecs.findIndex(s => s.label.toLowerCase().includes(searchString.toLowerCase()));
+      if (index >= 0) {
+        updatedSpecs[index].value = newValue;
+      } else {
+        updatedSpecs.push({ label: searchString, value: newValue });
+      }
+    };
 
-    if (extractedSpecs.length > 0) {
-      setSpecs(extractedSpecs);
+    updateLabel("Power Output", data.kva ? `${data.kva} kVA` : null);
+    updateLabel("Engine Make", data.engineModel ? `${inferredBrand === "other" ? "" : inferredBrand} ${data.engineModel}`.trim() : null);
+    updateLabel("Alternator Brand", data.alternatorBrand);
+    updateLabel("Frequency", data.frequency);
+    updateLabel("Voltage Output", data.voltage);
+    updateLabel("Fuel Consumption", data.fuelConsumption);
+    updateLabel("Noise Level", data.noiseLevel);
+    updateLabel("Dimensions", data.dimensions);
+    updateLabel("Dry Weight", data.dryWeight);
+    updateLabel("CPCB Compliance", data.cpcb === 'ii' ? 'CPCB II' : 'CPCB IV+');
+    
+    if (data.application) updateLabel("Application", data.application);
+    if (data.fuelTankCapacity) updateLabel("Fuel Tank Capacity", data.fuelTankCapacity);
+    if (data.phase) updateLabel("Phase", data.phase);
+    if (data.powerFactor) updateLabel("Power Factor", data.powerFactor);
+    if (data.coolingType) updateLabel("Cooling", data.coolingType);
+    if (data.controllerModel) updateLabel("Controller", data.controllerModel);
+    
+    if (data.specs?.length) {
+      data.specs.forEach(spec => updateLabel(spec.label, spec.value));
     }
+
+    setSpecs(updatedSpecs);
+
+    if (data.advancedSections && data.advancedSections.length > 0) {
+      // Logic for advanced sections if needed
+    }
+
+    // Generate enhanced mapping for review
+    const enhanced = enhanceProductExtraction(data, updatedSpecs);
+    setEnhancedMapping(enhanced);
+    setShowReview(true);
 
     toast.success(
       data.extractionSource === "local-fallback"
@@ -752,6 +780,31 @@ export default function AddProduct() {
         </div>
         <div className="p-5">
           <PDFImportZone onExtracted={handleExtracted} />
+          
+          {enhancedMapping && (
+            <div className="mt-6 border-t border-border pt-6 animate-in fade-in slide-in-from-top-4 duration-700">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">AI Extracted Data Structure</h4>
+                  <p className="text-[11px] text-muted-foreground">Detailed technical specifications mapped from PDF.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowReview(!showReview)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-lg text-xs font-bold transition-all"
+                >
+                  {showReview ? (
+                    <>Hide Review <ChevronUp size={12} /></>
+                  ) : (
+                    <>Show Full Review <ChevronDown size={12} /></>
+                  )}
+                </button>
+              </div>
+
+              {showReview && <MappingReview data={enhancedMapping} />}
+            </div>
+          )}
+
           {importPayload && (
             <div className="mt-4 flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/40 px-4 py-3">
               <div>

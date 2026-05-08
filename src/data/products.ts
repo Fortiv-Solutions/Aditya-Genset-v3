@@ -34,7 +34,7 @@ export interface ShowcaseSection {
   image: string;
   alt: string;
   specs: SpecRow[];
-  highlight?: { value: number; suffix?: string; label: string }[];
+  highlight?: { value: number | string; suffix?: string; label: string }[];
   videoUrl?: string;
 }
 

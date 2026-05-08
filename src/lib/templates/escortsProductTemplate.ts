@@ -77,6 +77,9 @@ export interface EscortsProductData {
     supply: string
     dimensions: string
   }
+  // Video
+  videoUrl?: string
+  videoThumb?: string
 }
 
 /**
@@ -291,6 +294,22 @@ export function generateEscortsProduct(data: EscortsProductData) {
             { label: "Height", value: data.height },
             { label: "Fuel Tank", value: data.fuelTankCapacity },
             { label: "Rating", value: `${data.kva} kVA / ${data.kwe} kWe` },
+          ],
+        },
+        
+        // Chapter 11: Product Video
+        {
+          id: "video",
+          number: "11",
+          title: "Product Video",
+          tagline: "Escort DG Set — Multiple views and 360° product showcase.",
+          image: data.videoThumb || data.showcaseImages.overview,
+          videoUrl: data.videoUrl,
+          alt: "Escort DG set 360 degree showcase",
+          specs: [
+            { label: "Format", value: "1080p HD" },
+            { label: "Duration", value: "8 sec" },
+            { label: "View", value: "360° Guided" },
           ],
         },
       ],
