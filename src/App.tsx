@@ -37,7 +37,6 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCMS from "./pages/admin/AdminCMS";
 import CMSEditor from "./pages/admin/CMSEditor";
-<<<<<<< HEAD
 import AdminComingSoon from "./pages/admin/AdminComingSoon";
 import ProductDiagnostic from "./pages/admin/ProductDiagnostic";
 // import SoftwareRoadmap from "./pages/admin/SoftwareRoadmap";

@@ -469,7 +469,6 @@ export default function AddProduct() {
     setVideoFile(null);
   };
 
-<<<<<<< HEAD
   useEffect(() => {
     if (!videoFile) {
       setVideoPreviewUrl(null);
