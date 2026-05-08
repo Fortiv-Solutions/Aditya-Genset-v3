@@ -3,32 +3,7 @@ import { useState } from "react";
 import { useInView } from "@/hooks/useInView";
 import { EditableText } from "@/components/cms/EditableText";
 
-const CLIENTS = [
-  {
-    name: "Amazon India",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
-  },
-  {
-    name: "Indian Railways",
-    logo: "https://upload.wikimedia.org/wikipedia/en/thumb/4/45/Indian_Railways_Logo.svg/500px-Indian_Railways_Logo.svg.png",
-  },
-  {
-    name: "Indian Army",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/5/54/Emblem_of_the_Indian_Army.svg/300px-Emblem_of_the_Indian_Army.svg.png",
-  },
-  {
-    name: "Tata Group",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/8/8e/Tata_logo.svg/500px-Tata_logo.svg.png",
-  },
-  {
-    name: "Adani Group",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e4/Adani_Logo.svg/500px-Adani_Logo.svg.png",
-  },
-  {
-    name: "Larsen & Toubro",
-    logo: "https://upload.wikimedia.org/wikipedia/commons/thumb/e/e5/L%26T_logo.svg/500px-L%26T_logo.svg.png",
-  },
-];
+import { useCMSState } from "@/components/cms/CMSEditorProvider";
 
 function ClientLogo({ name, logo }: { name: string; logo: string }) {
   const [hasError, setHasError] = useState(false);
@@ -70,6 +45,9 @@ function ClientLogo({ name, logo }: { name: string; logo: string }) {
 }
 
 export function HappyCustomers({ id }: { id?: string }) {
+  const { content } = useCMSState();
+  const clients = content.happyCustomers?.clients || [];
+
   return (
     <section id={id} className="relative flex min-h-screen snap-center flex-col justify-center overflow-hidden bg-white pt-16 md:pt-0">
       <div className="container-x">
@@ -86,7 +64,7 @@ export function HappyCustomers({ id }: { id?: string }) {
       {/* Marquee */}
       <div className="mt-14 overflow-hidden border-y border-border bg-secondary/30 py-10">
         <div className="flex w-max animate-marquee items-center gap-32 pr-32 hover:[animation-play-state:paused]">
-          {[...CLIENTS, ...CLIENTS, ...CLIENTS].map((client, i) => (
+          {[...clients, ...clients, ...clients].map((client: any, i) => (
             <div key={i} className="group flex items-center justify-center">
               <ClientLogo name={client.name} logo={client.logo} />
             </div>

@@ -197,11 +197,13 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
                 <>
                   {/* Chapter title block — uses the space above the image */}
                   <div className="transition-all duration-500 ease-brand pt-2 pb-5">
-                    <div className="font-display text-[10px] uppercase tracking-[0.45em] text-accent mb-1.5">
-                      {product.sections[active]?.number} / {product.sections[active]?.id}
+                    <div className="font-display text-[10px] uppercase tracking-[0.45em] text-accent mb-1.5 flex items-center">
+                      <EditableText section={sectionId as any} contentKey={`chapter_${active}_number`} fallback={product.sections[active]?.number} as="span" />
+                      <span className="mx-2">/</span>
+                      <EditableText section={sectionId as any} contentKey={`chapter_${active}_id`} fallback={product.sections[active]?.id} as="span" />
                     </div>
                     <h2 className="font-display text-3xl font-semibold leading-tight md:text-4xl">
-                      {product.sections[active]?.title}
+                      <EditableText section={sectionId as any} contentKey={`chapter_${active}_title`} fallback={product.sections[active]?.title} as="span" />
                     </h2>
                     {/* Decorative rule */}
                     <div className="mt-4 flex items-center gap-3">

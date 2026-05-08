@@ -146,7 +146,7 @@ export default function ProductDetail() {
             onClick={() => navigate(-1)}
             className="pointer-events-auto inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors story-link mt-1"
           >
-            <ArrowLeft size={12} /> Back to category
+            <ArrowLeft size={12} /> <EditableText section={sectionKey} contentKey="backLabel" as="span" override={isFallback ? "Back to category" : undefined} />
           </button>
 
           <div className="flex items-center gap-3 mt-3">
@@ -164,7 +164,7 @@ export default function ProductDetail() {
               }`}
             >
               <BarChart2 size={15} className="shrink-0" />
-              {activeProduct.id && isInCompare(activeProduct.id) ? "In Compare" : "Compare"}
+              <EditableText section={sectionKey} contentKey={activeProduct.id && isInCompare(activeProduct.id) ? "compareActiveLabel" : "compareLabel"} as="span" override={isFallback ? (activeProduct.id && isInCompare(activeProduct.id) ? "In Compare" : "Compare") : undefined} />
             </button>
 
             <button

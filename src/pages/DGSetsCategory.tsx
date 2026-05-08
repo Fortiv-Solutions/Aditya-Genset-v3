@@ -152,7 +152,7 @@ export default function DGSetsCategory() {
                 className="group flex items-center gap-2 text-muted-foreground hover:text-accent transition-colors text-xs font-bold uppercase tracking-widest flex-shrink-0 mt-1"
               >
                 <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-                Back to Category
+                <EditableText section="dgSetsCategory" contentKey="backBtn" />
               </button>
             </div>
           </div>
@@ -163,7 +163,7 @@ export default function DGSetsCategory() {
               {/* Engine Family Filter */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  Engine Family
+                  <EditableText section="dgSetsCategory" contentKey="filterEngineLabel" />
                 </label>
                 <select
                   value={selectedEngine}
@@ -179,7 +179,7 @@ export default function DGSetsCategory() {
               {/* kVA Range Filter */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  kVA Range
+                  <EditableText section="dgSetsCategory" contentKey="filterKvaLabel" />
                 </label>
                 <select
                   value={selectedKvaRange.label}
@@ -200,7 +200,7 @@ export default function DGSetsCategory() {
               {/* Application Filter */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  Application
+                  <EditableText section="dgSetsCategory" contentKey="filterAppLabel" />
                 </label>
                 <select
                   value={selectedApplication}
@@ -218,13 +218,13 @@ export default function DGSetsCategory() {
               {/* Search Bar */}
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-1.5">
-                  Search
+                  <EditableText section="dgSetsCategory" contentKey="filterSearchLabel" />
                 </label>
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={16} />
                   <input
                     type="text"
-                    placeholder="Search models, specs, KVA..."
+                    placeholder={content.dgSetsCategory?.searchPlaceholder || "Search models, specs, KVA..."}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full pl-10 pr-3 py-2 text-sm bg-gray-50 border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent transition-colors"
@@ -313,22 +313,28 @@ export default function DGSetsCategory() {
                             {set.kva}
                           </div>
                           <div className="text-xs text-muted-foreground uppercase tracking-wider mt-0.5">
-                            kVA
+                            <EditableText section="dgSetsCategory" contentKey="cardKvaLabel" fallback="kVA" />
                           </div>
                         </div>
                       </div>
 
                       <div className="space-y-2 mb-4 text-sm">
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Engine</span>
+                          <span className="text-muted-foreground">
+                            <EditableText section="dgSetsCategory" contentKey="cardEngineLabel" />
+                          </span>
                           <span className="font-semibold">{set.engine}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Fuel</span>
+                          <span className="text-muted-foreground">
+                            <EditableText section="dgSetsCategory" contentKey="cardFuelLabel" />
+                          </span>
                           <span className="font-semibold">{set.fuel}</span>
                         </div>
                         <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Noise</span>
+                          <span className="text-muted-foreground">
+                            <EditableText section="dgSetsCategory" contentKey="cardNoiseLabel" />
+                          </span>
                           <span className="font-semibold">{set.noise}</span>
                         </div>
                       </div>
@@ -344,7 +350,7 @@ export default function DGSetsCategory() {
                       <button
                         className="w-full flex items-center justify-center gap-2.5 py-2.5 bg-gray-50 hover:bg-accent hover:text-foreground rounded-lg text-base font-semibold transition-colors group/btn border border-border hover:border-accent"
                       >
-                        Explore Story
+                        <EditableText section="dgSetsCategory" contentKey="ctaExplore" />
                         <ArrowRight size={16} className="transition-transform group-hover/btn:translate-x-1" />
                       </button>
                     </div>
@@ -361,8 +367,12 @@ export default function DGSetsCategory() {
               <div className="text-muted-foreground mb-2">
                 <Zap size={32} className="mx-auto opacity-20" />
               </div>
-              <h3 className="text-sm font-bold text-muted-foreground mb-1">No products found</h3>
-              <p className="text-xs text-muted-foreground">Try adjusting your filters or search query.</p>
+              <h3 className="text-sm font-bold text-muted-foreground mb-1">
+                <EditableText section="dgSetsCategory" contentKey="noResultsTitle" />
+              </h3>
+              <p className="text-xs text-muted-foreground">
+                <EditableText section="dgSetsCategory" contentKey="noResultsSubtitle" />
+              </p>
             </div>
           )}
         </div>

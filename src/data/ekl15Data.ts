@@ -13,6 +13,7 @@ export interface EKL15ChapterData {
   specs?: { label: string; value: string }[];
   features?: string[];
   badges?: string[];
+  tagline?: string;
   description?: string;
   aboutSpecs?: { label: string; value: string }[];
 

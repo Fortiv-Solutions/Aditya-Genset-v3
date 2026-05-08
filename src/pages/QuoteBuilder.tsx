@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import gensetFallback from "@/assets/products/showcase/main-view.png";
+import { EditableText } from "@/components/cms/EditableText";
 
 interface QuoteItem {
   id: string;
@@ -772,10 +773,10 @@ export default function QuoteBuilder() {
               </button>
               <h1 className="text-3xl font-bold font-display flex items-center gap-3">
                 <Calculator className="text-accent" size={32} />
-                Quote Builder
+                <EditableText section="quoteBuilderPage" contentKey="title" />
               </h1>
               <p className="text-muted-foreground mt-2">
-                Create professional quotes for your customers
+                <EditableText section="quoteBuilderPage" contentKey="subtitle" />
               </p>
             </div>
           </div>
@@ -786,8 +787,8 @@ export default function QuoteBuilder() {
               {/* Customer Information */}
               <Card>
                 <CardHeader>
-                  <CardTitle>Customer Information</CardTitle>
-                  <CardDescription>Enter customer details for the quote</CardDescription>
+                  <CardTitle><EditableText section="quoteBuilderPage" contentKey="step2Title" /></CardTitle>
+                  <CardDescription><EditableText section="quoteBuilderPage" contentKey="step2Desc" /></CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

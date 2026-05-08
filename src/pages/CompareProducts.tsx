@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import gensetFallback from "@/assets/products/showcase/main-view.png";
 import { cn } from "@/lib/utils";
+import { EditableText } from "@/components/cms/EditableText";
 import {
   Table,
   TableBody,
@@ -294,47 +295,46 @@ export default function CompareProducts() {
             <BarChart2 className="text-accent" size={40} />
           </div>
           <h1 className="text-3xl font-bold mb-4 font-display">
-            Start Comparing Products
+            <EditableText section="comparePage" contentKey="emptyTitle" />
           </h1>
           <p className="text-muted-foreground mb-8 leading-relaxed">
-            Select products from our catalog to see detailed side-by-side comparisons. 
-            Compare specifications, features, and find the perfect genset for your needs.
+            <EditableText section="comparePage" contentKey="emptySubtitle" />
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Button 
               onClick={() => navigate("/products/dg-sets")}
               className="bg-accent hover:bg-accent/90"
             >
-              Browse Products
+              <EditableText section="comparePage" contentKey="browseBtn" />
             </Button>
             <Button 
               variant="outline"
               onClick={() => navigate("/")}
             >
-              Back to Home
+              <EditableText section="comparePage" contentKey="backBtn" />
             </Button>
           </div>
           
           <div className="mt-12 p-6 bg-gray-50 rounded-xl text-left">
             <h3 className="font-bold mb-3 text-sm uppercase tracking-wider text-accent">
-              How to Compare
+              <EditableText section="comparePage" contentKey="howToTitle" />
             </h3>
             <ol className="space-y-2 text-sm text-muted-foreground">
               <li className="flex gap-3">
                 <span className="font-bold text-accent">1.</span>
-                <span>Browse the product catalog</span>
+                <span><EditableText section="comparePage" contentKey="howToStep1" /></span>
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-accent">2.</span>
-                <span>Check the "Compare" box on products you're interested in</span>
+                <span><EditableText section="comparePage" contentKey="howToStep2" /></span>
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-accent">3.</span>
-                <span>Click "Compare Now" to see detailed comparisons</span>
+                <span><EditableText section="comparePage" contentKey="howToStep3" /></span>
               </li>
               <li className="flex gap-3">
                 <span className="font-bold text-accent">4.</span>
-                <span>Export, print, or create a quote from your comparison</span>
+                <span><EditableText section="comparePage" contentKey="howToStep4" /></span>
               </li>
             </ol>
           </div>
@@ -381,9 +381,11 @@ export default function CompareProducts() {
                 <ArrowLeft size={16} />
                 Back
               </button>
-              <h1 className="text-3xl font-bold font-display">Compare Products</h1>
+              <h1 className="text-3xl font-bold font-display">
+                <EditableText section="comparePage" contentKey="title" />
+              </h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Side-by-side comparison of {products.length} products
+                <EditableText section="comparePage" contentKey="subtitle" />
               </p>
             </div>
             <div className="flex gap-2 flex-wrap">
@@ -391,7 +393,7 @@ export default function CompareProducts() {
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" className="gap-2">
                     <Download size={16} />
-                    Export
+                    <EditableText section="comparePage" contentKey="exportBtn" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
@@ -407,14 +409,14 @@ export default function CompareProducts() {
               </DropdownMenu>
               <Button variant="outline" onClick={printComparison} className="gap-2">
                 <Printer size={16} />
-                Print
+                <EditableText section="comparePage" contentKey="printBtn" />
               </Button>
               <Button variant="outline" onClick={shareComparison} className="gap-2">
                 <Share2 size={16} />
-                Share
+                <EditableText section="comparePage" contentKey="shareBtn" />
               </Button>
               <Button variant="outline" onClick={clearCompare} className="text-red-500 hover:text-red-600 hover:bg-red-50">
-                Clear All
+                <EditableText section="comparePage" contentKey="clearAllBtn" />
               </Button>
             </div>
           </div>
@@ -564,7 +566,7 @@ export default function CompareProducts() {
             <div className="mt-8 p-6 bg-gradient-to-r from-accent/10 to-accent/5 rounded-2xl border border-accent/20">
               <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
                 <BarChart2 className="text-accent" size={20} />
-                Comparison Insights
+                <EditableText section="comparePage" contentKey="insightsTitle" />
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {generateInsights(products).map((insight, idx) => {
@@ -592,28 +594,40 @@ export default function CompareProducts() {
 
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
              <div className="p-6 bg-white rounded-2xl border border-border shadow-sm">
-                <h4 className="font-bold mb-2">Create a Quote</h4>
-                <p className="text-sm text-muted-foreground mb-4">Generate a professional quote with pricing for these products.</p>
+                <h4 className="font-bold mb-2">
+                  <EditableText section="comparePage" contentKey="createQuoteTitle" />
+                </h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  <EditableText section="comparePage" contentKey="createQuoteDesc" />
+                </p>
                 <Button 
                   variant="default" 
                   className="w-full bg-accent hover:bg-accent/90" 
                   onClick={() => navigate('/quote-builder')}
                 >
-                  Build Quote
+                  <EditableText section="comparePage" contentKey="createQuoteBtn" />
                 </Button>
              </div>
              <div className="p-6 bg-white rounded-2xl border border-border shadow-sm">
-                <h4 className="font-bold mb-2">Need Expert Advice?</h4>
-                <p className="text-sm text-muted-foreground mb-4">Our engineers can help you choose the right genset for your specific load requirements.</p>
+                <h4 className="font-bold mb-2">
+                  <EditableText section="comparePage" contentKey="expertAdviceTitle" />
+                </h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  <EditableText section="comparePage" contentKey="expertAdviceDesc" />
+                </p>
                 <Button variant="link" className="p-0 text-accent font-bold" onClick={() => navigate('/')}>
-                  Contact Sales Support
+                  <EditableText section="comparePage" contentKey="expertAdviceBtn" />
                 </Button>
              </div>
              <div className="p-6 bg-white rounded-2xl border border-border shadow-sm">
-                <h4 className="font-bold mb-2">Download Brochures</h4>
-                <p className="text-sm text-muted-foreground mb-4">Get detailed technical data sheets and installation guides for these models.</p>
+                <h4 className="font-bold mb-2">
+                  <EditableText section="comparePage" contentKey="downloadTitle" />
+                </h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  <EditableText section="comparePage" contentKey="downloadDesc" />
+                </p>
                 <Button variant="link" className="p-0 text-accent font-bold">
-                  Download All Selected
+                  <EditableText section="comparePage" contentKey="downloadBtn" />
                 </Button>
              </div>
           </div>
