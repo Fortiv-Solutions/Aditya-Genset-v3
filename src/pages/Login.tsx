@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { ArrowRight, Lock, Mail, ShieldCheck, UserCheck } from "lucide-react";
+import { ArrowRight, Eye, EyeOff, Lock, Mail, ShieldCheck, UserCheck } from "lucide-react";
 import { SEO } from "@/components/site/SEO";
 import { toast } from "sonner";
 import factoryHero from "@/assets/products/showcase/factory.jpg";
@@ -34,6 +34,7 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loginRole, setLoginRole] = useState<LoginRole>("sales_executive");
 
   const [isLoading, setIsLoading] = useState(false);
@@ -48,6 +49,37 @@ export default function Login() {
 
     if (error) throw error;
     return (data?.role as AppRole | undefined) ?? null;
+  };
+
+  const recordLoginAudit = async (userId: string, role: AppRole, loginType: LoginRole) => {
+    const metadata = {
+      email: email.trim().toLowerCase(),
+      role,
+      login_type: loginType,
+      user_agent: window.navigator.userAgent,
+      timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      recorded_at: new Date().toISOString(),
+    };
+
+    const { error: insertError } = await supabase.from("audit_log").insert({
+      actor_user_id: userId,
+      action_type: "login_success",
+      entity_type: "auth_session",
+      description: `Successful ${role} login`,
+      metadata,
+    });
+
+    if (!insertError) return;
+
+    console.warn("Login audit direct insert unavailable, falling back to RPC:", insertError);
+
+    const { error: rpcError } = await supabase.rpc("record_login_audit", {
+      event_metadata: metadata,
+    });
+
+    if (rpcError) {
+      console.warn("Login audit was not recorded:", rpcError);
+    }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -87,6 +119,7 @@ export default function Login() {
         console.log("Redirecting to:", redirectPath, "with role:", profileRole);
 
         localStorage.setItem("userEmail", data.user.email || email);
+        await recordLoginAudit(data.user.id, profileRole, loginRole);
         toast.success("Login successful! Redirecting...");
         
         navigate(redirectPath, { replace: true });
@@ -202,13 +235,21 @@ export default function Login() {
                   <Lock size={16} />
                 </div>
                 <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full pl-11 pr-4 py-3.5 bg-black/20 border border-white/10 rounded-sm text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all shadow-inner"
+                  className="w-full pl-11 pr-12 py-3.5 bg-black/20 border border-white/10 rounded-sm text-sm text-white placeholder:text-white/20 focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all shadow-inner"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((value) => !value)}
+                  className="absolute inset-y-0 right-0 flex items-center pr-4 text-white/45 transition-colors hover:text-accent focus:outline-none focus:text-accent"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
               </div>
             </div>
 

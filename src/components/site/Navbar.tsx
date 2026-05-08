@@ -17,11 +17,29 @@ const links = [
 export function Navbar() {
   const [open, setOpen] = useState(false);
   const [isPresentMode, setIsPresentMode] = useState(false);
+  const [pendingPresentMode, setPendingPresentMode] = useState(false);
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { selectedIds } = useCompare();
   const { user, profile, signOut } = useAuth();
   const accountLabel = profile?.full_name || user?.email || "Account";
+
+  const startPresentMode = () => {
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    setIsPresentMode(true);
+  };
+
+  const handlePresentMode = () => {
+    setOpen(false);
+
+    if (pathname !== "/") {
+      setPendingPresentMode(true);
+      navigate("/");
+      return;
+    }
+
+    startPresentMode();
+  };
 
   const handleLogout = async () => {
     await signOut();
@@ -43,6 +61,22 @@ export function Navbar() {
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (!pendingPresentMode || pathname !== "/") return;
+
+    const frame = window.requestAnimationFrame(() => {
+      startPresentMode();
+      setPendingPresentMode(false);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [pathname, pendingPresentMode]);
+
+  useEffect(() => {
+    document.body.classList.toggle("present-mode", isPresentMode);
+    return () => document.body.classList.remove("present-mode");
+  }, [isPresentMode]);
 
   // Listen for ESC key to exit present mode
   useEffect(() => {
@@ -114,10 +148,7 @@ export function Navbar() {
 
             {/* Mobile Present Mode Button */}
             <button
-              onClick={() => {
-                setIsPresentMode(true);
-                setOpen(false);
-              }}
+              onClick={handlePresentMode}
               className="mt-2 flex items-center gap-3 rounded-full px-5 py-3.5 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/80 hover:text-foreground"
             >
               <Monitor size={18} />
@@ -170,7 +201,7 @@ export function Navbar() {
           )}
         >
           <button
-            onClick={() => setIsPresentMode(true)}
+            onClick={handlePresentMode}
             className={cn(
               "relative flex h-10 w-full items-center rounded-[20px] text-[13px] font-bold transition-all duration-300",
               "text-muted-foreground hover:bg-brand-navy hover:text-white hover:shadow-md hover:scale-[1.02]",

@@ -56,6 +56,7 @@ export async function fetchPublishedProducts() {
       type: 'silent' as const,
       product_media: p.thumbnail ? [{ 
         public_url: p.thumbnail, 
+        url: p.thumbnail,
         kind: 'primary',
         id: `media-${p.slug}`,
         product_id: p.slug,

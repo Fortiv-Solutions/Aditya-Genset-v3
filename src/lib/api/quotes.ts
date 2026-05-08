@@ -7,6 +7,7 @@ import type { Quote, QuoteItem } from '../supabase'
 export async function createQuote(quoteData: {
   lead_id?: string
   created_by_user_id?: string
+  quote_number?: string
   currency?: string
   total_amount: number
   payload: any
@@ -30,7 +31,7 @@ export async function createQuote(quoteData: {
  * Create quote items
  */
 export async function createQuoteItems(quoteId: string, items: Array<{
-  product_id: string
+  product_id: string | null
   quantity: number
   unit_price: number
   line_total: number

@@ -24,6 +24,7 @@ interface AdminUser {
   role: AppRole;
   status: "active" | "inactive";
   lastLogin: string;
+  auditDetails: string[];
   initials: string;
   color: string;
 }
@@ -34,9 +35,13 @@ interface AdminUsersFunctionUser {
   fullName: string;
   phone: string;
   role: AppRole;
-  updatedAt: string | null;
+  profileCreatedAt: string | null;
+  profileUpdatedAt: string | null;
   lastSignInAt: string | null;
+  authCreatedAt: string | null;
+  authUpdatedAt: string | null;
   bannedUntil: string | null;
+  confirmedAt: string | null;
 }
 
 interface AdminUsersFunctionResponse {
@@ -51,6 +56,16 @@ interface ProfileRow {
   phone: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+}
+
+interface AuditLogRow {
+  id: string;
+  actor_user_id: string | null;
+  action_type: string;
+  entity_type: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
 }
 
 const ROLES: Array<{
@@ -142,8 +157,23 @@ function getInitials(name: string, email: string) {
     .join("");
 }
 
+function formatDateTime(value: string | null | undefined) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+
+  return new Intl.DateTimeFormat("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 function mapUser(user: AdminUsersFunctionUser): AdminUser {
   const banned = user.bannedUntil ? new Date(user.bannedUntil).getTime() > Date.now() : false;
+  const lastLogin = formatDateTime(user.lastSignInAt);
+  const authCreatedAt = formatDateTime(user.authCreatedAt);
+  const authUpdatedAt = formatDateTime(user.authUpdatedAt || user.profileUpdatedAt);
+  const confirmedAt = formatDateTime(user.confirmedAt);
 
   return {
     id: user.id,
@@ -152,7 +182,12 @@ function mapUser(user: AdminUsersFunctionUser): AdminUser {
     phone: user.phone || "",
     role: user.role || "Sales Executive",
     status: banned ? "inactive" : "active",
-    lastLogin: user.lastSignInAt ? new Date(user.lastSignInAt).toLocaleString() : "Never",
+    lastLogin: lastLogin || "Never logged in",
+    auditDetails: [
+      authCreatedAt ? `Created: ${authCreatedAt}` : "Created: unavailable",
+      confirmedAt ? `Confirmed: ${confirmedAt}` : "Confirmed: unavailable",
+      authUpdatedAt ? `Auth updated: ${authUpdatedAt}` : "Auth updated: unavailable",
+    ],
     initials: getInitials(user.fullName, user.email),
     color: "bg-accent/20 text-accent",
   };
@@ -160,6 +195,7 @@ function mapUser(user: AdminUsersFunctionUser): AdminUser {
 
 function mapProfile(profile: ProfileRow): AdminUser {
   const fullName = profile.full_name || "Unnamed User";
+  const profileUpdatedAt = formatDateTime(profile.updated_at);
 
   return {
     id: profile.user_id,
@@ -169,14 +205,70 @@ function mapProfile(profile: ProfileRow): AdminUser {
     role: profile.role || "Sales Executive",
     status: "active",
     lastLogin: "Auth details unavailable",
+    auditDetails: [
+      "Auth audit unavailable",
+      profileUpdatedAt ? `Profile updated: ${profileUpdatedAt}` : "Profile updated: unavailable",
+    ],
     initials: getInitials(fullName, ""),
     color: "bg-accent/20 text-accent",
   };
 }
 
+function getLoginAuditDetails(audits: AuditLogRow[]) {
+  const lastLoginAudit = audits.find((audit) => audit.action_type === "login_success");
+  const latestAudit = audits[0];
+  const lastLogin = formatDateTime(lastLoginAudit?.created_at);
+  const latestAuditAt = formatDateTime(latestAudit?.created_at);
+  const loginCount = audits.filter((audit) => audit.action_type === "login_success").length;
+  const lastUserAgent =
+    typeof lastLoginAudit?.metadata?.user_agent === "string"
+      ? lastLoginAudit.metadata.user_agent
+      : null;
+
+  return {
+    lastLogin,
+    details: [
+      `Recorded logins: ${loginCount}`,
+      latestAuditAt ? `Latest audit: ${latestAuditAt}` : "Latest audit: unavailable",
+      lastUserAgent ? `Device: ${lastUserAgent.slice(0, 72)}${lastUserAgent.length > 72 ? "..." : ""}` : "Device: unavailable",
+    ],
+  };
+}
+
+function attachAuditDetails(users: AdminUser[], audits: AuditLogRow[]) {
+  const auditsByUser = new Map<string, AuditLogRow[]>();
+
+  audits.forEach((audit) => {
+    if (!audit.actor_user_id) return;
+    const current = auditsByUser.get(audit.actor_user_id) ?? [];
+    current.push(audit);
+    auditsByUser.set(audit.actor_user_id, current);
+  });
+
+  return users.map((user) => {
+    const userAudits = auditsByUser.get(user.id) ?? [];
+    if (userAudits.length === 0) return user;
+
+    const loginAudit = getLoginAuditDetails(userAudits);
+
+    return {
+      ...user,
+      lastLogin:
+        user.lastLogin === "Auth details unavailable" || user.lastLogin === "Never logged in"
+          ? loginAudit.lastLogin || user.lastLogin
+          : user.lastLogin,
+      auditDetails: [
+        ...user.auditDetails.filter((detail) => !detail.includes("unavailable")),
+        ...loginAudit.details,
+      ],
+    };
+  });
+}
+
 export default function AdminUsers() {
   const { profile } = useAuth();
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [loginAudits, setLoginAudits] = useState<AuditLogRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [activeTab, setActiveTab] = useState<"users" | "roles" | "matrix" | "activity">("users");
@@ -185,9 +277,28 @@ export default function AdminUsers() {
   const [edgeFunctionAvailable, setEdgeFunctionAvailable] = useState(true);
   const canCreateUsers = profile?.role === "Super Admin";
 
+  const fetchLoginAudits = async () => {
+    const { data, error } = await supabase
+      .from("audit_log")
+      .select("id, actor_user_id, action_type, entity_type, description, metadata, created_at")
+      .in("action_type", ["login_success", "logout"])
+      .order("created_at", { ascending: false })
+      .limit(200);
+
+    if (error) {
+      console.warn("Login audit details unavailable:", error);
+      return [] as AuditLogRow[];
+    }
+
+    return (data ?? []) as AuditLogRow[];
+  };
+
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
+      const audits = await fetchLoginAudits();
+      setLoginAudits(audits);
+
       const { data, error } = await supabase.functions.invoke<AdminUsersFunctionResponse>("admin-users", {
         body: { action: "list" },
       });
@@ -196,10 +307,13 @@ export default function AdminUsers() {
       if (data?.error) throw new Error(data.error);
 
       setEdgeFunctionAvailable(true);
-      setUsers((data?.users ?? []).map(mapUser));
+      setUsers(attachAuditDetails((data?.users ?? []).map(mapUser), audits));
     } catch (error) {
       console.warn("admin-users Edge Function unavailable, falling back to profiles table:", error);
       setEdgeFunctionAvailable(false);
+
+      const audits = await fetchLoginAudits();
+      setLoginAudits(audits);
 
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
@@ -213,8 +327,8 @@ export default function AdminUsers() {
         return;
       }
 
-      setUsers(((profiles ?? []) as ProfileRow[]).map(mapProfile));
-      toast.warning("Showing profile data only. Deploy the admin-users Edge Function for emails and auth status.");
+      setUsers(attachAuditDetails(((profiles ?? []) as ProfileRow[]).map(mapProfile), audits));
+      toast.warning("Showing profile and app login audit data. Deploy the admin-users Edge Function for Supabase Auth metadata.");
     } finally {
       setLoading(false);
     }
@@ -453,7 +567,7 @@ export default function AdminUsers() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-border bg-secondary">
-                  {["User", "Role", "Status", "Last Login", "2FA"].map((heading) => (
+                  {["User", "Role", "Status", "Last Login", "Audit Details"].map((heading) => (
                     <th key={heading} className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {heading}
                     </th>
@@ -504,13 +618,11 @@ export default function AdminUsers() {
                       </td>
                       <td className="px-5 py-4 text-xs text-muted-foreground">{user.lastLogin}</td>
                       <td className="px-5 py-4">
-                        {["Super Admin", "Admin"].includes(user.role) ? (
-                          <span className="flex items-center gap-1 text-xs text-green-400">
-                            <Lock size={11} /> Enabled
-                          </span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">-</span>
-                        )}
+                        <div className="space-y-1 text-xs text-muted-foreground">
+                          {user.auditDetails.map((detail) => (
+                            <p key={detail}>{detail}</p>
+                          ))}
+                        </div>
                       </td>
                     </tr>
                   );
@@ -582,10 +694,59 @@ export default function AdminUsers() {
       )}
 
       {activeTab === "activity" && (
-        <div className="bg-card shadow-sm border border-border rounded-xl divide-y divide-border">
-          <div className="p-10 text-center text-muted-foreground italic text-sm">
-            No recent activity recorded.
-          </div>
+        <div className="bg-card shadow-sm border border-border rounded-xl overflow-hidden">
+          {loginAudits.length === 0 ? (
+            <div className="p-10 text-center text-muted-foreground italic text-sm">
+              No login audit events recorded yet. New successful app logins will appear here after the audit policy is applied.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-secondary">
+                    {["Time", "User", "Action", "Details"].map((heading) => (
+                      <th key={heading} className="px-5 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                        {heading}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {loginAudits.map((audit) => {
+                    const user = users.find((item) => item.id === audit.actor_user_id);
+                    const metadata = audit.metadata ?? {};
+                    const email = typeof metadata.email === "string" ? metadata.email : user?.email || "Unknown user";
+                    const role = typeof metadata.role === "string" ? metadata.role : user?.role || "Unknown role";
+                    const timezone = typeof metadata.timezone === "string" ? metadata.timezone : "Timezone unavailable";
+                    const userAgent = typeof metadata.user_agent === "string" ? metadata.user_agent : "Device unavailable";
+
+                    return (
+                      <tr key={audit.id} className="hover:bg-secondary transition-colors">
+                        <td className="px-5 py-4 text-xs text-muted-foreground whitespace-nowrap">
+                          {formatDateTime(audit.created_at) || audit.created_at}
+                        </td>
+                        <td className="px-5 py-4">
+                          <p className="font-medium text-foreground">{user?.name || email}</p>
+                          <p className="text-xs text-muted-foreground">{email}</p>
+                        </td>
+                        <td className="px-5 py-4">
+                          <span className="px-2.5 py-1 rounded-md text-[10px] font-bold border bg-green-50 text-green-700 border-green-200">
+                            {audit.action_type === "login_success" ? "Login Success" : audit.action_type}
+                          </span>
+                        </td>
+                        <td className="px-5 py-4 text-xs text-muted-foreground">
+                          <p>{audit.description || "Audit event recorded"}</p>
+                          <p>Role: {role}</p>
+                          <p>Timezone: {timezone}</p>
+                          <p className="max-w-xl truncate">Device: {userAgent}</p>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       )}
     </div>
