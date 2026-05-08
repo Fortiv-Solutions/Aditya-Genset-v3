@@ -553,6 +553,47 @@ export default function CompareProducts() {
                       </React.Fragment>
                     );
                   })}
+
+                  {/* Other Technical Details - Catch-all for specialized DB specs */}
+                  {(() => {
+                    const categorizedLabels = Object.values(SPEC_CATEGORIES).flat();
+                    const otherLabels = allSpecs.filter(label => !categorizedLabels.includes(label));
+                    
+                    if (otherLabels.length === 0) return null;
+                    
+                    return (
+                      <React.Fragment>
+                        <TableRow className="bg-gray-100/50">
+                          <TableCell colSpan={products.length + 1} className="font-bold text-sm uppercase tracking-wider text-accent">
+                            Technical Specifications
+                          </TableCell>
+                        </TableRow>
+                        {otherLabels.map((label) => {
+                          const { hasDifference } = analyzeSpecDifferences(products, label);
+                          return (
+                            <TableRow key={label}>
+                              <TableCell className="font-medium bg-gray-50/30 pl-6">{label}</TableCell>
+                              {products.map((p) => {
+                                const spec = p.product_specs?.find((s: any) => s.spec_label === label);
+                                return (
+                                  <TableCell 
+                                    key={p.id} 
+                                    className={cn("text-center", hasDifference && "font-semibold")}
+                                  >
+                                    {spec ? (
+                                      <span>{spec.spec_value}</span>
+                                    ) : (
+                                      <Minus className="mx-auto text-gray-300" size={16} />
+                                    )}
+                                  </TableCell>
+                                );
+                              })}
+                            </TableRow>
+                          );
+                        })}
+                      </React.Fragment>
+                    );
+                  })()}
                 </TableBody>
               </Table>
             </div>
@@ -589,45 +630,6 @@ export default function CompareProducts() {
             </div>
           )}
 
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8">
-             <div className="p-6 bg-white rounded-2xl border border-border shadow-sm">
-                <h4 className="font-bold mb-2">
-                  <EditableText section="comparePage" contentKey="createQuoteTitle" />
-                </h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  <EditableText section="comparePage" contentKey="createQuoteDesc" />
-                </p>
-                <Button 
-                  variant="default" 
-                  className="w-full bg-accent hover:bg-accent/90" 
-                  onClick={() => navigate('/quote-builder')}
-                >
-                  <EditableText section="comparePage" contentKey="createQuoteBtn" />
-                </Button>
-             </div>
-             <div className="p-6 bg-white rounded-2xl border border-border shadow-sm">
-                <h4 className="font-bold mb-2">
-                  <EditableText section="comparePage" contentKey="expertAdviceTitle" />
-                </h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  <EditableText section="comparePage" contentKey="expertAdviceDesc" />
-                </p>
-                <Button variant="link" className="p-0 text-accent font-bold" onClick={() => navigate('/')}>
-                  <EditableText section="comparePage" contentKey="expertAdviceBtn" />
-                </Button>
-             </div>
-             <div className="p-6 bg-white rounded-2xl border border-border shadow-sm">
-                <h4 className="font-bold mb-2">
-                  <EditableText section="comparePage" contentKey="downloadTitle" />
-                </h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  <EditableText section="comparePage" contentKey="downloadDesc" />
-                </p>
-                <Button variant="link" className="p-0 text-accent font-bold">
-                  <EditableText section="comparePage" contentKey="downloadBtn" />
-                </Button>
-             </div>
-          </div>
         </div>
       </div>
     </>

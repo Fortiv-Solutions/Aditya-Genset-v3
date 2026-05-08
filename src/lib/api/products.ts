@@ -23,139 +23,84 @@ export async function fetchPublishedProducts() {
     throw error
   }
 
-  console.log('✅ Raw data from Supabase:', data)
-  console.log(`📊 Found ${data?.length || 0} products`)
-
   // Transform the data to match the expected format
   const transformedData = (data || []).map(product => ({
     ...product,
     product_media: product.product_media?.map((media: any) => ({
       ...media,
-      url: media.public_url, // Map public_url to url for compatibility
+      url: media.public_url,
     })),
     product_specs: product.product_specs?.map((spec: any) => ({
       ...spec,
-      label: spec.spec_label, // Map spec_label to label
-      value: spec.spec_value, // Map spec_value to value
+      label: spec.spec_label,
+      value: spec.spec_value,
     })),
   }))
 
-  console.log('✅ Transformed data:', transformedData)
+  // Merge with static PRODUCTS
+  const staticProducts = PRODUCTS.map(p => ({
+    id: p.slug,
+    slug: p.slug,
+    name: p.name,
+    kva: p.kva,
+    engine_brand: (p.name.toLowerCase().includes('escort') || p.name.toLowerCase().includes('ekl')) ? 'Escorts' : 'Baudouin',
+    status: 'published' as const,
+    product_media: p.thumbnail ? [{ public_url: p.thumbnail, kind: 'primary' }] : [],
+    product_specs: [
+      { spec_label: 'Power Output', spec_value: `${p.kva} kVA` },
+      ...Object.entries(p.specs || {}).map(([label, value]) => ({
+        spec_label: label,
+        spec_value: value,
+      }))
+    ]
+  }));
 
-  // Merge with static PRODUCTS for global availability (Selection page, Quote builder, etc.)
-  // We prefer static products for slugs like 'ekl-15-2cyl' and 'ekl-20-3cyl' if the DB entry 
-  // is incomplete (e.g. has "Variable" fuel)
-  const staticProducts = PRODUCTS
-    .filter(p => {
-      const dbEntry = (transformedData || []).find(db => db.slug === p.slug);
-      if (!dbEntry) return true;
-      
-      const fuelSpec = dbEntry.product_specs?.find((s: any) => 
-        String(s.label || "").toLowerCase().includes('fuel') || 
-        String(s.spec_label || "").toLowerCase().includes('fuel')
-      )?.value || '';
-      
-      return String(fuelSpec).toLowerCase().includes('variable');
-    })
-    .map(p => ({
-      id: p.slug,
-      slug: p.slug,
-      name: p.name,
-      model: p.name,
-      kva: p.kva,
-      engine_brand: (p.name.toLowerCase().includes('escort') || p.name.toLowerCase().includes('ekl')) ? 'Escorts' : 'Baudouin',
-      status: 'published' as const,
-      type: 'silent' as const,
-      product_media: p.thumbnail ? [{ 
-        public_url: p.thumbnail, 
-        url: p.thumbnail,
-        kind: 'primary',
-        id: `media-${p.slug}`,
-        product_id: p.slug,
-        storage_path: null,
-        alt_text: p.name,
-        mime_type: 'image/jpeg',
-        display_order: 0,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }] : [],
-      product_specs: [
-        { id: `spec-kva-${p.slug}`, product_id: p.slug, spec_label: 'Power Output', spec_value: `${p.kva} kVA`, display_order: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), label: 'Power Output', value: `${p.kva} kVA` },
-        { id: `spec-engine-${p.slug}`, product_id: p.slug, spec_label: 'Engine', spec_value: (p.name.toLowerCase().includes('escort') || p.name.toLowerCase().includes('ekl')) ? 'Escorts' : 'Baudouin', display_order: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), label: 'Engine', value: (p.name.toLowerCase().includes('escort') || p.name.toLowerCase().includes('ekl')) ? 'Escorts' : 'Baudouin' },
-        ...Object.entries(p.specs || {}).map(([label, value], idx) => ({
-          id: `spec-static-${idx}-${p.slug}`,
-          product_id: p.slug,
-          spec_label: label,
-          spec_value: value,
-          display_order: idx + 2,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-          label: label,
-          value: value
-        }))
-      ]
-    }));
+  const allMerged = [...transformedData, ...staticProducts];
 
-  const mergedData = [...transformedData, ...staticProducts].filter(p => {
-    // 1. Exclude specific Baudouin 20kVA model requested for removal by user
-    const isBaudouin20kVA = Number(p.kva) === 20 && 
-      (String(p.engine_brand || "").toLowerCase().includes('baudouin') || 
-       String(p.name || "").toLowerCase().includes('baudouin'));
-    
-    if (isBaudouin20kVA) return false;
+  // 1. Initial filter to remove unwanted models
+  const filtered = allMerged.filter(p => {
+    // Exclude Baudouin 20kVA as requested
+    const isBaudouin20 = Number(p.kva) === 20 && String(p.name).toLowerCase().includes('baudouin');
+    if (isBaudouin20) return false;
 
-    // 2. Exclude any Escorts 20kVA entry that has "Variable" or NO fuel spec
-    // This ensures the high-fidelity static version is shown instead of incomplete DB entries
+    // Escorts 20kVA Logic
     const isEscorts20 = Number(p.kva) === 20 && 
-      (String(p.engine_brand || p.engineBrand || "").toLowerCase().includes('escort') || 
+      (String(p.engine_brand || "").toLowerCase().includes('escort') || 
        String(p.name || "").toLowerCase().includes('ekl'));
-    
+
     if (isEscorts20) {
-      const fuelSpec = p.product_specs?.find((s: any) => 
-        String(s.label || s.spec_label || "").toLowerCase().includes('fuel')
-      );
-      const fuelValue = String(fuelSpec?.value || fuelSpec?.spec_value || "").toLowerCase();
-      
       const appSpec = p.product_specs?.find((s: any) => 
         String(s.label || s.spec_label || "").toLowerCase().includes('application')
       );
       const appValue = String(appSpec?.value || appSpec?.spec_value || "");
-
-      // 1. Exclude if fuel is missing/variable
-      if (!fuelSpec || !fuelValue || fuelValue.includes('variable')) return false;
-
-      // 2. Exclude specifically the "Prime Power" version as requested by user
+      
+      // Specifically EXCLUDE the "Prime Power" version
       if (appValue === "Prime Power") return false;
+      
+      // Keep if it has a decent amount of data
+      if (p.product_specs && p.product_specs.length >= 5) return true;
+      
+      // Otherwise, only keep if it's the static fallback (which has exactly 5 specs usually)
+      return p.id === p.slug; // Static ones have id === slug
     }
 
     return true;
   });
 
-  // 3. Final deduplication and cleaning
-  const seenSlugs = new Set<string>();
-  const seenNames = new Set<string>();
-  
-  const finalProducts = mergedData.filter(p => {
-    const slug = (p.slug || "").toLowerCase();
-    const name = (p.name || "").toLowerCase();
+  // 2. Final deduplication - Keep the version with the MOST specs
+  const productMap = new Map<string, any>();
+  filtered.forEach(p => {
+    const key = String(p.name).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const existing = productMap.get(key);
     
-    if (!slug || !name) return false;
-
-    // Skip if we've seen this slug
-    if (seenSlugs.has(slug)) return false;
-    
-    // Check for near-duplicate names (e.g. "EKL20" vs "EKL20-IV")
-    const simplifiedName = name.replace(/[^a-z0-9]/g, '');
-    if (seenNames.has(simplifiedName)) return false;
-    
-    seenSlugs.add(slug);
-    seenNames.add(simplifiedName);
-    return true;
+    if (!existing || (p.product_specs?.length || 0) > (existing.product_specs?.length || 0)) {
+      productMap.set(key, p);
+    }
   });
 
-  console.log('📊 Final cleaned count:', finalProducts.length)
-
-  return finalProducts;
+  const finalResult = Array.from(productMap.values());
+  console.log('📊 Final products for comparison:', finalResult.length);
+  return finalResult;
 }
 
 /**

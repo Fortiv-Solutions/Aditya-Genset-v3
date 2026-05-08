@@ -10,6 +10,10 @@ import { ShowcaseProduct, getProductBySlug } from "@/data/products";
 import { useCompare } from "@/context/CompareContext";
 import { BarChart2 } from "lucide-react";
 
+// Import core showcase assets to ensure they are bundled correctly
+import escortVideo from "@/assets/products/showcase/product-video.mp4";
+import escortVideoThumb from "@/assets/products/showcase/main-view.png";
+
 // Height of the absolute header overlay in px — used to offset first chapter
 export const SHOWCASE_HEADER_H = 230;
 
@@ -55,8 +59,37 @@ export default function ProductDetail() {
             thumbnail: primaryImage, 
             hero: primaryImage, 
             sections: data.showcase?.sections || staticData?.sections || [],
-            hotspots: data.showcase?.hotspots || staticData?.hotspots || [],
+            hotspots: (data.showcase?.hotspots?.length >= 8) 
+              ? data.showcase.hotspots 
+              : (staticData?.hotspots || []),
           };
+
+          // Ensure Electrical section exists for consistency
+          if (!finalProduct.sections.find(s => s.id === "electrical")) {
+            const videoIdx = finalProduct.sections.findIndex(s => s.id === "video");
+            const newElectrical = {
+              id: "electrical",
+              number: "10",
+              title: "Electrical Performance",
+              tagline: "Comprehensive electrical specifications and reactance data.",
+              image: "/assets/products/parts/enclosure.jpg",
+              alt: "Electrical performance",
+              specs: [
+                { label: "Short Circuit Ratio", value: finalProduct.engineBrand === "Escorts" ? (Number(finalProduct.kva) === 15 ? "0.515" : "0.410") : "0.450" },
+                { label: "Voltage Regulation", value: "±1%" },
+                { label: "Battery", value: "60 Ah" },
+              ],
+            };
+            if (videoIdx !== -1) {
+              finalProduct.sections.splice(videoIdx, 0, newElectrical);
+            } else {
+              finalProduct.sections.push(newElectrical);
+            }
+            // Renumber subsequent sections
+            finalProduct.sections.forEach((s, idx) => {
+              s.number = String(idx + 1).padStart(2, '0');
+            });
+          }
 
           // Ensure video slide exists
           if (!finalProduct.sections.find(s => s.id === "video")) {
@@ -68,8 +101,8 @@ export default function ProductDetail() {
               number: String(lastNum + 1).padStart(2, '0'),
               title: "Product Video",
               tagline: "Escort DG Set — Multiple views and 360° product showcase.",
-              image: "/assets/products/showcase/main-view.png",
-              videoUrl: "/assets/products/showcase/product-video.mp4",
+              image: escortVideoThumb,
+              videoUrl: escortVideo,
               alt: `${finalProduct.name} 360 degree showcase`,
               specs: [
                 { label: "Duration", value: "8 sec" },
@@ -77,6 +110,15 @@ export default function ProductDetail() {
                 { label: "Source", value: "360° View" },
               ],
             });
+          } else {
+            // Force videoUrl for the existing video section if missing or incorrect
+            const videoSec = finalProduct.sections.find(s => s.id === "video");
+            if (videoSec && !videoSec.videoUrl) {
+              videoSec.videoUrl = escortVideo;
+            }
+            if (videoSec && !videoSec.image) {
+              videoSec.image = escortVideoThumb;
+            }
           }
           if (!finalProduct.hotspots.find(h => h.id === "video")) {
             finalProduct.hotspots.push({
@@ -99,14 +141,40 @@ export default function ProductDetail() {
           
           // Apply same safety check for static data
           const finalProduct = { ...staticData };
+          
+          // Ensure Electrical section exists
+          if (!finalProduct.sections.find(s => s.id === "electrical")) {
+            const videoIdx = finalProduct.sections.findIndex(s => s.id === "video");
+            const newElectrical = {
+              id: "electrical",
+              number: "10",
+              title: "Electrical Performance",
+              tagline: "Comprehensive electrical specifications and reactance data.",
+              image: "/assets/products/parts/enclosure.jpg",
+              alt: "Electrical performance",
+              specs: [
+                { label: "Short Circuit Ratio", value: finalProduct.engineBrand === "Escorts" ? (Number(finalProduct.kva) === 15 ? "0.515" : "0.410") : "0.450" },
+                { label: "Voltage Regulation", value: "±1%" },
+                { label: "Battery", value: "60 Ah" },
+              ],
+            };
+            if (videoIdx !== -1) {
+              finalProduct.sections.splice(videoIdx, 0, newElectrical);
+            } else {
+              finalProduct.sections.push(newElectrical);
+            }
+            // Renumber
+            finalProduct.sections.forEach((s, idx) => s.number = String(idx + 1).padStart(2, '0'));
+          }
+
           if (!finalProduct.sections.find(s => s.id === "video")) {
             finalProduct.sections = [...finalProduct.sections, {
               id: "video",
               number: String(finalProduct.sections.length + 1).padStart(2, '0'),
               title: "Product Video",
               tagline: "Escort DG Set — Multiple views and 360° product showcase.",
-              image: "/assets/products/showcase/main-view.png",
-              videoUrl: "/assets/products/showcase/product-video.mp4",
+              image: escortVideoThumb,
+              videoUrl: escortVideo,
               alt: `${finalProduct.name} 360 degree showcase`,
               specs: [
                 { label: "Duration", value: "8 sec" },
@@ -114,6 +182,15 @@ export default function ProductDetail() {
                 { label: "Source", value: "360° View" },
               ],
             }];
+          } else {
+            // Force videoUrl for the existing video section if missing or incorrect
+            const videoSec = finalProduct.sections.find(s => s.id === "video");
+            if (videoSec && !videoSec.videoUrl) {
+              videoSec.videoUrl = escortVideo;
+            }
+            if (videoSec && !videoSec.image) {
+              videoSec.image = escortVideoThumb;
+            }
           }
           if (!finalProduct.hotspots.find(h => h.id === "video")) {
             finalProduct.hotspots = [...finalProduct.hotspots, {

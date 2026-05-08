@@ -228,12 +228,14 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
                     <EditableText 
                       section={sectionId as CMSSectionKey} 
                       contentKey={`hotspot_${currentIndex}_title`} 
+                      fallback={activeHotspot.title}
                       className="font-display text-3xl font-semibold mb-3 leading-tight block" 
                       as="h3" 
                     />
                     <EditableText 
                       section={sectionId as CMSSectionKey} 
                       contentKey={`hotspot_${currentIndex}_desc`} 
+                      fallback={activeHotspot.description}
                       className="text-white/70 text-sm leading-relaxed mb-8 block" 
                       as="p" 
                     />
@@ -256,12 +258,14 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
                             <EditableText 
                               section={sectionId as CMSSectionKey} 
                               contentKey={`hotspot_${currentIndex}_spec${i}_label`} 
+                              fallback={spec.label}
                               className="text-[9px] uppercase tracking-widest text-white/40 block mb-1" 
                               as="span" 
                             />
                             <EditableText 
                               section={sectionId as CMSSectionKey} 
                               contentKey={`hotspot_${currentIndex}_spec${i}_value`} 
+                              fallback={spec.value as string}
                               className="text-sm font-semibold block" 
                               as="span" 
                             />
@@ -274,28 +278,30 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
               </AnimatePresence>
             </motion.div>
 
-            {/* Sub-Image Card */}
-            <motion.div className="w-[360px] pointer-events-auto">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeHotspot.id}
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-white border border-border shadow-2xl rounded-3xl p-2"
-                >
-                  <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted">
-                    <EditableImage
-                      section={sectionId}
-                      contentKey={`hotspot_${currentIndex}_image`}
-                      defaultSrc={activeHotspot.subImage || subProductFallback}
-                      alt={activeHotspot.title}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                </motion.div>
-              </AnimatePresence>
-            </motion.div>
+            {/* Sub-Image Card - Hidden for EKL 15 as requested */}
+            {product?.slug !== "ekl-15-2cyl" && (
+              <motion.div className="w-[360px] pointer-events-auto">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeHotspot.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="bg-white border border-border shadow-2xl rounded-3xl p-2"
+                  >
+                    <div className="relative aspect-video rounded-2xl overflow-hidden bg-muted">
+                      <EditableImage
+                        section={sectionId}
+                        contentKey={`hotspot_${currentIndex}_image`}
+                        defaultSrc={activeHotspot.subImage || subProductFallback}
+                        alt={activeHotspot.title}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  </motion.div>
+                </AnimatePresence>
+              </motion.div>
+            )}
           </div>
 
         </div>

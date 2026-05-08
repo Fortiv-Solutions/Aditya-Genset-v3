@@ -493,6 +493,19 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       ]
     },
     {
+      id: "electrical",
+      x: 35, y: 48,
+      title: "Electrical Performance",
+      description: "High-precision electrical output with Stamford alternator and AS540 AVR.",
+      subImage: ekl15Electrical,
+      zoom: 1.6, offsetX: 15, offsetY: -5,
+      specs: [
+        { label: "Regulation", value: "±1%" },
+        { label: "Short Circuit", value: "0.515 ratio" },
+        { label: "Battery", value: "60 Ah" },
+      ]
+    },
+    {
       id: "video",
       x: 50, y: 50,
       title: "Product Video",
@@ -666,8 +679,21 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       ],
     },
     {
-      id: "video",
+      id: "electrical",
       number: "10",
+      title: "Electrical Performance",
+      tagline: "Comprehensive electrical specifications and reactance data.",
+      image: ekl15Electrical,
+      alt: "Electrical performance",
+      specs: [
+        { label: "Short Circuit Ratio", value: "0.515" },
+        { label: "Voltage Regulation", value: "±1%" },
+        { label: "Battery", value: "60 Ah" },
+      ],
+    },
+    {
+      id: "video",
+      number: "11",
       title: "Product Video",
       tagline: "Escort DG Set — Multiple views and 360° product showcase.",
       image: escortVideoThumb,
@@ -807,6 +833,19 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
         { label: "Length", value: "1950 mm" },
         { label: "Width", value: "1050 mm" },
         { label: "Height", value: "1555 mm" },
+      ]
+    },
+    {
+      id: "electrical",
+      x: 35, y: 48,
+      title: "Electrical Performance",
+      description: "Stamford S0L2-G1 reliability with industrial grade regulation.",
+      subImage: ekl15Electrical,
+      zoom: 1.6, offsetX: 15, offsetY: -5,
+      specs: [
+        { label: "Short Circuit", value: "0.410 ratio" },
+        { label: "Regulation", value: "±1%" },
+        { label: "Battery", value: "60 Ah" },
       ]
     },
     {
