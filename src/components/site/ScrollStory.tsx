@@ -15,6 +15,7 @@ import type { CMSSection } from "@/lib/sanity";
 import { ChapterInteractive } from "./ChapterInteractive";
 import { Clock, MonitorPlay, Clapperboard } from "lucide-react";
 import { EKL15_CHAPTER_DATA } from "@/data/ekl15Data";
+import { EKL20_3CYL_CHAPTER_DATA } from "@/data/ekl20Data";
 
 // No fixed header bar — ScrollStory takes full viewport height
 const HEADER_H = 0;
@@ -242,7 +243,8 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
           {(product.sections || []).map((s, i) => {
             const isEscorts = product.engineBrand === "Escorts";
             // Merge static technical data with CMS/Fallback sections to ensure tabs/reactance work
-            const ekl15Data = isEscorts ? { ...(EKL15_CHAPTER_DATA[s.id] || {}), ...s } : null;
+            const chapterData = product.slug === "ekl-20-3cyl" ? EKL20_3CYL_CHAPTER_DATA[s.id] : EKL15_CHAPTER_DATA[s.id];
+            const mergedData = isEscorts ? { ...(chapterData || {}), ...s } : null;
             return (
               <article
                 key={s.id}
@@ -254,10 +256,10 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
                   scrollSnapAlign: "start",
                 }}
               >
-                {isEscorts && ekl15Data ? (
+                {isEscorts && mergedData ? (
                   <ChapterInteractive
                     chapterId={s.id}
-                    data={ekl15Data}
+                    data={mergedData}
                     active={active === i}
                   />
                 ) : (

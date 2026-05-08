@@ -9,6 +9,7 @@ import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import { useCompare } from "@/context/CompareContext";
 import { Checkbox } from "@/components/ui/checkbox";
+import { PRODUCTS } from "@/data/products";
 
 export interface DGSet {
   id: string;

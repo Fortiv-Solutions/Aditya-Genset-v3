@@ -1,5 +1,6 @@
 import { supabase } from '../supabase'
 import type { Product, ProductMedia, ProductSpec } from '../supabase'
+import { PRODUCTS } from '@/data/products'
 
 /**
  * Fetch all published products with their media and specs
@@ -41,7 +42,40 @@ export async function fetchPublishedProducts() {
 
   console.log('✅ Transformed data:', transformedData)
 
-  return transformedData
+  // Merge with static PRODUCTS for global availability (Selection page, Quote builder, etc.)
+  const staticProducts = PRODUCTS
+    .filter(p => !transformedData.find(db => db.slug === p.slug))
+    .map(p => ({
+      id: p.slug,
+      slug: p.slug,
+      name: p.name,
+      model: p.name,
+      kva: p.kva,
+      engine_brand: p.name.toLowerCase().includes('escort') ? 'Escorts' : 'Baudouin',
+      status: 'published' as const,
+      type: 'silent' as const,
+      product_media: p.thumbnail ? [{ 
+        public_url: p.thumbnail, 
+        kind: 'primary',
+        id: `media-${p.slug}`,
+        product_id: p.slug,
+        storage_path: null,
+        alt_text: p.name,
+        mime_type: 'image/jpeg',
+        display_order: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      }] : [],
+      product_specs: [
+        { id: `spec-kva-${p.slug}`, product_id: p.slug, spec_label: 'Power Output', spec_value: `${p.kva} kVA`, display_order: 0, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), label: 'Power Output', value: `${p.kva} kVA` },
+        { id: `spec-engine-${p.slug}`, product_id: p.slug, spec_label: 'Engine', spec_value: p.name.toLowerCase().includes('escort') ? 'Escorts' : 'Baudouin', display_order: 1, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), label: 'Engine', value: p.name.toLowerCase().includes('escort') ? 'Escorts' : 'Baudouin' }
+      ]
+    }));
+
+  const mergedData = [...transformedData, ...staticProducts];
+  console.log('📊 Final merged count:', mergedData.length)
+
+  return mergedData
 }
 
 /**

@@ -10,6 +10,7 @@ import { CMSSection as CMSSectionKey } from "@/lib/sanity";
 import type { ShowcaseProduct } from "@/data/products";
 import { ChapterInteractive } from "./ChapterInteractive";
 import { EKL15_CHAPTER_DATA } from "@/data/ekl15Data";
+import { EKL20_3CYL_CHAPTER_DATA } from "@/data/ekl20Data";
 
 // Fallback images
 import mainImageFallback from "@/assets/products/showcase/main-view.png";
@@ -224,8 +225,8 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
                         <ChapterInteractive 
                           chapterId={activeHotspot.id} 
                           data={{
-                            ...(EKL15_CHAPTER_DATA[activeHotspot.id] || {}),
-                            ...(product.sections.find(s => s.id === activeHotspot.id) || {})
+                            ...(product?.slug === "ekl-20-3cyl" ? EKL20_3CYL_CHAPTER_DATA[activeHotspot.id] : EKL15_CHAPTER_DATA[activeHotspot.id] || {}),
+                            ...(product?.sections.find(s => s.id === activeHotspot.id) || {})
                           } as any} 
                           active={true} 
                         />

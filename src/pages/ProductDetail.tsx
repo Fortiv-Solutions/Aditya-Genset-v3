@@ -33,15 +33,17 @@ export default function ProductDetail() {
         console.log("Fetching product showcase for slug:", slug);
         const data = await fetchProductShowcase(slug);
         console.log("Data received:", !!data);
+        
+        const staticData = getProductBySlug(slug);
+        
         if (data && data.product) {
           const productMedia = (data.product as any).product_media || [];
           const primaryImage =
             productMedia.find((m: any) => m.kind === 'primary' || m.kind === 'hero')?.public_url ||
             data.showcase?.sections?.[0]?.image ||
+            staticData?.thumbnail ||
             "";
           
-          // Map DB product and CMS content to ShowcaseProduct shape
-          const staticData = getProductBySlug(slug);
           const mappedProduct: ShowcaseProduct = {
             id: data.product.id,
             slug: data.product.slug,
@@ -59,6 +61,10 @@ export default function ProductDetail() {
           console.log("Product state set, loading CMS...");
           await loadProductCMS(data.product.id);
           console.log("CMS loaded.");
+        } else if (staticData) {
+          // Fallback to static data if DB is empty for this slug
+          console.log("Using static data fallback for:", slug);
+          setProduct(staticData);
         }
       } catch (err) {
         console.error("Failed to load product detail:", err);

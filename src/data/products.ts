@@ -301,18 +301,7 @@ export const SHOWCASE: ShowcaseProduct = {
   ],
 };
 
-export const PRODUCTS: ProductSummary[] = [
-  {
-    slug: SHOWCASE.slug,
-    name: SHOWCASE.name,
-    kva: SHOWCASE.kva,
-    range: SHOWCASE.range,
-    status: "active",
-    thumbnail: dgOverview,
-  },
-];
-
-// ── EKL 15 (2 Cyl)-IV Showcase ──────────────────────────────────────────────
+// ── Shared Assets for Escort Products ──────────────────────────────────────────
 import ekl15Engine    from "@/assets/products/parts/engine-real.jpg";
 import ekl15Control   from "@/assets/products/parts/enclosure.jpg";
 import ekl15Overview  from "@/assets/products/escorts/escort_15kva.jpg";
@@ -330,14 +319,42 @@ import escort40KVA from "@/assets/products/escorts/escort_40kva_main.jpg";
 import escortVideoThumb from "@/assets/products/showcase/main-view.png";
 import ekl15Electrical from "@/assets/products/parts/enclosure.jpg";
 import ekl15Protection from "@/assets/products/parts/enclosure.jpg";
-import ekl15RealDG     from "@/assets/products/parts/engine-real.jpg";
 
+export const PRODUCTS: ProductSummary[] = [
+  {
+    slug: SHOWCASE.slug,
+    name: SHOWCASE.name,
+    kva: SHOWCASE.kva,
+    range: "15-62.5",
+    status: "active",
+    thumbnail: dgOverview,
+  },
+  {
+    slug: "ekl-15-2cyl",
+    name: "EKL 15 kVA (2 Cyl) DG Set",
+    kva: 15,
+    range: "15-62.5",
+    status: "active",
+    thumbnail: escort15KVA,
+  },
+  {
+    slug: "ekl-20-3cyl",
+    name: "EKL 20 kVA (3 Cyl) DG Set",
+    kva: 20,
+    range: "15-62.5",
+    status: "active",
+    thumbnail: escort20KVA1,
+  },
+];
+
+// ── EKL 15 (2 Cyl)-IV Showcase ──────────────────────────────────────────────
 export const EKL15_SHOWCASE: ShowcaseProduct = {
   slug: "ekl-15-2cyl",
   name: "EKL 15 kVA (2 Cyl) DG Set",
   kva: 15,
   range: "15-62.5",
   status: "active",
+  engineBrand: "Escorts",
   thumbnail: escort15KVA,
   hero: escort15KVA,
   hotspots: [
@@ -440,9 +457,9 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       subImage: ekl15Supply,
       zoom: 1.2, offsetX: 0, offsetY: 0,
       specs: [
-        { label: "Standard items", value: "17" },
+        { label: "Standard Items", value: "17 (complete turnkey)" },
+        { label: "Optional Extras", value: "Available" },
         { label: "Warranty", value: "Standard" },
-        { label: "Docs", value: "Included" },
       ]
     },
     {
@@ -636,6 +653,241 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
     },
   ],
 };
+
+// ── EKL 20 (3 Cyl)-IV Showcase ──────────────────────────────────────────────
+export const EKL20_SHOWCASE: ShowcaseProduct = {
+  slug: "ekl-20-3cyl",
+  name: "EKL 20 kVA (3 Cyl) DG Set",
+  kva: 20,
+  range: "15-62.5",
+  status: "active",
+  engineBrand: "Escorts",
+  thumbnail: escort20KVA1,
+  hero: escort20KVA1,
+  hotspots: [
+    {
+      id: "overview",
+      x: 50, y: 50,
+      title: "EKL 20 kVA DG Set",
+      description: "Escorts-powered 20 kVA silent generator. Features the G20-IV 3-cylinder engine for superior performance.",
+      subImage: escort20KVA1,
+      zoom: 1, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Model", value: "EKL20(3cyl)-IV" },
+        { label: "Rating", value: "20 kVA / 16 kWe" },
+        { label: "Compliance", value: "CPCB IV+" },
+      ]
+    },
+    {
+      id: "engine",
+      x: 42, y: 55,
+      title: "Escorts G20-IV Engine",
+      description: "3-cylinder, naturally aspirated engine delivering 24.2 hp. High carbon steel forged crankshaft.",
+      subImage: ekl15Engine,
+      zoom: 1.8, offsetX: 8, offsetY: 2,
+      specs: [
+        { label: "Make", value: "Escorts" },
+        { label: "Model", value: "G20-IV" },
+        { label: "Cylinders", value: "3" },
+      ]
+    },
+    {
+      id: "fuel",
+      x: 58, y: 65,
+      title: "Fuel, Lube & Cooling",
+      description: "Optimized for efficiency. Fuel consumption: 4.17 L/hr at 100% load.",
+      subImage: escort20KVA1,
+      zoom: 1.4, offsetX: -5, offsetY: -5,
+      specs: [
+        { label: "Fuel (100%)", value: "4.17 L/hr" },
+        { label: "Tank", value: "75 L" },
+        { label: "Lube Oil", value: "6.5 L" },
+      ]
+    },
+    {
+      id: "alternator",
+      x: 25, y: 48,
+      title: "Alternator & Electrical",
+      description: "Stamford S0L2-G1 alternator. H Class insulation and ±1% voltage regulation.",
+      subImage: ekl15Alternator,
+      zoom: 1.6, offsetX: 15, offsetY: -5,
+      specs: [
+        { label: "Make", value: "Stamford" },
+        { label: "Frame", value: "S0L2-G1" },
+        { label: "Regulation", value: "±1%" },
+      ]
+    },
+    {
+      id: "enclosure",
+      x: 85, y: 58,
+      title: "Enclosure & Sound",
+      description: "Acoustic enclosure designed for 20 kVA requirements. CPCB IV compliant.",
+      subImage: ekl15Enclosure,
+      zoom: 1.5, offsetX: -15, offsetY: 5,
+      specs: [
+        { label: "Length", value: "1950 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1555 mm" },
+      ]
+    },
+    {
+      id: "control",
+      x: 75, y: 35,
+      title: "Control Panel",
+      description: "DEIF SGC 120 controller. Digital metering and comprehensive protection suite.",
+      subImage: ekl15Control,
+      zoom: 2.0, offsetX: -20, offsetY: 15,
+      specs: [
+        { label: "Controller", value: "DEIF SGC 120" },
+        { label: "Display", value: "LCD" },
+        { label: "Log", value: "100 events" },
+      ]
+    },
+    {
+      id: "protection",
+      x: 70, y: 38,
+      title: "Protection & Approvals",
+      description: "CE compliant with full engine and electrical shutdown protection.",
+      subImage: ekl15Protection,
+      zoom: 2.2, offsetX: -15, offsetY: 12,
+      specs: [
+        { label: "Compliance", value: "CE / ISO" },
+        { label: "Engine", value: "Shutdowns" },
+        { label: "Electrical", value: "ANSI suite" },
+      ]
+    },
+    {
+      id: "supply",
+      x: 50, y: 50,
+      title: "Standard Supply",
+      description: "Complete turnkey package including first fill lube oil and coolant.",
+      subImage: escort20KVA1,
+      zoom: 1.2, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Standard items", value: "17" },
+        { label: "Warranty", value: "Available" },
+      ]
+    },
+    {
+      id: "dimensions",
+      x: 50, y: 78,
+      title: "Dimensions & Weight",
+      description: "Compact design: 1950 × 1050 × 1555 mm.",
+      subImage: escort20KVA1,
+      zoom: 1.2, offsetX: 0, offsetY: -10,
+      specs: [
+        { label: "Length", value: "1950 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1555 mm" },
+      ]
+    }
+  ],
+  sections: [
+    {
+      id: "overview",
+      number: "01",
+      title: "EKL 20 kVA Silent DG Set",
+      tagline: "Escorts G20-IV powered 3-cylinder engine.",
+      image: escort20KVA1,
+      alt: "ATM EKL 20 kVA 3-cylinder silent diesel generator",
+      specs: [
+        { label: "Model", value: "EKL20(3cyl)-IV" },
+        { label: "Rating", value: "20 kVA / 16 kWe" },
+        { label: "Compliance", value: "CPCB IV+" },
+      ],
+      highlight: [
+        { value: 20, suffix: " kVA", label: "Prime power" },
+        { value: 75, suffix: " L", label: "Fuel tank" },
+        { value: 27, suffix: "+ yrs", label: "Heritage" },
+      ],
+    },
+    {
+      id: "engine",
+      number: "02",
+      title: "Engine",
+      tagline: "Escorts G20-IV — 3-cylinder performance.",
+      image: escort20KVA1,
+      alt: "Escorts 3-cylinder engine",
+      specs: [
+        { label: "Make", value: "Escorts" },
+        { label: "Model", value: "G20-IV" },
+        { label: "Cylinders", value: "3" },
+        { label: "Power", value: "24.2 hp" },
+      ],
+    },
+    {
+      id: "fuel",
+      number: "03",
+      title: "Fuel, Lube & Cooling",
+      tagline: "High efficiency fuel consumption.",
+      image: escort20KVA1,
+      alt: "Fuel and cooling",
+      specs: [
+        { label: "Fuel (100%)", value: "4.17 L/hr" },
+        { label: "Lube Oil", value: "6.5 L" },
+      ],
+    },
+    {
+      id: "alternator",
+      number: "04",
+      title: "Alternator & Electrical",
+      tagline: "Stamford S0L2-G1 reliability.",
+      image: escort20KVA1,
+      alt: "Alternator",
+      specs: [
+        { label: "Make", value: "Stamford" },
+        { label: "Regulation", value: "±1%" },
+      ],
+    },
+    {
+      id: "enclosure",
+      number: "05",
+      title: "Enclosure",
+      tagline: "Compact silent canopy.",
+      image: escort20KVA1,
+      alt: "Acoustic enclosure",
+      specs: [
+        { label: "Length", value: "1950 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1555 mm" },
+      ],
+    },
+    {
+      id: "control",
+      number: "06",
+      title: "Control Panel",
+      tagline: "DEIF SGC 120 microprocessor based digital controller.",
+      image: escort20KVA1,
+      alt: "Control panel",
+      specs: [
+        { label: "Controller", value: "DEIF SGC 120" },
+      ],
+    },
+    {
+      id: "protection",
+      number: "07",
+      title: "Protection & Approvals",
+      tagline: "Full safety suite.",
+      image: escort20KVA1,
+      alt: "Safety systems",
+      specs: [
+        { label: "CE Compliant", value: "Yes" },
+      ],
+    },
+    {
+      id: "supply",
+      number: "08",
+      title: "Standard Supply & Extras",
+      tagline: "Complete turnkey package.",
+      image: escort20KVA1,
+      alt: "Scope of supply",
+      specs: [
+        { label: "Standard Items", value: "17" },
+      ],
+    },
+  ],
+};
+
 export const getDynamicSummaries = (): ProductSummary[] => {
   const stored = localStorage.getItem("dynamic_summaries");
   return stored ? JSON.parse(stored) : [];
@@ -655,5 +907,6 @@ export const getAllProducts = (): ProductSummary[] => {
 export const getProductBySlug = (slug: string): ShowcaseProduct | null => {
   if (slug === SHOWCASE.slug) return SHOWCASE;
   if (slug === EKL15_SHOWCASE.slug) return EKL15_SHOWCASE;
+  if (slug === EKL20_SHOWCASE.slug) return EKL20_SHOWCASE;
   return getDynamicProduct(slug);
 };
