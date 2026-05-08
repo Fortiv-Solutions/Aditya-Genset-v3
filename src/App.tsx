@@ -80,7 +80,6 @@ const App = () => {
                     {/* ── Public ─────────────────────────────────── */}
                     <Route path="/login" element={<Login />} />
 
-<<<<<<< HEAD
                     {/* ── Admin Dashboard ─────────────────────────── */}
                     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                     <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
@@ -111,41 +110,6 @@ const App = () => {
 
                     <Route path="/admin/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
                     <Route path="/admin/cms/edit/:pageId" element={<ProtectedRoute><CMSEditor /></ProtectedRoute>} />
-                    {/* <Route path="/admin/roadmap" element={<AdminRoute><SoftwareRoadmap /></AdminRoute>} /> */}
-                    <Route path="/admin/migrations" element={<AdminRoute><MigrationRunner /></AdminRoute>} />
-=======
-            {/* ── Admin Dashboard ─────────────────────────── */}
-            <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
-            <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
-            <Route path="/admin/products/add" element={<AdminRoute><AddProduct /></AdminRoute>} />
-            <Route path="/admin/products/diagnostic" element={<AdminRoute><ProductDiagnostic /></AdminRoute>} />
-            <Route path="/admin/products/categories" element={
-              <AdminRoute>
-                <div className="p-8 text-center text-muted-foreground">Category management coming soon.</div>
-              </AdminRoute>
-            } />
-            <Route path="/admin/products/:id/edit" element={<AdminRoute><AddProduct /></AdminRoute>} />
-
-            <Route path="/admin/leads" element={
-              <AdminRoute>
-                <AdminComingSoon title="Lead Management" description="Manage customer leads, inquiries, and sales pipeline." />
-              </AdminRoute>
-            } />
-            <Route path="/admin/leads/pipeline" element={
-              <AdminRoute>
-                <AdminComingSoon title="Sales Pipeline" description="Visual sales pipeline with drag-and-drop lead management." />
-              </AdminRoute>
-            } />
-            <Route path="/admin/leads/followups" element={
-              <AdminRoute>
-                <div className="p-8 text-center text-muted-foreground">Follow-up manager coming soon.</div>
-              </AdminRoute>
-            } />
-
-            <Route path="/admin/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
-            <Route path="/admin/cms/edit/:pageId" element={<ProtectedRoute><CMSEditor /></ProtectedRoute>} />
-
->>>>>>> 72f5b61b9886abad61325cee52cdb942bc10527f
 
                     {/* Removed CMS, Orders, Dealers, Service routes to focus on Presentation Tool features */}
 
