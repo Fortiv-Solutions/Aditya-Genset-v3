@@ -109,6 +109,10 @@ export function generateEscortsProduct(data: EscortsProductData) {
       status: "active",
       thumbnail: data.cardImage,
       hero: data.showcaseImages.overview,
+      productName: data.name,
+      pageLabel: "Showcase",
+      pageSubtitle: `10-chapter walkthrough of the ${data.engineMake}-powered ${data.kva} kVA generator.`,
+      presentModeBtn: "Present Mode",
       
       sections: [
         // Chapter 01: Overview

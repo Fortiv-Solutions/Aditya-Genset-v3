@@ -147,3 +147,54 @@ export async function incrementProductInquiries(productId: string) {
     console.error('Error incrementing inquiries:', error)
   }
 }
+/**
+ * Create a new product with its media and specs
+ */
+export async function createProduct(
+  product: Partial<Product>,
+  media: { url: string; kind: 'primary' | 'gallery' }[],
+  specs: { label: string; value: string }[]
+) {
+  // 1. Insert product
+  const { data: newProduct, error: productError } = await supabase
+    .from('products')
+    .insert([product])
+    .select()
+    .single();
+
+  if (productError) throw productError;
+
+  // 2. Insert media
+  if (media.length > 0) {
+    const mediaToInsert = media.map((m, i) => ({
+      product_id: newProduct.id,
+      kind: m.kind,
+      public_url: m.url,
+      display_order: i
+    }));
+
+    const { error: mediaError } = await supabase
+      .from('product_media')
+      .insert(mediaToInsert);
+
+    if (mediaError) console.error("Media insertion error:", mediaError);
+  }
+
+  // 3. Insert specs
+  if (specs.length > 0) {
+    const specsToInsert = specs.map((s, i) => ({
+      product_id: newProduct.id,
+      spec_label: s.label,
+      spec_value: s.value,
+      display_order: i
+    }));
+
+    const { error: specsError } = await supabase
+      .from('product_specs')
+      .insert(specsToInsert);
+
+    if (specsError) console.error("Specs insertion error:", specsError);
+  }
+
+  return newProduct;
+}
