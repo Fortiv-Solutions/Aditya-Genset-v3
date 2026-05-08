@@ -202,7 +202,7 @@ export default function ProductDetail() {
         }}
       >
         {/* Row 1 — Navigation: back ← ............... → Present Mode */}
-        <div className="flex items-start justify-between">
+        <div className="flex min-w-0 items-start justify-between gap-4 md:pr-[236px]">
           <button
             onClick={() => navigate(-1)}
             className="pointer-events-auto inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors story-link mt-1"
@@ -210,7 +210,7 @@ export default function ProductDetail() {
             <ArrowLeft size={12} /> <EditableText section={sectionKey} contentKey="backLabel" as="span" override={isFallback ? "Back to category" : undefined} />
           </button>
 
-          <div className="flex items-center gap-3 mt-3">
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
             <button
               onClick={() => {
                 if (activeProduct.id) {
@@ -240,7 +240,7 @@ export default function ProductDetail() {
         </div>
 
         {/* Row 2 — Product identity */}
-        <div className="mt-5">
+        <div className="mt-5 min-w-0 max-w-[min(720px,calc(100vw-11rem))]">
           {activeProduct.sections && activeProduct.sections.length > 0 && (
             <div className="font-display text-[10px] uppercase tracking-[0.4em] text-accent">
               {activeProduct.sections[0]?.number} / {activeProduct.sections[0]?.id}
@@ -251,7 +251,7 @@ export default function ProductDetail() {
             contentKey="productName"
             override={isFallback ? productName : undefined}
             fallback={productName}
-            className="mt-1.5 font-display text-3xl font-semibold leading-tight md:text-4xl block"
+            className="mt-1.5 block max-w-full break-words font-display text-3xl font-semibold leading-tight md:text-4xl"
             as="h1"
           />
           <EditableText
@@ -259,7 +259,7 @@ export default function ProductDetail() {
             contentKey="pageSubtitle"
             override={isFallback ? `A 10-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
             fallback={isFallback ? `A 10-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
-            className="mt-1.5 max-w-xl text-sm text-muted-foreground block"
+            className="mt-1.5 block max-w-xl break-words text-sm text-muted-foreground"
             as="p"
           />
         </div>
@@ -271,6 +271,7 @@ export default function ProductDetail() {
         ref={scrollStoryRef}
         product={activeProduct}
         sectionId={sectionKey}
+        firstChapterOffset={112}
         onChapterChange={setActiveChapter}
       />
     </div>

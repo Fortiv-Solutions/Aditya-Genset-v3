@@ -132,8 +132,15 @@ export default function DGSetsCategory() {
         <div className="container-x max-w-7xl flex-1 flex flex-col min-h-0">
           {/* Header */}
           <div className="mb-4">
-            <div className="flex items-start justify-between">
-              <div>
+            <div className="flex flex-col items-start">
+              <button
+                onClick={() => navigate(-1)}
+                className="group mb-3 inline-flex items-center gap-2 text-muted-foreground hover:text-accent transition-colors text-xs font-bold uppercase tracking-widest"
+              >
+                <ArrowLeft size={14} className="shrink-0 group-hover:-translate-x-1 transition-transform" />
+                <EditableText section="dgSetsCategory" contentKey="backBtn" />
+              </button>
+              <div className="max-w-4xl">
                 <EditableText 
                   section="dgSetsCategory" 
                   contentKey="pageTitle" 
@@ -147,13 +154,6 @@ export default function DGSetsCategory() {
                   as="p" 
                 />
               </div>
-              <button 
-                onClick={() => navigate(-1)}
-                className="group flex items-center gap-2 text-muted-foreground hover:text-accent transition-colors text-xs font-bold uppercase tracking-widest flex-shrink-0 mt-1"
-              >
-                <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" />
-                <EditableText section="dgSetsCategory" contentKey="backBtn" />
-              </button>
             </div>
           </div>
 

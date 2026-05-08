@@ -35,19 +35,19 @@ interface Props {
 
 function TabBar({ tabs, active, onSelect }: { tabs: string[]; active: number; onSelect: (i: number) => void }) {
   return (
-    <div className="flex gap-1 rounded-lg bg-muted/50 p-1 mb-5">
+    <div className="flex h-10 gap-1 rounded-lg bg-muted/50 p-1 mb-5">
       {tabs.map((t, i) => (
         <button
           key={t}
           onClick={() => onSelect(i)}
           className={cn(
-            "flex-1 rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+            "flex h-8 min-w-0 flex-1 items-center justify-center rounded-md px-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
             i === active
               ? "bg-foreground text-background shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
-          {t}
+          <span className="truncate">{t}</span>
         </button>
       ))}
     </div>
@@ -575,7 +575,7 @@ function VideoChapter({ data, sectionId, index }: { data: EKL15ChapterData; sect
 export function ChapterInteractive({ chapterId, data, active, sectionId = "showcaseData", index = 0 }: Props) {
   return (
     <div className={cn(
-      "transition-all duration-700 ease-brand",
+      "w-full min-w-0 transition-all duration-700 ease-brand",
       active ? "opacity-100 translate-y-0" : "opacity-40 translate-y-3 pointer-events-none"
     )}>
       {chapterId === "overview"    && <OverviewChapter data={data} sectionId={sectionId} index={index} />}
