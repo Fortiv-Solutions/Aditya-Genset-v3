@@ -1,7 +1,7 @@
 /**
  * ekl20_3cyl_Data.ts
  * All interactive data for the EKL20 (3 Cyl) kVA DG Set showcase.
- * 10 chapters, 100% PDF coverage — TDS-EKL20 (3ycl)-IVATM
+ * 11 chapters, 100% PDF coverage — TDS-EKL20 (3ycl)-IVATM
  */
 
 export interface DimEntry       { label: string; value: string; }
@@ -417,6 +417,15 @@ export const EKL20_3CYL_CHAPTER_DATA: Record<string, EKL20ChapterData> = {
       { label: "Documentation",    value: "Full operation, maintenance & wiring manuals" },
       { label: "Factory",          value: "Aditya Tech Mech, Plot 29A/B, Survey 208, Silvassa-396230" },
       { label: "Special Condition",value: "For specific site conditions, refer to application engineering" },
+    ],
+  },
+
+  // ── 11 Product Video ──────────────────────────────────────────────────────────
+  video: {
+    specs: [
+      { label: "Duration", value: "8 sec" },
+      { label: "Format", value: "MP4" },
+      { label: "Source", value: "360° View" },
     ],
   },
 };

@@ -28,7 +28,7 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
   const { scrollYProgress } = useScroll({ container: wrapperRef });
   
   // Use product hotspots or fallback
-  const presentationHotspots = product?.hotspots && product.hotspots.length > 0 ? product.hotspots : [];
+  const presentationHotspots = (product?.hotspots || []).filter(h => h.id !== "video");
   
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -88,13 +88,31 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
             className="h-full w-full flex items-center justify-center relative"
           >
             <div ref={imageWrapperRef} className="relative inline-block max-h-[80vh] max-w-[80vw]">
-              <EditableImage
-                section={sectionId}
-                contentKey={`mainImages.${imageKey}`}
-                defaultSrc={defaultImage}
-                alt="Product Presentation View"
-                className="max-h-[80vh] max-w-[80vw] object-contain pointer-events-none"
-              />
+              {activeHotspot.id === "video" && product?.sections.find(s => s.id === "video")?.videoUrl ? (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative group"
+                >
+                  <video
+                    src={product.sections.find(s => s.id === "video")?.videoUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="max-h-[75vh] max-w-[75vw] object-contain rounded-3xl shadow-[0_0_50px_rgba(0,0,0,0.3)] border-8 border-white/5 bg-black"
+                  />
+                  <div className="absolute inset-0 rounded-3xl ring-1 ring-white/20 pointer-events-none" />
+                </motion.div>
+              ) : (
+                <EditableImage
+                  section={sectionId}
+                  contentKey={`mainImages.${imageKey}`}
+                  defaultSrc={defaultImage}
+                  alt="Product Presentation View"
+                  className="max-h-[80vh] max-w-[80vw] object-contain pointer-events-none"
+                />
+              )}
 
               {/* Hotspot Dots */}
               {presentationHotspots.map((h, i) => {

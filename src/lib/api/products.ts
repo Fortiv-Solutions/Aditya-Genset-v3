@@ -116,15 +116,46 @@ export async function fetchPublishedProducts() {
       );
       const fuelValue = String(fuelSpec?.value || fuelSpec?.spec_value || "").toLowerCase();
       
-      // If fuel is missing, empty, or "variable", it's the incomplete version
+      const appSpec = p.product_specs?.find((s: any) => 
+        String(s.label || s.spec_label || "").toLowerCase().includes('application')
+      );
+      const appValue = String(appSpec?.value || appSpec?.spec_value || "");
+
+      // 1. Exclude if fuel is missing/variable
       if (!fuelSpec || !fuelValue || fuelValue.includes('variable')) return false;
+
+      // 2. Exclude specifically the "Prime Power" version as requested by user
+      if (appValue === "Prime Power") return false;
     }
 
     return true;
   });
-  console.log('📊 Final merged count:', mergedData.length)
 
-  return mergedData
+  // 3. Final deduplication and cleaning
+  const seenSlugs = new Set<string>();
+  const seenNames = new Set<string>();
+  
+  const finalProducts = mergedData.filter(p => {
+    const slug = (p.slug || "").toLowerCase();
+    const name = (p.name || "").toLowerCase();
+    
+    if (!slug || !name) return false;
+
+    // Skip if we've seen this slug
+    if (seenSlugs.has(slug)) return false;
+    
+    // Check for near-duplicate names (e.g. "EKL20" vs "EKL20-IV")
+    const simplifiedName = name.replace(/[^a-z0-9]/g, '');
+    if (seenNames.has(simplifiedName)) return false;
+    
+    seenSlugs.add(slug);
+    seenNames.add(simplifiedName);
+    return true;
+  });
+
+  console.log('📊 Final cleaned count:', finalProducts.length)
+
+  return finalProducts;
 }
 
 /**

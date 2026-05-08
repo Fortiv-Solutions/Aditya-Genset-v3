@@ -151,6 +151,17 @@ export const SHOWCASE: ShowcaseProduct = {
         { label: "Dry weight", value: "~1250 kg" },
         { label: "Wet weight", value: "~1450 kg" }
       ]
+    },
+    {
+      id: "video",
+      x: 50, y: 50,
+      title: "Product Video",
+      description: "Escort DG Set — Multiple views and 360° product showcase.",
+      subImage: escortVideoThumb,
+      zoom: 1, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Showcase", value: "360° View" },
+      ]
     }
   ],
   sections: [
@@ -167,7 +178,7 @@ export const SHOWCASE: ShowcaseProduct = {
         { label: "Compliance", value: "CPCB IV+" },
       ],
       highlight: [
-        { value: 62.5, suffix: " kVA", label: "Prime power" },
+        { value: 62.5, suffix: " kVA", label: "Power" },
         { value: 75, suffix: " dB(A)", label: "Sound @ 1m" },
         { value: 27, suffix: "+ yrs", label: "Heritage" },
       ],
@@ -480,6 +491,17 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
         { label: "Width", value: "950 mm" },
         { label: "Height", value: "1495 mm" },
       ]
+    },
+    {
+      id: "video",
+      x: 50, y: 50,
+      title: "Product Video",
+      description: "Escort DG Set — Multiple views and 360° product showcase.",
+      subImage: escortVideoThumb,
+      zoom: 1, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Showcase", value: "360° View" },
+      ]
     }
   ],
   sections: [
@@ -498,7 +520,7 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
         { label: "Compliance", value: "CPCB IV+" },
       ],
       highlight: [
-        { value: 15, suffix: " kVA", label: "Prime power" },
+        { value: 15, suffix: " kVA", label: "Power" },
         { value: 70, suffix: " L", label: "Day fuel tank" },
         { value: 27, suffix: "+ yrs", label: "Heritage" },
       ],
@@ -813,7 +835,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
         { label: "Compliance", value: "CPCB IV+" },
       ],
       highlight: [
-        { value: 20, suffix: " kVA", label: "Prime power" },
+        { value: 20, suffix: " kVA", label: "Power" },
         { value: 75, suffix: " L", label: "Fuel tank" },
         { value: 27, suffix: "+ yrs", label: "Heritage" },
       ],
@@ -916,15 +938,30 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       ],
     },
     {
-      id: "video",
+      id: "electrical",
       number: "10",
+      title: "Electrical Performance",
+      tagline: "Comprehensive electrical specifications and reactance data.",
+      image: ekl15Electrical,
+      alt: "Electrical performance",
+      specs: [
+        { label: "Short Circuit Ratio", value: "0.410" },
+        { label: "Voltage Regulation", value: "±1%" },
+        { label: "Battery", value: "60 Ah" },
+      ],
+    },
+    {
+      id: "video",
+      number: "11",
       title: "Product Video",
-      tagline: "Experience the EKL 20 in 360°.",
+      tagline: "Escort DG Set — Multiple views and 360° product showcase.",
       image: escortVideoThumb,
       videoUrl: escortVideo,
       alt: "Escort DG set 360 degree showcase",
       specs: [
-        { label: "Showcase", value: "360° View" },
+        { label: "Duration", value: "8 sec" },
+        { label: "Format", value: "MP4" },
+        { label: "Source", value: "360° View" },
       ],
     },
   ],
@@ -948,6 +985,7 @@ export const getAllProducts = (): ProductSummary[] => {
 
 export const getProductBySlug = (slug: string): ShowcaseProduct | null => {
   if (slug === SHOWCASE.slug) return SHOWCASE;
+  if (slug === EKL15_SHOWCASE.slug) return EKL15_SHOWCASE;
   if (slug === EKL20_SHOWCASE.slug) return EKL20_SHOWCASE;
   return getDynamicProduct(slug);
 };
