@@ -37,10 +37,10 @@ import AdminReports from "./pages/admin/AdminReports";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminCMS from "./pages/admin/AdminCMS";
 import CMSEditor from "./pages/admin/CMSEditor";
+<<<<<<< HEAD
 import AdminComingSoon from "./pages/admin/AdminComingSoon";
 import ProductDiagnostic from "./pages/admin/ProductDiagnostic";
 // import SoftwareRoadmap from "./pages/admin/SoftwareRoadmap";
-import MigrationRunner from "./pages/MigrationRunner";
 
 const queryClient = new QueryClient();
 
@@ -78,7 +78,7 @@ const App = () => {
             <Route path="/admin/products/diagnostic" element={<AdminRoute><ProductDiagnostic /></AdminRoute>} />
             <Route path="/admin/products/categories" element={
               <AdminRoute>
-                <AdminComingSoon title="Product Categories" description="Manage the hierarchical category tree for DG Sets, Open DG Sets, Industrial Sets, and Accessories." />
+                <div className="p-8 text-center text-muted-foreground">Category management coming soon.</div>
               </AdminRoute>
             } />
             <Route path="/admin/products/:id/edit" element={<AdminRoute><AddProduct /></AdminRoute>} />
@@ -95,14 +95,13 @@ const App = () => {
             } />
             <Route path="/admin/leads/followups" element={
               <AdminRoute>
-                <AdminComingSoon title="Follow-up Manager" description="View and manage all scheduled follow-ups, overdue tasks, and daily sales rep reminders." />
+                <div className="p-8 text-center text-muted-foreground">Follow-up manager coming soon.</div>
               </AdminRoute>
             } />
 
             <Route path="/admin/cms" element={<AdminRoute><AdminCMS /></AdminRoute>} />
             <Route path="/admin/cms/edit/:pageId" element={<ProtectedRoute><CMSEditor /></ProtectedRoute>} />
-            {/* <Route path="/admin/roadmap" element={<AdminRoute><SoftwareRoadmap /></AdminRoute>} /> */}
-            <Route path="/admin/migrations" element={<AdminRoute><MigrationRunner /></AdminRoute>} />
+
 
             {/* Removed CMS, Orders, Dealers, Service routes to focus on Presentation Tool features */}
 

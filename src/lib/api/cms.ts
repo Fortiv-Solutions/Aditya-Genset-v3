@@ -102,12 +102,13 @@ export async function fetchProductShowcase(productSlug: string) {
   const { data: product } = await supabase
     .from('products')
     .select(`
-      id, slug, name, model, kva,
+      id, slug, name, model, kva, engine_brand,
       product_media (*)
     `)
     .eq('slug', productSlug)
     .eq('status', 'published')
     .single()
+
 
   if (!product) return null
 

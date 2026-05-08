@@ -459,6 +459,44 @@ function DimensionDiagram({ dims }: { dims: { label: string; value: string }[] }
   );
 }
 
+import { Clock, MonitorPlay, Clapperboard } from "lucide-react";
+
+// ── Chapter 10 — Video ────────────────────────────────────────────────────────
+function VideoChapter({ data }: { data: EKL15ChapterData }) {
+  const stats = [
+    { icon: <Clock size={18} />, value: "8 sec", label: "DURATION" },
+    { icon: <MonitorPlay size={18} />, value: "1080p HD", label: "RESOLUTION" },
+    { icon: <Clapperboard size={18} />, value: "360°", label: "VIEWS" },
+  ];
+
+  return (
+    <div className="space-y-8 py-4">
+      <div className="space-y-1">
+        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">Official Film</p>
+        <h3 className="font-display text-2xl font-bold text-slate-900 dark:text-white">
+          {data.tagline || "Escort DG Set — In Action"}
+        </h3>
+      </div>
+
+      <div className="border-l-[3px] border-accent pl-5">
+        <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400 italic">
+          {data.description || "Multiple angles of the Escort DG Set — showcasing the final product from every side, including a full 360° view of the complete unit."}
+        </p>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        {stats.map((s) => (
+          <div key={s.label} className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-5 text-center transition-all hover:border-accent/30 hover:bg-slate-50 dark:hover:bg-slate-900">
+            <div className="mb-3 text-accent">{s.icon}</div>
+            <div className="mb-1 text-lg font-bold text-slate-900 dark:text-white">{s.value}</div>
+            <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ── Main dispatcher ───────────────────────────────────────────────────────────
 export function ChapterInteractive({ chapterId, data, active }: Props) {
   return (
@@ -476,6 +514,9 @@ export function ChapterInteractive({ chapterId, data, active }: Props) {
       {chapterId === "protection"  && <ProtectionChapter data={data} />}
       {chapterId === "supply"      && <SupplyChapter data={data} />}
       {chapterId === "dimensions"  && <DimensionsChapter data={data} />}
+      {chapterId === "video"       && <VideoChapter data={data} />}
     </div>
   );
 }
+
+

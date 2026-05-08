@@ -307,6 +307,112 @@ function SpecBuilder({
   );
 }
 
+import { uploadImage } from "@/lib/api/storage";
+
+// ─── Image Upload Zone ────────────────────────────────────────────────────────
+function ImageUploadZone({ 
+  label, 
+  hint, 
+  value, 
+  onChange,
+  multiple = false 
+}: { 
+  label: string; 
+  hint?: string;
+  value?: string | string[];
+  onChange: (v: string | string[]) => void;
+  multiple?: boolean;
+}) {
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      if (multiple) {
+        const uploadPromises = Array.from(files).map(file => uploadImage(file));
+        const urls = await Promise.all(uploadPromises);
+        const currentUrls = Array.isArray(value) ? value : [];
+        onChange([...currentUrls, ...urls]);
+        toast.success(`Successfully uploaded ${urls.length} images`);
+      } else {
+        const url = await uploadImage(files[0]);
+        onChange(url);
+        toast.success("Primary image uploaded successfully");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
+      
+      {/* Previews */}
+      {!multiple && typeof value === "string" && value && (
+        <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-3 group">
+          <img src={value} alt="Primary" className="w-full h-full object-cover" />
+          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+            <button 
+              onClick={() => onChange("")}
+              className="p-2 bg-red-500 rounded-lg text-white hover:bg-red-600 transition-colors"
+            >
+              <Trash2 size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      {multiple && Array.isArray(value) && value.length > 0 && (
+        <div className="grid grid-cols-4 md:grid-cols-6 gap-3 mb-3">
+          {value.map((url, i) => (
+            <div key={i} className="relative aspect-square rounded-lg overflow-hidden group border border-border">
+              <img src={url} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <button 
+                  onClick={() => onChange((value as string[]).filter((_, idx) => idx !== i))}
+                  className="p-1.5 bg-red-500 rounded text-white hover:bg-red-600 transition-colors"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <label className={`
+        border-2 border-dashed border-border hover:border-accent/40 rounded-xl p-8 text-center transition-colors cursor-pointer group block
+        ${isUploading ? "opacity-50 pointer-events-none" : ""}
+      `}>
+        <input 
+          type="file" 
+          className="hidden" 
+          accept="image/*" 
+          multiple={multiple}
+          onChange={handleFileChange}
+        />
+        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center mx-auto mb-3 group-hover:bg-accent/10 transition-colors">
+          <Upload size={18} className={`${isUploading ? "animate-bounce" : ""} text-muted-foreground group-hover:text-accent transition-colors`} />
+        </div>
+        <p className="text-sm text-muted-foreground group-hover:text-muted-foreground transition-colors">
+          {isUploading ? "Uploading images..." : multiple ? "Add gallery images" : "Select primary image"}
+        </p>
+        {!isUploading && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Drop images here or <span className="text-accent">browse</span>
+          </p>
+        )}
+        {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
+      </label>
+    </div>
+  );
+}
 export default function AddProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
@@ -363,6 +469,7 @@ export default function AddProduct() {
     setVideoFile(null);
   };
 
+<<<<<<< HEAD
   useEffect(() => {
     if (!videoFile) {
       setVideoPreviewUrl(null);
@@ -492,7 +599,7 @@ export default function AddProduct() {
 
   const saveProduct = async (status: "draft" | "published") => {
     if (!form.name || !form.model || !form.kva) {
-      toast.error("Please fill in all required fields");
+      toast.error("Please fill in all required fields (Name, Model, kVA)");
       return;
     }
 
@@ -701,6 +808,7 @@ export default function AddProduct() {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="admin-page admin-page-narrow space-y-6 animate-fade-in">
@@ -913,24 +1021,19 @@ export default function AddProduct() {
 
       <FormSection title="D. Media" icon={ImageIcon}>
         <div className="space-y-5">
-          <Input
-            label="Primary Image URL"
-            placeholder="https://cdn.adityagenset.com/products/atm-250s.webp"
+          <ImageUploadZone
+            label="Primary Image *"
+            hint="JPG, PNG, WebP — min 800×600px, max 5MB. This is the main product card image."
             value={media.primaryImage}
-            onChange={(value) => setMedia((current) => ({ ...current, primaryImage: value }))}
-            hint="Saved to product media as the primary image."
+            onChange={(v) => setMedia(prev => ({ ...prev, primaryImage: v as string }))}
           />
-          <div className="space-y-1.5">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Gallery Image URLs</label>
-            <textarea
-              value={media.galleryUrls}
-              onChange={(event) => setMedia((current) => ({ ...current, galleryUrls: event.target.value }))}
-              placeholder="One image URL per line"
-              rows={4}
-              className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition-all resize-none"
-            />
-            <p className="text-[11px] text-muted-foreground">Each line is stored as one gallery image in order.</p>
-          </div>
+          <ImageUploadZone
+            label="Image Gallery (up to 12)"
+            hint="Select multiple images. Supported: JPG, PNG, WebP"
+            value={media.galleryUrls.split('\n').filter(Boolean)}
+            onChange={(v) => setMedia(prev => ({ ...prev, galleryUrls: (v as string[]).join('\n') }))}
+            multiple
+          />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input
               label="PDF Datasheet URL"
@@ -946,61 +1049,6 @@ export default function AddProduct() {
               onChange={(value) => setMedia((current) => ({ ...current, videoUrl: value }))}
               hint={videoFile ? "A selected upload will be used instead of this URL." : "Optional external video URL."}
             />
-          </div>
-          <div className="space-y-3 rounded-lg border border-dashed border-border bg-secondary/30 p-4">
-            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent/15 text-accent">
-                  <Film size={16} />
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Upload Product Video
-                  </label>
-                  <p className="text-[11px] text-muted-foreground">
-                    MP4, WebM, MOV, or other video files up to {MAX_VIDEO_UPLOAD_MB} MB.
-                  </p>
-                </div>
-              </div>
-              <label className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:border-accent/50 hover:text-accent">
-                <Upload size={13} />
-                Choose Video
-                <input
-                  type="file"
-                  accept="video/*"
-                  className="hidden"
-                  onChange={(event) => handleVideoFileChange(event.target.files?.[0])}
-                />
-              </label>
-            </div>
-
-            {videoFile && (
-              <div className="overflow-hidden rounded-lg border border-border bg-background">
-                {videoPreviewUrl && (
-                  <video
-                    src={videoPreviewUrl}
-                    controls
-                    className="aspect-video w-full bg-black object-contain"
-                  />
-                )}
-                <div className="flex items-center justify-between gap-3 border-t border-border px-3 py-2">
-                  <div className="min-w-0">
-                    <p className="truncate text-xs font-semibold text-foreground">{videoFile.name}</p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {(videoFile.size / 1024 / 1024).toFixed(1)} MB. Uploads when you save or publish.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={clearVideoFile}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-red-500/10 hover:text-red-400"
-                    title="Remove selected video"
-                  >
-                    <X size={14} />
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       </FormSection>
