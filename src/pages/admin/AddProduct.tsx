@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   ChevronDown,
-  ChevronUp,
   Cpu,
   Eye,
   Film,
@@ -13,28 +12,21 @@ import {
   Plus,
   Save,
   Search as SearchIcon,
-  Sparkles,
   Tag,
   Trash2,
   Upload,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
-import { PDFImportZone } from "@/components/admin/PDFImportZone";
-import type { ExtractedProduct, PdfImportPayload } from "@/lib/pdfExtractor";
 import { supabase } from "@/lib/supabase";
 import { updateCMSSection } from "@/lib/api/cms";
 import {
   ensureProductCategory,
   generateProductAutomation,
   getEngineBrandLabel,
-  inferCategorySlug,
-  inferProductType,
   normalizeEngineBrandKey,
 } from "@/lib/productAutomation";
-import { uploadExtractedPdfAssets, uploadProductMediaFile } from "@/lib/productMediaUpload";
-import { MappingReview } from "@/components/admin/MappingReview";
-import { enhanceProductExtraction, type EnhancedProductExtraction } from "@/lib/enhancedPdfExtractor";
+import { uploadProductMediaFile } from "@/lib/productMediaUpload";
 
 type ProductFormState = {
   name: string;
@@ -426,12 +418,8 @@ export default function AddProduct() {
   const [specs, setSpecs] = useState<SpecRow[]>(DEFAULT_SPECS);
   const [media, setMedia] = useState<MediaState>(DEFAULT_MEDIA);
   const [form, setForm] = useState<ProductFormState>(DEFAULT_FORM);
-  const [extractedData, setExtractedData] = useState<ExtractedProduct | null>(null);
-  const [importPayload, setImportPayload] = useState<PdfImportPayload | null>(null);
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
-  const [enhancedMapping, setEnhancedMapping] = useState<EnhancedProductExtraction | null>(null);
-  const [showReview, setShowReview] = useState(false);
 
   const updateForm = (key: keyof ProductFormState, value: string | string[]) => {
     setForm((current) => ({ ...current, [key]: value }));
@@ -545,85 +533,6 @@ export default function AddProduct() {
     void loadProduct();
   }, [id, navigate]);
 
-  const handleExtracted = (payload: PdfImportPayload) => {
-    const data = payload.data;
-    setImportPayload(payload);
-    setExtractedData(data);
-    const inferredBrand = normalizeEngineBrandKey(data.engineBrand || form.engineBrand);
-    const inferredType = inferProductType(data.category, form.type);
-    const inferredCategory = inferCategorySlug({
-      brandKey: inferredBrand,
-      type: inferredType,
-      extractedCategory: data.category,
-      selectedCategory: form.category,
-    });
-
-    setForm((current) => ({
-      ...current,
-      name: data.name || current.name,
-      model: data.model || current.model,
-      category: inferredCategory,
-      kva: data.kva || current.kva,
-      engineBrand: inferredBrand === "other" ? current.engineBrand : inferredBrand,
-      type: inferredType,
-      shortDesc: data.shortDesc || current.shortDesc,
-      fullDesc: data.fullDesc || current.fullDesc,
-      cpcb: data.cpcb === "ii" ? "ii" : "iv-plus",
-      seoTitle: data.name ? `${data.name} | Aditya Tech Mech` : current.seoTitle,
-      metaDesc: data.shortDesc || current.metaDesc,
-    }));
-
-    const updatedSpecs = [...specs];
-    const updateLabel = (searchString: string, newValue: string | null) => {
-      if (!newValue || newValue.trim() === "") return;
-      const index = updatedSpecs.findIndex(s => s.label.toLowerCase().includes(searchString.toLowerCase()));
-      if (index >= 0) {
-        updatedSpecs[index].value = newValue;
-      } else {
-        updatedSpecs.push({ label: searchString, value: newValue });
-      }
-    };
-
-    updateLabel("Power Output", data.kva ? `${data.kva} kVA` : null);
-    updateLabel("Engine Make", data.engineModel ? `${inferredBrand === "other" ? "" : inferredBrand} ${data.engineModel}`.trim() : null);
-    updateLabel("Alternator Brand", data.alternatorBrand);
-    updateLabel("Frequency", data.frequency);
-    updateLabel("Voltage Output", data.voltage);
-    updateLabel("Fuel Consumption", data.fuelConsumption);
-    updateLabel("Noise Level", data.noiseLevel);
-    updateLabel("Dimensions", data.dimensions);
-    updateLabel("Dry Weight", data.dryWeight);
-    updateLabel("CPCB Compliance", data.cpcb === 'ii' ? 'CPCB II' : 'CPCB IV+');
-    
-    if (data.application) updateLabel("Application", data.application);
-    if (data.fuelTankCapacity) updateLabel("Fuel Tank Capacity", data.fuelTankCapacity);
-    if (data.phase) updateLabel("Phase", data.phase);
-    if (data.powerFactor) updateLabel("Power Factor", data.powerFactor);
-    if (data.coolingType) updateLabel("Cooling", data.coolingType);
-    if (data.controllerModel) updateLabel("Controller", data.controllerModel);
-    
-    if (data.specs?.length) {
-      data.specs.forEach(spec => updateLabel(spec.label, spec.value));
-    }
-
-    setSpecs(updatedSpecs);
-
-    if (data.advancedSections && data.advancedSections.length > 0) {
-      // Logic for advanced sections if needed
-    }
-
-    // Generate enhanced mapping for review
-    const enhanced = enhanceProductExtraction(data, updatedSpecs);
-    setEnhancedMapping(enhanced);
-    setShowReview(true);
-
-    toast.success(
-      data.extractionSource === "local-fallback"
-        ? "PDF extraction applied with local fallback. Review the fields before publishing."
-        : "AI extraction applied. Review the fields and publish when ready."
-    );
-  };
-
   const saveProduct = async (status: "draft" | "published") => {
     if (!form.name || !form.model || !form.kva) {
       toast.error("Please fill in all required fields (Name, Model, kVA)");
@@ -639,7 +548,6 @@ export default function AddProduct() {
         form,
         specs,
         media,
-        extracted: extractedData,
       });
       const categoryId = await ensureProductCategory(draftAutomation.categorySlug);
 
@@ -674,27 +582,6 @@ export default function AddProduct() {
       if (error) throw error;
 
       const productId = savedProduct.id;
-      const shouldUploadImportedAssets =
-        Boolean(importPayload) &&
-        (
-          !media.primaryImage.trim() ||
-          media.primaryImage.startsWith("blob:") ||
-          !media.galleryUrls
-            .split(/\r?\n/)
-            .map((url) => url.trim())
-            .filter(Boolean)
-            .some((url) => !url.startsWith("blob:")) ||
-          !media.datasheetUrl.trim() ||
-          media.datasheetUrl.startsWith("blob:")
-        );
-
-      const uploadedAssets = shouldUploadImportedAssets && importPayload
-        ? await uploadExtractedPdfAssets({
-            productId,
-            slug,
-            assets: importPayload.assets,
-          })
-        : null;
       const uploadedVideo = videoFile
         ? await uploadProductMediaFile({
             productId,
@@ -705,24 +592,13 @@ export default function AddProduct() {
         : null;
 
       const resolvedMedia: MediaState = {
-        primaryImage:
-          media.primaryImage.trim() && !media.primaryImage.startsWith("blob:")
-            ? media.primaryImage.trim()
-            : uploadedAssets?.primaryImage?.publicUrl || media.primaryImage.trim(),
-        galleryUrls: (() => {
-          const manualGallery = media.galleryUrls
-            .split(/\r?\n/)
-            .map((url) => url.trim())
-            .filter(Boolean)
-            .filter((url) => !url.startsWith("blob:"));
-
-          if (manualGallery.length > 0) return manualGallery.join("\n");
-          return (uploadedAssets?.galleryImages || []).map((asset) => asset.publicUrl).join("\n");
-        })(),
-        datasheetUrl:
-          media.datasheetUrl.trim() && !media.datasheetUrl.startsWith("blob:")
-            ? media.datasheetUrl.trim()
-            : uploadedAssets?.datasheet?.publicUrl || media.datasheetUrl.trim(),
+        primaryImage: media.primaryImage.trim(),
+        galleryUrls: media.galleryUrls
+          .split(/\r?\n/)
+          .map((url) => url.trim())
+          .filter(Boolean)
+          .join("\n"),
+        datasheetUrl: media.datasheetUrl.trim(),
         videoUrl: uploadedVideo?.publicUrl || media.videoUrl.trim(),
       };
 
@@ -761,8 +637,8 @@ export default function AddProduct() {
           product_id: productId,
           kind: "primary",
           public_url: resolvedMedia.primaryImage.trim(),
-          storage_path: uploadedAssets?.primaryImage?.storagePath || null,
-          mime_type: uploadedAssets?.primaryImage?.mimeType || null,
+          storage_path: null,
+          mime_type: null,
           alt_text: form.name.trim(),
           display_order: 0,
         });
@@ -773,13 +649,12 @@ export default function AddProduct() {
         .map((url) => url.trim())
         .filter(Boolean)
         .forEach((url, index) => {
-          const uploadedMatch = uploadedAssets?.galleryImages.find((asset) => asset.publicUrl === url);
           mediaRows.push({
             product_id: productId,
             kind: "gallery",
             public_url: url,
-            storage_path: uploadedMatch?.storagePath || null,
-            mime_type: uploadedMatch?.mimeType || null,
+            storage_path: null,
+            mime_type: null,
             alt_text: `${form.name.trim()} gallery ${index + 1}`,
             display_order: index + 1,
           });
@@ -790,8 +665,8 @@ export default function AddProduct() {
           product_id: productId,
           kind: "datasheet",
           public_url: resolvedMedia.datasheetUrl.trim(),
-          storage_path: uploadedAssets?.datasheet?.storagePath || null,
-          mime_type: uploadedAssets?.datasheet?.mimeType || null,
+          storage_path: null,
+          mime_type: null,
           alt_text: `${form.name.trim()} datasheet`,
           display_order: 100,
         });
@@ -818,7 +693,6 @@ export default function AddProduct() {
         form,
         specs,
         media: resolvedMedia,
-        extracted: extractedData,
       });
 
       await Promise.all([
@@ -872,65 +746,6 @@ export default function AddProduct() {
             <Eye size={15} />
             {publishing ? "Publishing..." : "Publish"}
           </button>
-        </div>
-      </div>
-
-      <div className="bg-card shadow-sm border border-border rounded-xl overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-secondary">
-          <div className="w-7 h-7 rounded-lg bg-amber-500/15 flex items-center justify-center">
-            <Sparkles size={14} className="text-amber-400" />
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-foreground">AI PDF Import</h3>
-            <p className="text-[11px] text-muted-foreground">Drop a client datasheet PDF to auto-fill the product form.</p>
-          </div>
-        </div>
-        <div className="p-5">
-          <PDFImportZone onExtracted={handleExtracted} />
-          
-          {enhancedMapping && (
-            <div className="mt-6 border-t border-border pt-6 animate-in fade-in slide-in-from-top-4 duration-700">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h4 className="text-sm font-bold text-foreground">AI Extracted Data Structure</h4>
-                  <p className="text-[11px] text-muted-foreground">Detailed technical specifications mapped from PDF.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowReview(!showReview)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent rounded-lg text-xs font-bold transition-all"
-                >
-                  {showReview ? (
-                    <>Hide Review <ChevronUp size={12} /></>
-                  ) : (
-                    <>Show Full Review <ChevronDown size={12} /></>
-                  )}
-                </button>
-              </div>
-
-              {showReview && <MappingReview data={enhancedMapping} />}
-            </div>
-          )}
-
-          {importPayload && (
-            <div className="mt-4 flex items-center justify-between gap-4 rounded-lg border border-border bg-secondary/40 px-4 py-3">
-              <div>
-                <p className="text-xs font-semibold text-foreground">
-                  PDF media automation is enabled for this product
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  {importPayload.assets.pageImages.length} rendered page image{importPayload.assets.pageImages.length === 1 ? "" : "s"} and the source datasheet will upload on save/publish unless you switch back to manual media.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setImportPayload(null)}
-                className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors"
-              >
-                Use manual media instead
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -1087,13 +902,6 @@ export default function AddProduct() {
             multiple
           />
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="PDF Datasheet URL"
-              placeholder="https://cdn.adityagenset.com/specs/atm-250s.pdf"
-              value={media.datasheetUrl}
-              onChange={(value) => setMedia((current) => ({ ...current, datasheetUrl: value }))}
-              hint="Saved as product datasheet media."
-            />
             <Input
               label="Product Video URL"
               placeholder="https://youtube.com/watch?v=..."
