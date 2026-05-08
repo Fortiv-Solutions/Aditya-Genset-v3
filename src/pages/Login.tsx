@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import factoryHero from "@/assets/products/showcase/factory.jpg";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
-import { getRoleHomePath, isAdminRole, isSalesRole } from "@/lib/auth";
+import { getRoleHomePath } from "@/lib/auth";
 import type { AppRole } from "@/lib/supabase";
 import {
   Select,
@@ -39,6 +39,17 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const selectedRole = ROLE_OPTIONS[loginRole];
 
+  const loadProfileRole = async (userId: string): Promise<AppRole | null> => {
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (error) throw error;
+    return (data?.role as AppRole | undefined) ?? null;
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -66,19 +77,19 @@ export default function Login() {
       console.log("✅ Authentication successful:", data.user?.email);
 
       if (data.user) {
-        // TEMPORARY: Skip profile check entirely for development
-        console.warn("⚠️ DEVELOPMENT MODE: Skipping profile check");
-        
-        const profileRole = (loginRole === "admin" ? "Admin" : "Sales Executive") as AppRole;
+        const profileRole =
+          await loadProfileRole(data.user.id) ||
+          (data.user.app_metadata?.role as AppRole | undefined) ||
+          (data.user.user_metadata?.role as AppRole | undefined) ||
+          "Sales Executive";
         const redirectPath = getRoleHomePath(profileRole);
         
-        console.log("✅ Bypassing to:", redirectPath, "with role:", profileRole);
+        console.log("Redirecting to:", redirectPath, "with role:", profileRole);
 
         localStorage.setItem("userEmail", data.user.email || email);
         toast.success("Login successful! Redirecting...");
         
-        // Force immediate redirect
-        window.location.href = redirectPath;
+        navigate(redirectPath, { replace: true });
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Authentication failed. Please check your credentials.";

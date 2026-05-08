@@ -9,6 +9,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { useAuth } from "@/components/auth/AuthContext";
 import {
   AuthenticatedRoute,
+  LoginRedirect,
   RoleRoute,
 } from "@/components/auth/AuthRoutes";
 import { ADMIN_ROLES } from "@/lib/auth";
@@ -50,18 +51,17 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   
-  const isLoggedIn = user !== null || localStorage.getItem("isLoggedIn") === "true";
-  return isLoggedIn ? <>{children}</> : <Navigate to="/login" replace />;
+  return user ? <>{children}</> : <Navigate to="/login" replace />;
 };
 
 // ─── Admin Route (Protected + AdminLayout) ──────────────────────────────────
 const AdminRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   
-  const isLoggedIn = user !== null || localStorage.getItem("isLoggedIn") === "true";
-  if (!isLoggedIn) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!profile?.role || !ADMIN_ROLES.includes(profile.role)) return <Navigate to="/" replace />;
   return <AdminLayout>{children}</AdminLayout>;
 };
 
@@ -78,7 +78,7 @@ const App = () => {
                 <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
                   <Routes>
                     {/* ── Public ─────────────────────────────────── */}
-                    <Route path="/login" element={<Login />} />
+                    <Route path="/login" element={<LoginRedirect><Login /></LoginRedirect>} />
 
                     {/* ── Admin Dashboard ─────────────────────────── */}
                     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
@@ -126,6 +126,7 @@ const App = () => {
                             <RouteFade>
                               <Routes>
                                 <Route path="/" element={<Home />} />
+                                <Route path="/home" element={<Navigate to="/" replace />} />
                                 <Route path="/products" element={<Products />} />
                                 <Route path="/products/dg-sets" element={<DGSetsCategory />} />
                                 <Route path="/products/:slug" element={<ProductDetail />} />

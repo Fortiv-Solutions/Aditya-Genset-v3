@@ -1,8 +1,10 @@
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Menu, X, Home, Box, Monitor, LayoutDashboard, BarChart2, FileText } from "lucide-react";
+import { Menu, X, Home, Box, Monitor, BarChart2, FileText, LogOut, UserCircle } from "lucide-react";
 import { useCompare } from "@/context/CompareContext";
+import { useAuth } from "@/components/auth/AuthContext";
+import { toast } from "sonner";
 import logo from "@/assets/brand/logo.png";
 
 const links = [
@@ -16,7 +18,16 @@ export function Navbar() {
   const [open, setOpen] = useState(false);
   const [isPresentMode, setIsPresentMode] = useState(false);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const { selectedIds } = useCompare();
+  const { user, profile, signOut } = useAuth();
+  const accountLabel = profile?.full_name || user?.email || "Account";
+
+  const handleLogout = async () => {
+    await signOut();
+    toast.success("Logged out successfully");
+    navigate("/login", { replace: true });
+  };
 
   const allLinks = [
     ...links.map(link => {
@@ -112,6 +123,14 @@ export function Navbar() {
               <Monitor size={18} />
               Present
             </button>
+
+            <button
+              onClick={handleLogout}
+              className="mt-1 flex items-center gap-3 rounded-full px-5 py-3.5 text-sm font-medium text-muted-foreground transition-all hover:bg-secondary/80 hover:text-foreground"
+            >
+              <LogOut size={18} />
+              Logout
+            </button>
           </nav>
         </div>
       )}
@@ -125,6 +144,19 @@ export function Navbar() {
             className="h-8 w-auto mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]"
           />
         </Link>
+      </div>
+
+      {/* Desktop Account Control */}
+      <div className="fixed right-4 top-4 z-50 hidden md:block">
+        <button
+          onClick={handleLogout}
+          title="Logout"
+          className="group flex h-9 max-w-[220px] items-center gap-2 rounded-full border border-border bg-white/75 px-3 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur-md transition-all hover:bg-white hover:text-foreground hover:shadow-md"
+        >
+          <UserCircle size={15} className="shrink-0 text-muted-foreground transition-colors group-hover:text-accent" />
+          <span className="max-w-[130px] truncate">{accountLabel}</span>
+          <LogOut size={14} className="shrink-0 opacity-60 transition-opacity group-hover:opacity-100" />
+        </button>
       </div>
 
       {/* Desktop Floating Navigation Group (Vertically Centered) */}
