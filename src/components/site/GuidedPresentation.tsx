@@ -74,7 +74,7 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
   const cameraOffsetY = (50 - dotY) * 0.4;
 
   return (
-    <div ref={wrapperRef} className="fixed inset-0 z-[9999] overflow-y-auto bg-white pointer-events-auto">
+    <div ref={wrapperRef} className="fixed inset-0 z-[9999] overflow-y-auto bg-white pointer-events-auto no-scrollbar">
       <div ref={containerRef} className="relative h-[600vh] w-full text-foreground selection:bg-accent selection:text-white">
         {/* Sticky Background Visuals */}
         <div className="sticky top-0 h-screen w-full overflow-hidden bg-white">
@@ -280,13 +280,6 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
             </motion.div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="fixed bottom-0 left-0 h-1 bg-white/10 w-full z-50">
-            <motion.div 
-              className="h-full bg-accent"
-              style={{ scaleX: scrollYProgress, originX: 0 }}
-            />
-          </div>
         </div>
       </div>
     </div>

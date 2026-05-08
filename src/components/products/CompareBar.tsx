@@ -33,7 +33,7 @@ export function CompareBar() {
           <div className="flex items-center gap-3">
             <div className="flex -space-x-3 overflow-hidden">
               {products.map((p) => {
-                const img = p.product_media?.find((m: any) => m.kind === 'primary')?.url || gensetFallback;
+                const img = p.product_media?.find((m: any) => m.kind === 'primary')?.public_url || gensetFallback;
                 return (
                   <div key={p.id} className="relative group">
                     <img

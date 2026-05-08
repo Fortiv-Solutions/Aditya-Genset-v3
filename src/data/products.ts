@@ -313,6 +313,7 @@ import ekl15Supply     from "@/assets/products/escorts/escort_20kva_1.jpg";
 import escort15KVA from "@/assets/products/escorts/escort_15kva.jpg";
 import escort15KVA2 from "@/assets/products/escorts/escort_15kva_2.jpg";
 import escort20KVA1 from "@/assets/products/escorts/escort_20kva_1.jpg";
+import escort20KVA2 from "@/assets/products/escorts/escort_20kva_2.jpg";
 import escort30KVA from "@/assets/products/escorts/escort_30kva.jpg";
 import escort40KVA2 from "@/assets/products/escorts/escort_40kva_2.jpg";
 import escort40KVA from "@/assets/products/escorts/escort_40kva_main.jpg";
@@ -321,14 +322,6 @@ import ekl15Electrical from "@/assets/products/parts/enclosure.jpg";
 import ekl15Protection from "@/assets/products/parts/enclosure.jpg";
 
 export const PRODUCTS: ProductSummary[] = [
-  {
-    slug: SHOWCASE.slug,
-    name: SHOWCASE.name,
-    kva: SHOWCASE.kva,
-    range: "15-62.5",
-    status: "active",
-    thumbnail: dgOverview,
-  },
   {
     slug: "ekl-15-2cyl",
     name: "EKL 15 kVA (2 Cyl) DG Set",
@@ -343,7 +336,7 @@ export const PRODUCTS: ProductSummary[] = [
     kva: 20,
     range: "15-62.5",
     status: "active",
-    thumbnail: escort20KVA1,
+    thumbnail: escort20KVA2,
   },
 ];
 
@@ -662,15 +655,15 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
   range: "15-62.5",
   status: "active",
   engineBrand: "Escorts",
-  thumbnail: escort20KVA1,
-  hero: escort20KVA1,
+  thumbnail: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
+  hero: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
   hotspots: [
     {
       id: "overview",
       x: 50, y: 50,
       title: "EKL 20 kVA DG Set",
       description: "Escorts-powered 20 kVA silent generator. Features the G20-IV 3-cylinder engine for superior performance.",
-      subImage: escort20KVA1,
+      subImage: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
       zoom: 1, offsetX: 0, offsetY: 0,
       specs: [
         { label: "Model", value: "EKL20(3cyl)-IV" },
@@ -683,7 +676,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       x: 42, y: 55,
       title: "Escorts G20-IV Engine",
       description: "3-cylinder, naturally aspirated engine delivering 24.2 hp. High carbon steel forged crankshaft.",
-      subImage: ekl15Engine,
+      subImage: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva.jpg",
       zoom: 1.8, offsetX: 8, offsetY: 2,
       specs: [
         { label: "Make", value: "Escorts" },
@@ -773,12 +766,23 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       x: 50, y: 78,
       title: "Dimensions & Weight",
       description: "Compact design: 1950 × 1050 × 1555 mm.",
-      subImage: escort20KVA1,
+      subImage: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
       zoom: 1.2, offsetX: 0, offsetY: -10,
       specs: [
         { label: "Length", value: "1950 mm" },
         { label: "Width", value: "1050 mm" },
         { label: "Height", value: "1555 mm" },
+      ]
+    },
+    {
+      id: "video",
+      x: 50, y: 50,
+      title: "Product Video",
+      description: "Experience the EKL 20 kVA silent power in action.",
+      subImage: escortVideoThumb,
+      zoom: 1, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Showcase", value: "360° View" },
       ]
     }
   ],
@@ -788,7 +792,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       number: "01",
       title: "EKL 20 kVA Silent DG Set",
       tagline: "Escorts G20-IV powered 3-cylinder engine.",
-      image: escort20KVA1,
+      image: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
       alt: "ATM EKL 20 kVA 3-cylinder silent diesel generator",
       specs: [
         { label: "Model", value: "EKL20(3cyl)-IV" },
@@ -806,7 +810,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       number: "02",
       title: "Engine",
       tagline: "Escorts G20-IV — 3-cylinder performance.",
-      image: escort20KVA1,
+      image: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva.jpg",
       alt: "Escorts 3-cylinder engine",
       specs: [
         { label: "Make", value: "Escorts" },
@@ -820,7 +824,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       number: "03",
       title: "Fuel, Lube & Cooling",
       tagline: "High efficiency fuel consumption.",
-      image: escort20KVA1,
+      image: escort40KVA2,
       alt: "Fuel and cooling",
       specs: [
         { label: "Fuel (100%)", value: "4.17 L/hr" },
@@ -832,7 +836,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       number: "04",
       title: "Alternator & Electrical",
       tagline: "Stamford S0L2-G1 reliability.",
-      image: escort20KVA1,
+      image: ekl15Alternator,
       alt: "Alternator",
       specs: [
         { label: "Make", value: "Stamford" },
@@ -844,7 +848,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       number: "05",
       title: "Enclosure",
       tagline: "Compact silent canopy.",
-      image: escort20KVA1,
+      image: ekl15Enclosure,
       alt: "Acoustic enclosure",
       specs: [
         { label: "Length", value: "1950 mm" },
@@ -857,7 +861,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       number: "06",
       title: "Control Panel",
       tagline: "DEIF SGC 120 microprocessor based digital controller.",
-      image: escort20KVA1,
+      image: ekl15Control,
       alt: "Control panel",
       specs: [
         { label: "Controller", value: "DEIF SGC 120" },
@@ -868,7 +872,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       number: "07",
       title: "Protection & Approvals",
       tagline: "Full safety suite.",
-      image: escort20KVA1,
+      image: ekl15Protection,
       alt: "Safety systems",
       specs: [
         { label: "CE Compliant", value: "Yes" },
@@ -879,10 +883,35 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
       number: "08",
       title: "Standard Supply & Extras",
       tagline: "Complete turnkey package.",
-      image: escort20KVA1,
+      image: escort40KVA2,
       alt: "Scope of supply",
       specs: [
         { label: "Standard Items", value: "17" },
+      ],
+    },
+    {
+      id: "dimensions",
+      number: "09",
+      title: "Dimensions & Weight",
+      tagline: "Compact: 1950 × 1050 × 1555 mm.",
+      image: escort40KVA,
+      alt: "Dimensions diagram",
+      specs: [
+        { label: "Length", value: "1950 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1555 mm" },
+      ],
+    },
+    {
+      id: "video",
+      number: "10",
+      title: "Product Video",
+      tagline: "Experience the EKL 20 in 360°.",
+      image: escortVideoThumb,
+      videoUrl: escortVideo,
+      alt: "Escort DG set 360 degree showcase",
+      specs: [
+        { label: "Showcase", value: "360° View" },
       ],
     },
   ],
@@ -906,7 +935,6 @@ export const getAllProducts = (): ProductSummary[] => {
 
 export const getProductBySlug = (slug: string): ShowcaseProduct | null => {
   if (slug === SHOWCASE.slug) return SHOWCASE;
-  if (slug === EKL15_SHOWCASE.slug) return EKL15_SHOWCASE;
   if (slug === EKL20_SHOWCASE.slug) return EKL20_SHOWCASE;
   return getDynamicProduct(slug);
 };

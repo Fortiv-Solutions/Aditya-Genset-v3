@@ -395,4 +395,12 @@ body.present-mode footer {
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--accent) / 0.5);
   }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

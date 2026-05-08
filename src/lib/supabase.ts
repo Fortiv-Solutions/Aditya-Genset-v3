@@ -1,8 +1,13 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Supabase configuration - ALWAYS use real credentials
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://vbbeibweeavuksmvkbnb.supabase.co'
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZiYmVpYndlZWF2dWtzbXZrYm5iIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgwMTI2NDksImV4cCI6MjA5MzU4ODY0OX0.bkP7oDsg2jHMwNJAJG8KUzE4e725-6_uZnpd3OYiHtM'
+// Supabase configuration - ALWAYS use environment variables
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.error('❌ Missing Supabase credentials in environment variables');
+  throw new Error('Supabase credentials not configured. Please check your .env file.');
+}
 
 console.log('🔍 Environment check:', {
   hasUrl: !!supabaseUrl,
