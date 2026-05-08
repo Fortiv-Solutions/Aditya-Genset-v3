@@ -44,6 +44,9 @@ type DashboardProduct = {
   model: string | null;
   status: string | null;
   inquiries: number | null;
+  kva?: number | string | null;
+  engine_brand?: string | null;
+  product_specs?: { spec_label: string; spec_value: string }[];
 };
 type DashboardQuote = {
   id: string;
@@ -243,7 +246,7 @@ export default function AdminDashboard() {
           comparisonProductsResult,
           quoteItemsResult,
         ] = await Promise.all([
-          supabase.from("products").select("id, name, model, inquiries, status"),
+          supabase.from("products").select("id, name, model, inquiries, status, kva, engine_brand, product_specs(spec_label, spec_value)"),
           supabase.from("quotes").select("id, status, total_amount, created_by_user_id, created_at, sent_at, accepted_at"),
           supabase.from("profiles").select("user_id, role, full_name"),
           supabase.from("presentation_sessions").select("id, product_id, created_by_user_id, last_activity_at"),
@@ -255,7 +258,33 @@ export default function AdminDashboard() {
           presentationsResult.error || comparisonProductsResult.error || quoteItemsResult.error;
         if (error) throw error;
 
-        const products = (productsResult.data ?? []) as DashboardProduct[];
+        const productsRaw = (productsResult.data ?? []) as DashboardProduct[];
+        
+        // Apply strict filtering to remove redundant/incomplete products
+        const products = productsRaw.filter(p => {
+          // 1. Exclude Baudouin 20kVA
+          const isBaudouin20kVA = Number(p.kva) === 20 && 
+            (String(p.engine_brand || "").toLowerCase().includes('baudouin') || 
+             String(p.name || "").toLowerCase().includes('baudouin'));
+          
+          if (isBaudouin20kVA) return false;
+
+          // 2. Exclude Escorts 20kVA with "Variable" or NO fuel spec
+          const isEscorts20 = Number(p.kva) === 20 || 
+                             String(p.name || "").toLowerCase().includes('ekl');
+          
+          if (isEscorts20) {
+            const fuelSpec = p.product_specs?.find((s: any) => 
+              String(s.spec_label || "").toLowerCase().includes('fuel')
+            );
+            const fuelValue = String(fuelSpec?.spec_value || "").toLowerCase();
+            
+            if (!fuelSpec || !fuelValue || fuelValue.includes('variable')) return false;
+          }
+
+          return true;
+        });
+
         const quotes = (quotesResult.data ?? []) as DashboardQuote[];
         const profiles = (profilesResult.data ?? []) as DashboardProfile[];
         const presentations = (presentationsResult.data ?? []) as DashboardPresentation[];

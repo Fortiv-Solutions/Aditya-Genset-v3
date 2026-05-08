@@ -411,10 +411,7 @@ export default function CompareProducts() {
                 <Printer size={16} />
                 <EditableText section="comparePage" contentKey="printBtn" />
               </Button>
-              <Button variant="outline" onClick={shareComparison} className="gap-2">
-                <Share2 size={16} />
-                <EditableText section="comparePage" contentKey="shareBtn" />
-              </Button>
+
               <Button variant="outline" onClick={clearCompare} className="text-red-500 hover:text-red-600 hover:bg-red-50">
                 <EditableText section="comparePage" contentKey="clearAllBtn" />
               </Button>

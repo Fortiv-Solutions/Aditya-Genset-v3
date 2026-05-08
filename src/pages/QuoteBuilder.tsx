@@ -923,11 +923,12 @@ export default function QuoteBuilder() {
                               type="number"
                               min="1"
                               value={item.quantity}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) =>
                                 updateQuoteItem(
                                   item.id,
                                   "quantity",
-                                  clampNumber(parseInt(e.target.value, 10), 1, 999)
+                                  clampNumber(parseInt(e.target.value, 10) || 1, 1, 999)
                                 )
                               }
                             />
@@ -939,11 +940,12 @@ export default function QuoteBuilder() {
                               min="0"
                               step="0.01"
                               value={item.unitPrice}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) =>
                                 updateQuoteItem(
                                   item.id,
                                   "unitPrice",
-                                  clampNumber(parseFloat(e.target.value), 0)
+                                  clampNumber(parseFloat(e.target.value) || 0, 0)
                                 )
                               }
                             />
@@ -955,11 +957,12 @@ export default function QuoteBuilder() {
                               min="0"
                               max="100"
                               value={item.discount}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) =>
                                 updateQuoteItem(
                                   item.id,
                                   "discount",
-                                  clampNumber(parseFloat(e.target.value), 0, 100)
+                                  clampNumber(parseFloat(e.target.value) || 0, 0, 100)
                                 )
                               }
                             />
@@ -1078,15 +1081,7 @@ export default function QuoteBuilder() {
                       <Download className="mr-2" size={16} />
                       Download PDF
                     </Button>
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={sendQuoteEmail}
-                      disabled={quoteItems.length === 0 || !customerInfo.email}
-                    >
-                      <Send className="mr-2" size={16} />
-                      Send via Email
-                    </Button>
+
                   </div>
 
                   <div className="pt-4 border-t border-border text-xs text-muted-foreground space-y-1">

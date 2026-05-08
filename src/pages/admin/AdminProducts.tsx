@@ -104,26 +104,52 @@ export default function AdminProducts() {
     try {
       const { data, error } = await supabase
         .from("products")
-        .select("id, name, model, slug, kva, engine_brand, type, cpcb, price, stock, inquiries, status, product_categories(name)")
+        .select("id, name, model, slug, kva, engine_brand, type, cpcb, price, stock, inquiries, status, product_categories(name), product_specs(*)")
         .order("kva", { ascending: true });
 
       if (error) throw error;
 
-      const mapped: AdminProduct[] = (data || []).map((p) => ({
-        id: p.id,
-        name: p.name,
-        model: p.model || p.slug,
-        slug: p.slug || p.model,
-        kva: Number(p.kva || 0),
-        engineBrand: p.engine_brand || "N/A",
-        type: p.type || "silent",
-        cpcb: p.cpcb === "ii" || p.cpcb === "II" ? "II" : "IV+",
-        price: p.price ? Number(p.price) : null,
-        stock: p.stock || "in_stock",
-        inquiries: p.inquiries || 0,
-        status: p.status || "draft",
-        category: p.product_categories?.name || "DG Sets",
-      }));
+      const mapped: AdminProduct[] = (data || [])
+        .filter((p: any) => {
+          // 1. Exclude Baudouin 20kVA
+          const isBaudouin20kVA = Number(p.kva) === 20 && 
+            (String(p.engine_brand || "").toLowerCase().includes('baudouin') || 
+             String(p.name || "").toLowerCase().includes('baudouin'));
+          
+          if (isBaudouin20kVA) return false;
+
+          // 2. Exclude Escorts 20kVA with "Variable" or NO fuel spec
+          const isEscorts20 = Number(p.kva) === 20 || 
+                             String(p.name || "").toLowerCase().includes('ekl');
+          
+          if (isEscorts20) {
+            const fuelSpec = p.product_specs?.find((s: any) => 
+              String(s.spec_label || "").toLowerCase().includes('fuel') ||
+              String(s.label || "").toLowerCase().includes('fuel')
+            );
+            const fuelValue = String(fuelSpec?.spec_value || fuelSpec?.value || "").toLowerCase();
+            
+            // If fuel is missing, empty, or "variable", hide it
+            if (!fuelSpec || !fuelValue || fuelValue.includes('variable')) return false;
+          }
+
+          return true;
+        })
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          model: p.model || p.slug,
+          slug: p.slug || p.model,
+          kva: Number(p.kva || 0),
+          engineBrand: p.engine_brand || "N/A",
+          type: p.type || "silent",
+          cpcb: p.cpcb === "ii" || p.cpcb === "II" ? "II" : "IV+",
+          price: p.price ? Number(p.price) : null,
+          stock: p.stock || "in_stock",
+          inquiries: p.inquiries || 0,
+          status: p.status || "draft",
+          category: (p.product_categories as any)?.name || p.product_categories?.[0]?.name || "DG Sets",
+        }));
 
       setProducts(mapped);
     } catch (error) {

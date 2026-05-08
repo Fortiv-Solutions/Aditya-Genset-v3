@@ -19,6 +19,7 @@ export interface ProductSummary {
   range: KvaRange;
   status: ProductStatus;
   thumbnail: string;
+  specs?: Record<string, string>;
 }
 
 export interface SpecRow {
@@ -324,26 +325,38 @@ import ekl15Protection from "@/assets/products/parts/enclosure.jpg";
 export const PRODUCTS: ProductSummary[] = [
   {
     slug: "ekl-15-2cyl",
-    name: "EKL 15 kVA (2 Cyl) DG Set",
+    name: "ATM EKL 15 (2 Cyl)-IV",
     kva: 15,
     range: "15-62.5",
     status: "active",
     thumbnail: escort15KVA,
+    specs: {
+      "Engine": "Escorts",
+      "Fuel Consumption": "3.5 L/hr",
+      "Noise": "68 dB(A)",
+      "Compliance": "CPCB IV+"
+    }
   },
   {
     slug: "ekl-20-3cyl",
-    name: "EKL 20 kVA (3 Cyl) DG Set",
+    name: "EKL20(3cyl)-IV",
     kva: 20,
     range: "15-62.5",
     status: "active",
     thumbnail: escort20KVA2,
+    specs: {
+      "Engine": "Escorts",
+      "Fuel Consumption": "4.17 L/hr",
+      "Noise": "70 dB(A)",
+      "Compliance": "CPCB IV+"
+    }
   },
 ];
 
 // ── EKL 15 (2 Cyl)-IV Showcase ──────────────────────────────────────────────
 export const EKL15_SHOWCASE: ShowcaseProduct = {
   slug: "ekl-15-2cyl",
-  name: "EKL 15 kVA (2 Cyl) DG Set",
+  name: "ATM EKL 15 (2 Cyl)-IV",
   kva: 15,
   range: "15-62.5",
   status: "active",
@@ -354,12 +367,12 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
     {
       id: "overview",
       x: 50, y: 50,
-      title: "EKL 15 kVA DG Set",
-      description: "Escorts-powered 15 kVA silent generator. Compact, CPCB IV compliant — built for demanding environments.",
+      title: "ATM EKL 15 (2 Cyl)-IV",
+      description: "Escorts-powered 15 kVA silent generator. Features the G15-IV 2-cylinder engine for reliable performance.",
       subImage: escort15KVA,
       zoom: 1, offsetX: 0, offsetY: 0,
       specs: [
-        { label: "Model", value: "EKL15-IV (2 Cyl)" },
+        { label: "Model", value: "ATM EKL 15 (2 Cyl)-IV" },
         { label: "Rating", value: "15 kVA / 12 kWe" },
         { label: "Compliance", value: "CPCB IV+" },
       ]
@@ -381,11 +394,11 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       id: "fuel",
       x: 58, y: 65,
       title: "Fuel, Lube & Cooling",
-      description: "Highly efficient fuel consumption with integrated radiator cooling and high-capacity lube oil system.",
+      description: "Optimized for efficiency. Fuel consumption: 3.5 L/hr at 100% load.",
       subImage: escort15KVA,
       zoom: 1.4, offsetX: -5, offsetY: -5,
       specs: [
-        { label: "Fuel (100%)", value: "3.78 L/hr" },
+        { label: "Fuel (100%)", value: "3.5 L/hr" },
         { label: "Tank", value: "70 L" },
         { label: "Lube Oil", value: "5.5 L" },
       ]
@@ -407,13 +420,13 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
       id: "enclosure",
       x: 85, y: 58,
       title: "Enclosure & Sound",
-      description: "CPCB IV compliant acoustic enclosure for silent residential and commercial operation.",
+      description: "Acoustic enclosure designed for 15 kVA requirements. Quiet operation at 68 dB(A).",
       subImage: ekl15Enclosure,
       zoom: 1.5, offsetX: -15, offsetY: 5,
       specs: [
-        { label: "Sound level", value: "70 dB(A) @ 1m" },
-        { label: "Compliance", value: "CPCB IV" },
-        { label: "Protection", value: "IP23" },
+        { label: "Noise", value: "68 dB(A)" },
+        { label: "Length", value: "1850 mm" },
+        { label: "Width", value: "950 mm" },
       ]
     },
     {
@@ -650,7 +663,7 @@ export const EKL15_SHOWCASE: ShowcaseProduct = {
 // ── EKL 20 (3 Cyl)-IV Showcase ──────────────────────────────────────────────
 export const EKL20_SHOWCASE: ShowcaseProduct = {
   slug: "ekl-20-3cyl",
-  name: "EKL 20 kVA (3 Cyl) DG Set",
+  name: "EKL20(3cyl)-IV",
   kva: 20,
   range: "15-62.5",
   status: "active",
@@ -661,7 +674,7 @@ export const EKL20_SHOWCASE: ShowcaseProduct = {
     {
       id: "overview",
       x: 50, y: 50,
-      title: "EKL 20 kVA DG Set",
+      title: "EKL20(3cyl)-IV",
       description: "Escorts-powered 20 kVA silent generator. Features the G20-IV 3-cylinder engine for superior performance.",
       subImage: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
       zoom: 1, offsetX: 0, offsetY: 0,
