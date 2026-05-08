@@ -13,7 +13,7 @@ import { EKL15_CHAPTER_DATA } from "@/data/ekl15Data";
 import { EKL20_3CYL_CHAPTER_DATA } from "@/data/ekl20Data";
 
 // Fallback images
-import mainImageFallback from "@/assets/products/showcase/main-view.png";
+import mainImageFallback from "@/assets/products/showcase/main-view-optimized.jpg";
 import subProductFallback from "@/assets/products/parts/enclosure.jpg";
 
 export function GuidedPresentation({ onClose, sectionId = "presentationData", product }: { onClose: () => void, sectionId?: string, product?: ShowcaseProduct }) {

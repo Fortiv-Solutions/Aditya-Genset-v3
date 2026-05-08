@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import gensetFallback from "@/assets/products/showcase/main-view.png";
+import gensetFallback from "@/assets/products/showcase/main-view-optimized.jpg";
 import { EditableText } from "@/components/cms/EditableText";
 
 interface QuoteItem {

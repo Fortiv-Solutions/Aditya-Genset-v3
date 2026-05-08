@@ -9,6 +9,8 @@ import { fetchProductShowcase } from "@/lib/api/cms";
 import { ShowcaseProduct, getProductBySlug } from "@/data/products";
 import { useCompare } from "@/context/CompareContext";
 import { BarChart2 } from "lucide-react";
+import videoThumb from "@/assets/products/showcase/main-view-optimized.jpg";
+import showcaseVideo from "@/assets/products/showcase/product-video.mp4";
 
 // Height of the absolute header overlay in px — used to offset first chapter
 export const SHOWCASE_HEADER_H = 230;
@@ -68,8 +70,8 @@ export default function ProductDetail() {
               number: String(lastNum + 1).padStart(2, '0'),
               title: "Product Video",
               tagline: "Escort DG Set — Multiple views and 360° product showcase.",
-              image: "/assets/products/showcase/main-view.png",
-              videoUrl: "/assets/products/showcase/product-video.mp4",
+              image: videoThumb,
+              videoUrl: showcaseVideo,
               alt: `${finalProduct.name} 360 degree showcase`,
               specs: [
                 { label: "Duration", value: "8 sec" },
@@ -105,8 +107,8 @@ export default function ProductDetail() {
               number: String(finalProduct.sections.length + 1).padStart(2, '0'),
               title: "Product Video",
               tagline: "Escort DG Set — Multiple views and 360° product showcase.",
-              image: "/assets/products/showcase/main-view.png",
-              videoUrl: "/assets/products/showcase/product-video.mp4",
+              image: videoThumb,
+              videoUrl: showcaseVideo,
               alt: `${finalProduct.name} 360 degree showcase`,
               specs: [
                 { label: "Duration", value: "8 sec" },

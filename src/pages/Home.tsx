@@ -2,7 +2,7 @@ import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { motion, useScroll, useTransform } from "framer-motion";
 import factoryHero from "@/assets/products/showcase/factory.jpg";
-import dgRealistic from "@/assets/products/showcase/cinematic-view.png";
+import dgRealistic from "@/assets/products/showcase/cinematic-view-optimized.jpg";
 import { SEO } from "@/components/site/SEO";
 import { StatStrip } from "@/components/site/StatStrip";
 import { SectionReveal } from "@/components/site/SectionReveal";
@@ -137,6 +137,8 @@ export default function Home() {
                   <img 
                     src={dgRealistic} 
                     alt="62.5 kVA Silent Diesel Generator" 
+                    loading="eager"
+                    decoding="async"
                     className="h-full w-full object-contain"
                   />
                 </div>

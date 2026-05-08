@@ -4,7 +4,7 @@ import { SEO } from "@/components/site/SEO";
 import { fetchPublishedProducts } from "@/lib/api/products";
 import { SectionReveal } from "@/components/site/SectionReveal";
 import { ArrowLeft, ArrowRight, Zap, Search, Loader2 } from "lucide-react";
-import gensetFallback from "@/assets/products/showcase/main-view.png";
+import gensetFallback from "@/assets/products/showcase/main-view-optimized.jpg";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import { useCompare } from "@/context/CompareContext";
@@ -51,24 +51,12 @@ export default function DGSetsCategory() {
     async function loadSets() {
       setLoading(true);
       try {
-        console.log('🔍 DGSetsCategory: Fetching products...')
         const products = await fetchPublishedProducts();
-        console.log('📦 DGSetsCategory: Received products:', products)
-        console.log('📊 DGSetsCategory: Product count:', products.length)
         
         const mapped: DGSet[] = products.map(p => {
           const primaryMedia = p.product_media?.find(m => m.kind === 'primary' || m.kind === 'card');
           const specs = p.product_specs || [];
           const engineBrand = String(p.engine_brand || "").toLowerCase();
-          
-          console.log(`📝 Mapping product: ${p.name}`, {
-            id: p.id,
-            status: p.status,
-            engine_brand: p.engine_brand,
-            kva: p.kva,
-            hasImage: !!primaryMedia,
-            specCount: specs.length
-          })
           
           return {
             id: p.id,
@@ -84,8 +72,6 @@ export default function DGSetsCategory() {
             isHidden: p.status !== 'published'
           };
         });
-        console.log('✅ DGSetsCategory: Mapped products:', mapped)
-        console.log('📊 DGSetsCategory: Mapped count:', mapped.length)
         setSets(mapped);
       } catch (err) {
         console.error("❌ DGSetsCategory: Failed to load DG sets:", err);
@@ -104,22 +90,8 @@ export default function DGSetsCategory() {
     const matchesKva = set.kva >= selectedKvaRange.min && set.kva <= selectedKvaRange.max;
     const matchesApplication = selectedApplication === "All" || set.application.includes(selectedApplication);
     
-    const passes = !set.isHidden && matchesSearch && matchesEngine && matchesKva && matchesApplication;
-    
-    if (!passes) {
-      console.log(`🚫 Product filtered out: ${set.model}`, {
-        isHidden: set.isHidden,
-        matchesSearch,
-        matchesEngine,
-        matchesKva,
-        matchesApplication
-      })
-    }
-    
-    return passes;
+    return !set.isHidden && matchesSearch && matchesEngine && matchesKva && matchesApplication;
   });
-
-  console.log('📊 Filtered products count:', filteredSets.length, 'out of', sets.length)
 
   return (
     <>
@@ -293,6 +265,8 @@ export default function DGSetsCategory() {
                       <img
                         src={set.image}
                         alt={set.model}
+                        loading={index < 4 ? "eager" : "lazy"}
+                        decoding="async"
                         className="w-full h-full object-contain p-4 transition-transform duration-500 group-hover:scale-110"
                       />
                     </div>

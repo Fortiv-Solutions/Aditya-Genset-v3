@@ -80,26 +80,32 @@ function VideoSlide({ section, isActive }: { section: ShowcaseSection; isActive:
 export function StickyImageStack({ sections, active }: Props) {
   return (
     <div className="relative aspect-square w-full overflow-hidden rounded-sm">
-      {sections.map((s, i) => (
-        <div
-          key={s.id}
-          className={cn(
-            "absolute inset-0 h-full w-full transition-all duration-700 ease-brand",
-            i === active ? "opacity-100 scale-100" : "opacity-0 scale-[1.02]",
-          )}
-        >
-          {s.videoUrl ? (
-            <VideoSlide section={s} isActive={i === active} />
-          ) : (
-            <img
-              src={s.image}
-              alt={s.alt}
-              loading={i === 0 ? "eager" : "lazy"}
-              className="h-full w-full object-contain"
-            />
-          )}
-        </div>
-      ))}
+      {sections.map((s, i) => {
+        const shouldMount = Math.abs(i - active) <= 1;
+        if (!shouldMount) return null;
+
+        return (
+          <div
+            key={s.id}
+            className={cn(
+              "absolute inset-0 h-full w-full transition-all duration-700 ease-brand",
+              i === active ? "opacity-100 scale-100" : "opacity-0 scale-[1.02]",
+            )}
+          >
+            {s.videoUrl ? (
+              <VideoSlide section={s} isActive={i === active} />
+            ) : (
+              <img
+                src={s.image}
+                alt={s.alt}
+                loading={i === active ? "eager" : "lazy"}
+                decoding="async"
+                className="h-full w-full object-contain"
+              />
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

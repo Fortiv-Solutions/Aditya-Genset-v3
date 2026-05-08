@@ -6,13 +6,13 @@ import { useState, useEffect } from "react";
 
 // DG Sets Images
 import dgProduct from "@/assets/products/parts/enclosure.jpg";
-import dgReal1 from "@/assets/products/showcase/main-view.png";
+import dgReal1 from "@/assets/products/showcase/main-view-optimized.jpg";
 import dgReal2 from "@/assets/products/parts/enclosure.jpg";
-import dgRealistic from "@/assets/products/showcase/cinematic-view.png";
+import dgRealistic from "@/assets/products/showcase/cinematic-view-optimized.jpg";
 import controlPanel from "@/assets/products/parts/enclosure.jpg";
 
 // Non-Standard Images
-import containerImg from "@/assets/products/showcase/container.png";
+import containerImg from "@/assets/products/showcase/container-optimized.jpg";
 import nonStandard from "@/assets/products/showcase/non-standard.jpg";
 import fuelTank from "@/assets/products/parts/enclosure.jpg";
 
@@ -51,6 +51,8 @@ function ImageSlider({ images }: { images: string[] }) {
           key={currentIndex}
           src={images[currentIndex]}
           alt="Product"
+          loading="lazy"
+          decoding="async"
           className="absolute inset-0 w-full h-full object-contain drop-shadow-2xl"
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}

@@ -35,6 +35,8 @@ export function ProgressRail({ count, active, labels, images, videoUrls, onJump 
                 <img
                   src={images[i]}
                   alt={labels?.[i] ?? `Section ${i + 1}`}
+                  loading="lazy"
+                  decoding="async"
                   className={cn(
                     "h-full w-full object-cover transition-all duration-500",
                     isActive ? "grayscale-0" : "grayscale group-hover:grayscale-0"

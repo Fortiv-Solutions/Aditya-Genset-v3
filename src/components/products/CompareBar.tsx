@@ -4,7 +4,7 @@ import { X, ArrowRight, BarChart2, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useEffect, useState } from "react";
 import { fetchPublishedProducts } from "@/lib/api/products";
-import gensetFallback from "@/assets/products/showcase/main-view.png";
+import gensetFallback from "@/assets/products/showcase/main-view-optimized.jpg";
 
 export function CompareBar() {
   const { selectedIds, removeFromCompare, clearCompare } = useCompare();
