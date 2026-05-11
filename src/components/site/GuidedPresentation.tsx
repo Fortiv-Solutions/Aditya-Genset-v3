@@ -36,11 +36,43 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
   // Keyboard support
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      // Check if user is typing in an input field (e.g., CMS editor mode)
+      const target = e.target as HTMLElement;
+      const isTyping =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+
+      if (isTyping) return;
+
+      if (e.key === "Escape") {
+        onClose();
+        return;
+      }
+      
+      if (!wrapperRef.current || !containerRef.current || presentationHotspots.length <= 1) return;
+      
+      if (["ArrowDown", "ArrowRight", "ArrowUp", "ArrowLeft", "PageDown", "PageUp", " "].includes(e.key)) {
+        e.preventDefault();
+        
+        let nextIndex = currentIndex;
+        if (["ArrowDown", "ArrowRight", "PageDown", " "].includes(e.key)) {
+          nextIndex = Math.min(currentIndex + 1, presentationHotspots.length - 1);
+        } else if (["ArrowUp", "ArrowLeft", "PageUp"].includes(e.key)) {
+          nextIndex = Math.max(currentIndex - 1, 0);
+        }
+        
+        if (nextIndex !== currentIndex) {
+          const scrollHeight = containerRef.current.scrollHeight;
+          const viewHeight = wrapperRef.current.clientHeight;
+          const targetScroll = (nextIndex / (presentationHotspots.length - 1)) * (scrollHeight - viewHeight);
+          wrapperRef.current.scrollTo({ top: targetScroll, behavior: 'smooth' });
+        }
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [onClose, currentIndex, presentationHotspots.length]);
 
   // Track scroll progress to update chapter
   useEffect(() => {
