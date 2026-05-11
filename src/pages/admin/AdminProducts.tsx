@@ -110,31 +110,6 @@ export default function AdminProducts() {
       if (error) throw error;
 
       const mapped: AdminProduct[] = (data || [])
-        .filter((p: any) => {
-          // 1. Exclude Baudouin 20kVA
-          const isBaudouin20kVA = Number(p.kva) === 20 && 
-            (String(p.engine_brand || "").toLowerCase().includes('baudouin') || 
-             String(p.name || "").toLowerCase().includes('baudouin'));
-          
-          if (isBaudouin20kVA) return false;
-
-          // 2. Exclude Escorts 20kVA with "Variable" or NO fuel spec
-          const isEscorts20 = Number(p.kva) === 20 || 
-                             String(p.name || "").toLowerCase().includes('ekl');
-          
-          if (isEscorts20) {
-            const fuelSpec = p.product_specs?.find((s: any) => 
-              String(s.spec_label || "").toLowerCase().includes('fuel') ||
-              String(s.label || "").toLowerCase().includes('fuel')
-            );
-            const fuelValue = String(fuelSpec?.spec_value || fuelSpec?.value || "").toLowerCase();
-            
-            // If fuel is missing, empty, or "variable", hide it
-            if (!fuelSpec || !fuelValue || fuelValue.includes('variable')) return false;
-          }
-
-          return true;
-        })
         .map((p) => ({
           id: p.id,
           name: p.name,

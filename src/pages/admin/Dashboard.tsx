@@ -260,30 +260,7 @@ export default function AdminDashboard() {
 
         const productsRaw = (productsResult.data ?? []) as DashboardProduct[];
         
-        // Apply strict filtering to remove redundant/incomplete products
-        const products = productsRaw.filter(p => {
-          // 1. Exclude Baudouin 20kVA
-          const isBaudouin20kVA = Number(p.kva) === 20 && 
-            (String(p.engine_brand || "").toLowerCase().includes('baudouin') || 
-             String(p.name || "").toLowerCase().includes('baudouin'));
-          
-          if (isBaudouin20kVA) return false;
-
-          // 2. Exclude Escorts 20kVA with "Variable" or NO fuel spec
-          const isEscorts20 = Number(p.kva) === 20 || 
-                             String(p.name || "").toLowerCase().includes('ekl');
-          
-          if (isEscorts20) {
-            const fuelSpec = p.product_specs?.find((s: any) => 
-              String(s.spec_label || "").toLowerCase().includes('fuel')
-            );
-            const fuelValue = String(fuelSpec?.spec_value || "").toLowerCase();
-            
-            if (!fuelSpec || !fuelValue || fuelValue.includes('variable')) return false;
-          }
-
-          return true;
-        });
+        const products = productsRaw;
 
         const quotes = (quotesResult.data ?? []) as DashboardQuote[];
         const profiles = (profilesResult.data ?? []) as DashboardProfile[];

@@ -1,23 +1,19 @@
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { SEO } from "@/components/site/SEO";
 import { ScrollStory } from "@/components/site/ScrollStory";
-import { ArrowLeft, Monitor, Loader2 } from "lucide-react";
+import { ArrowLeft, Monitor, Loader2, BarChart2 } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import { fetchProductShowcase } from "@/lib/api/cms";
 import { fetchProductDetailV2 } from "@/lib/api/productDetailV2";
 import type { V2ShowcaseProduct } from "@/lib/api/productDetailV2";
-// Legacy fallback (will be removed once v2 migration is confirmed)
 import { ShowcaseProduct, getProductBySlug } from "@/data/products";
 import { useCompare } from "@/context/CompareContext";
-import { BarChart2 } from "lucide-react";
 import videoThumb from "@/assets/products/showcase/main-view-optimized.jpg";
 import showcaseVideo from "@/assets/products/showcase/product-video.mp4";
-
-// Import core showcase assets to ensure they are bundled correctly
 import escortVideo from "@/assets/products/showcase/product-video.mp4";
-import escortVideoThumb from "@/assets/products/showcase/main-view.png";
+import escortVideoThumb from "@/assets/products/showcase/main-view-optimized.jpg";
 
 // Height of the absolute header overlay in px — used to offset first chapter
 export const SHOWCASE_HEADER_H = 230;
@@ -39,14 +35,21 @@ export default function ProductDetail() {
     async function loadData() {
       if (!slug) return;
       setLoading(true);
+      setProduct(null);
+      setV2Product(null);
       try {
-        // ── V2 path: fetch from new relational tables ──
+        // ── V2 path: fetch from new relational tables ──────────────────────
         const v2Data = await fetchProductDetailV2(slug);
         if (v2Data && v2Data.sections.length > 0) {
-          console.log("✅ Using v2 product data for:", slug);
-          
-          // Ensure video slide exists (inject from bundled assets)
-          if (!v2Data.sections.find(s => s.id === "video")) {
+          console.log("✅ V2 data loaded for:", slug, "| sections:", v2Data.sections.length, "| chapters:", Object.keys(v2Data.chapterDataMap).length);
+
+          // V2 sections come 100% from product_showcase_sections — trust them completely.
+          // Only patch the video slide's bundled asset URLs if they are absent.
+          const videoSec = v2Data.sections.find(s => s.id === "video");
+          if (videoSec) {
+            if (!videoSec.videoUrl) videoSec.videoUrl = escortVideo;
+            if (!videoSec.image)    videoSec.image    = escortVideoThumb;
+          } else {
             v2Data.sections.push({
               id: "video",
               number: String(v2Data.sections.length + 1).padStart(2, "0"),
@@ -57,14 +60,10 @@ export default function ProductDetail() {
               alt: `${v2Data.name} 360 degree showcase`,
               specs: [
                 { label: "Duration", value: "8 sec" },
-                { label: "Format", value: "MP4" },
-                { label: "Source", value: "360° View" },
+                { label: "Format",   value: "MP4" },
+                { label: "Source",   value: "360° View" },
               ],
             });
-          } else {
-            const videoSec = v2Data.sections.find(s => s.id === "video");
-            if (videoSec && !videoSec.videoUrl) videoSec.videoUrl = escortVideo;
-            if (videoSec && !videoSec.image) videoSec.image = escortVideoThumb;
           }
           if (!v2Data.hotspots.find(h => h.id === "video")) {
             v2Data.hotspots.push({
@@ -76,7 +75,6 @@ export default function ProductDetail() {
             });
           }
 
-          // Set as legacy-compatible ShowcaseProduct for ScrollStory
           setProduct(v2Data as any);
           setV2Product(v2Data);
           await loadProductCMS(v2Data.id);
@@ -84,15 +82,15 @@ export default function ProductDetail() {
           return;
         }
 
-        // ── Legacy path: CMS + static fallback ──
+        // ── Legacy path: CMS + static fallback ────────────────────────────
         console.log("⚠️ V2 data empty, falling back to legacy for:", slug);
         const data = await fetchProductShowcase(slug);
         const staticData = getProductBySlug(slug);
-        
+
         if (data && data.product) {
           const productMedia = (data.product as any).product_media || [];
           const primaryImage =
-            productMedia.find((m: any) => m.kind === 'primary' || m.kind === 'hero')?.public_url ||
+            productMedia.find((m: any) => m.kind === "primary" || m.kind === "hero")?.public_url ||
             data.showcase?.sections?.[0]?.image ||
             staticData?.thumbnail ||
             "";
@@ -103,17 +101,17 @@ export default function ProductDetail() {
             name: data.product.name,
             kva: data.product.kva,
             engineBrand: (data.product as any).engine_brand || staticData?.engineBrand,
-            range: "15-62.5", 
+            range: "15-62.5",
             status: "active",
-            thumbnail: primaryImage, 
-            hero: primaryImage, 
+            thumbnail: primaryImage,
+            hero: primaryImage,
             sections: data.showcase?.sections || staticData?.sections || [],
-            hotspots: (data.showcase?.hotspots?.length >= 8) 
-              ? data.showcase.hotspots 
+            hotspots: (data.showcase?.hotspots?.length >= 8)
+              ? data.showcase.hotspots
               : (staticData?.hotspots || []),
           };
 
-          // Ensure Electrical section exists for consistency
+          // Legacy: ensure electrical section exists
           if (!finalProduct.sections.find(s => s.id === "electrical")) {
             const videoIdx = finalProduct.sections.findIndex(s => s.id === "video");
             const newElectrical = {
@@ -134,20 +132,14 @@ export default function ProductDetail() {
             } else {
               finalProduct.sections.push(newElectrical);
             }
-            // Renumber subsequent sections
-            finalProduct.sections.forEach((s, idx) => {
-              s.number = String(idx + 1).padStart(2, '0');
-            });
+            finalProduct.sections.forEach((s, idx) => { s.number = String(idx + 1).padStart(2, "0"); });
           }
 
-          // Ensure video slide exists
+          // Legacy: ensure video slide exists
           if (!finalProduct.sections.find(s => s.id === "video")) {
-            const lastNum = finalProduct.sections.length > 0 
-              ? parseInt(finalProduct.sections[finalProduct.sections.length - 1].number) 
-              : 0;
             finalProduct.sections.push({
               id: "video",
-              number: String(lastNum + 1).padStart(2, '0'),
+              number: String(finalProduct.sections.length + 1).padStart(2, "0"),
               title: "Product Video",
               tagline: "Escort DG Set — Multiple views and 360° product showcase.",
               image: videoThumb,
@@ -155,24 +147,18 @@ export default function ProductDetail() {
               alt: `${finalProduct.name} 360 degree showcase`,
               specs: [
                 { label: "Duration", value: "8 sec" },
-                { label: "Format", value: "MP4" },
-                { label: "Source", value: "360° View" },
+                { label: "Format",   value: "MP4" },
+                { label: "Source",   value: "360° View" },
               ],
             });
           } else {
-            // Force videoUrl for the existing video section if missing or incorrect
             const videoSec = finalProduct.sections.find(s => s.id === "video");
-            if (videoSec && !videoSec.videoUrl) {
-              videoSec.videoUrl = escortVideo;
-            }
-            if (videoSec && !videoSec.image) {
-              videoSec.image = escortVideoThumb;
-            }
+            if (videoSec && !videoSec.videoUrl) videoSec.videoUrl = escortVideo;
+            if (videoSec && !videoSec.image)    videoSec.image    = escortVideoThumb;
           }
           if (!finalProduct.hotspots.find(h => h.id === "video")) {
             finalProduct.hotspots.push({
-              id: "video",
-              x: 50, y: 50,
+              id: "video", x: 50, y: 50,
               title: "Product Video",
               description: `Experience the ${finalProduct.name} in action with our official 360° showcase film.`,
               specs: [{ label: "Showcase", value: "360° View" }],
@@ -181,77 +167,10 @@ export default function ProductDetail() {
           }
 
           setProduct(finalProduct);
-          console.log("Product state set, loading CMS...");
           await loadProductCMS(data.product.id);
-          console.log("CMS loaded.");
         } else if (staticData) {
-          // Fallback to static data if DB is empty for this slug
-          console.log("Using static data fallback for:", slug);
-          
-          // Apply same safety check for static data
-          const finalProduct = { ...staticData };
-          
-          // Ensure Electrical section exists
-          if (!finalProduct.sections.find(s => s.id === "electrical")) {
-            const videoIdx = finalProduct.sections.findIndex(s => s.id === "video");
-            const newElectrical = {
-              id: "electrical",
-              number: "10",
-              title: "Electrical Performance",
-              tagline: "Comprehensive electrical specifications and reactance data.",
-              image: "/assets/products/parts/enclosure.jpg",
-              alt: "Electrical performance",
-              specs: [
-                { label: "Short Circuit Ratio", value: finalProduct.engineBrand === "Escorts" ? (Number(finalProduct.kva) === 15 ? "0.515" : "0.410") : "0.450" },
-                { label: "Voltage Regulation", value: "±1%" },
-                { label: "Battery", value: "60 Ah" },
-              ],
-            };
-            if (videoIdx !== -1) {
-              finalProduct.sections.splice(videoIdx, 0, newElectrical);
-            } else {
-              finalProduct.sections.push(newElectrical);
-            }
-            // Renumber
-            finalProduct.sections.forEach((s, idx) => s.number = String(idx + 1).padStart(2, '0'));
-          }
-
-          if (!finalProduct.sections.find(s => s.id === "video")) {
-            finalProduct.sections = [...finalProduct.sections, {
-              id: "video",
-              number: String(finalProduct.sections.length + 1).padStart(2, '0'),
-              title: "Product Video",
-              tagline: "Escort DG Set — Multiple views and 360° product showcase.",
-              image: videoThumb,
-              videoUrl: showcaseVideo,
-              alt: `${finalProduct.name} 360 degree showcase`,
-              specs: [
-                { label: "Duration", value: "8 sec" },
-                { label: "Format", value: "MP4" },
-                { label: "Source", value: "360° View" },
-              ],
-            }];
-          } else {
-            // Force videoUrl for the existing video section if missing or incorrect
-            const videoSec = finalProduct.sections.find(s => s.id === "video");
-            if (videoSec && !videoSec.videoUrl) {
-              videoSec.videoUrl = escortVideo;
-            }
-            if (videoSec && !videoSec.image) {
-              videoSec.image = escortVideoThumb;
-            }
-          }
-          if (!finalProduct.hotspots.find(h => h.id === "video")) {
-            finalProduct.hotspots = [...finalProduct.hotspots, {
-              id: "video",
-              x: 50, y: 50,
-              title: "Product Video",
-              description: `Experience the ${finalProduct.name} in action with our official 360° showcase film.`,
-              specs: [{ label: "Showcase", value: "360° View" }],
-              zoom: 1, offsetX: 0, offsetY: 0,
-            }];
-          }
-          setProduct(finalProduct);
+          console.log("Using static fallback for:", slug);
+          setProduct(staticData);
         }
       } catch (err) {
         console.error("Failed to load product detail:", err);
@@ -260,8 +179,6 @@ export default function ProductDetail() {
       }
     }
     loadData();
-
-    // Safety timeout to prevent stuck loading
     const timer = setTimeout(() => setLoading(false), 10000);
     return () => clearTimeout(timer);
   }, [slug, loadProductCMS]);
@@ -289,18 +206,21 @@ export default function ProductDetail() {
   }
 
   const activeProduct = product!;
-  const isEscorts = activeProduct.engineBrand === "Escorts";
-  
-  // Decide which CMS section to use for editing (dynamic products use showcaseData as base)
+  // V2 engine_brand is stored as full label e.g. "Escorts Kubota" - use partial match
+  const isEscorts = !!(activeProduct.engineBrand?.toLowerCase().includes("escort"));
+  // V2 products have authoritative DB data - always override any CMS template text
+  const isV2 = !!v2Product;
+
+  // Decide which CMS section to use for editing
   const sectionId = isCMSPreview ? pageId : (isEscorts ? "ekl15ShowcaseData" : "showcaseData");
   const sectionKey = sectionId as "showcaseData";
-  
-  // If the DB CMS row is missing, content falls back to global defaults.
-  // We want to detect if we are seeing default template text for a product that isn't the template's subject.
+
+  // Detect stale CMS template text being shown for wrong product
   const isBaudouinFallback = content?.showcaseData?.productName === "62.5 kVA Silent DG Set" && activeProduct.slug !== "silent-62-5";
-  const isEscortFallback = content?.ekl15ShowcaseData?.productName === "EKL 15 kVA (2 Cyl) DG Set" && activeProduct.slug !== "ekl-15-2cyl";
-  
-  const isFallback = isEscorts ? isEscortFallback : isBaudouinFallback;
+  const isEscortFallback   = content?.ekl15ShowcaseData?.productName === "EKL 15 kVA (2 Cyl) DG Set" && activeProduct.slug !== "ekl-15-2cyl";
+
+  // V2 products always use their own data — never show wrong CMS content
+  const isFallback = isV2 || (isEscorts ? isEscortFallback : isBaudouinFallback);
   const productName = isFallback ? activeProduct.name : (content?.[sectionKey]?.productName || activeProduct.name);
 
   const ld = {
@@ -327,7 +247,7 @@ export default function ProductDetail() {
           pointerEvents: activeChapter === 0 ? undefined : "none",
         }}
       >
-        {/* Row 1 — Navigation: back ← ............... → Present Mode */}
+        {/* Row 1 — Navigation */}
         <div className="flex min-w-0 items-start justify-between gap-4 md:pr-[236px]">
           <button
             onClick={() => navigate(-1)}
@@ -362,11 +282,10 @@ export default function ProductDetail() {
               <EditableText section={sectionKey} contentKey="presentModeBtn" as="span" override={isFallback ? "Present Mode" : undefined} />
             </button>
           </div>
-
         </div>
 
         {/* Row 2 — Product identity */}
-        <div className="mt-5 min-w-0 max-w-[min(720px,calc(100vw-11rem))]">
+        <div className="mt-5 min-w-0 lg:max-w-[calc(50%-7rem)] xl:max-w-[calc(50%-6rem)]">
           {activeProduct.sections && activeProduct.sections.length > 0 && (
             <div className="font-display text-[10px] uppercase tracking-[0.4em] text-accent">
               {activeProduct.sections[0]?.number} / {activeProduct.sections[0]?.id}
@@ -377,26 +296,25 @@ export default function ProductDetail() {
             contentKey="productName"
             override={isFallback ? productName : undefined}
             fallback={productName}
-            className="mt-1.5 block max-w-full break-words font-display text-3xl font-semibold leading-tight md:text-4xl"
+            className="mt-1.5 block break-words font-display text-2xl font-semibold leading-tight md:text-3xl xl:text-4xl"
             as="h1"
           />
           <EditableText
             section={sectionKey}
             contentKey="pageSubtitle"
-            override={isFallback ? `A 10-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
-            fallback={isFallback ? `A 10-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
-            className="mt-1.5 block max-w-xl break-words text-sm text-muted-foreground"
+            override={isFallback ? `A ${activeProduct.sections?.length || 11}-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
+            fallback={isFallback ? `A ${activeProduct.sections?.length || 11}-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
+            className="mt-1.5 block max-w-sm break-words text-sm text-muted-foreground"
             as="p"
           />
         </div>
       </div>
 
-
-      {/* ── Full-height scroll story — first chapter respects header height ── */}
+      {/* ── Full-height scroll story ── */}
       <ScrollStory
         ref={scrollStoryRef}
         product={activeProduct}
-        sectionId={sectionKey}
+        sectionId={isFallback ? undefined : sectionKey}
         firstChapterOffset={112}
         onChapterChange={setActiveChapter}
         chapterDataMap={v2Product?.chapterDataMap}
@@ -404,4 +322,3 @@ export default function ProductDetail() {
     </div>
   );
 }
-

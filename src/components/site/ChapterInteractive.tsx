@@ -207,14 +207,16 @@ function OverviewChapter({ data, sectionId, index, onChange }: { data: ChapterDa
           {/* Hero CountUp stats */}
           <div className="grid grid-cols-3 gap-3 border-y border-border py-4">
             {(() => {
-              const base = data.highlights ?? [];
-              const defaults = [
-                { label: "KVA RATING", value: data.kva || "Refer", suffix: "kVA" },
-                { label: "VOLTAGE", value: "415", suffix: "V" },
-                { label: "FREQUENCY", value: "50", suffix: "Hz" }
+              // Use highlights from data (V2 products), then legacy highlight, then safe static defaults.
+              // NEVER fall back to data.kva which may be undefined causing EKL15 CMS values to show.
+              const base = data.highlights ?? (data as any).highlight ?? [];
+              const staticDefaults = [
+                { label: "PRIME POWER", value: "—", suffix: "kVA" },
+                { label: "SOUND @ 1M", value: "—", suffix: "dB(A)" },
+                { label: "HERITAGE", value: "27", suffix: " +yrs" }
               ];
-              // Ensure we have exactly 3 items
-              const displayItems = [...base, ...defaults.slice(base.length)].slice(0, 3);
+              // Pad to 3 items only with static dashes \u2014 not EKL15 values
+              const displayItems = base.length >= 3 ? base.slice(0, 3) : [...base, ...staticDefaults.slice(base.length)].slice(0, 3);
               return displayItems;
             })().map((h, i) => (
               <div key={i} className="text-center group/stat relative">
@@ -225,7 +227,7 @@ function OverviewChapter({ data, sectionId, index, onChange }: { data: ChapterDa
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={e => {
-                          const next = [...(data.highlights ?? [])];
+                          const next = [...(data.highlights ?? (data as any).highlight ?? [])];
                           if (!next[i]) next[i] = { label: "", value: "", suffix: "" };
                           next[i] = { ...next[i], value: e.currentTarget.textContent || "" };
                           onChange({ highlights: next });
@@ -238,7 +240,7 @@ function OverviewChapter({ data, sectionId, index, onChange }: { data: ChapterDa
                         contentEditable
                         suppressContentEditableWarning
                         onBlur={e => {
-                          const next = [...(data.highlights ?? [])];
+                          const next = [...(data.highlights ?? (data as any).highlight ?? [])];
                           if (!next[i]) next[i] = { label: "", value: "", suffix: "" };
                           next[i] = { ...next[i], suffix: e.currentTarget.textContent || "" };
                           onChange({ highlights: next });
@@ -250,8 +252,12 @@ function OverviewChapter({ data, sectionId, index, onChange }: { data: ChapterDa
                     </>
                   ) : (
                     <>
-                      <EditableText section={sectionKey} contentKey={`chapter_${index}_h${i}_value`} fallback={String(h.value)} as="span" />
-                      <EditableText section={sectionKey} contentKey={`chapter_${index}_h${i}_suffix`} fallback={h.suffix || ""} as="span" className="text-sm font-normal" />
+                      {/* If DB highlights present, render directly to bypass shared CMS key collisions */}
+                      {data.highlights?.length ? (
+                        <><span>{String(h.value)}</span><span className="text-sm font-normal">{h.suffix || ""}</span></>
+                      ) : (
+                        <><EditableText section={sectionKey} contentKey={`chapter_${index}_h${i}_value`} fallback={String(h.value)} as="span" /><EditableText section={sectionKey} contentKey={`chapter_${index}_h${i}_suffix`} fallback={h.suffix || ""} as="span" className="text-sm font-normal" /></>
+                      )}
                     </>
                   )}
                 </div>
@@ -260,7 +266,7 @@ function OverviewChapter({ data, sectionId, index, onChange }: { data: ChapterDa
                     contentEditable
                     suppressContentEditableWarning
                     onBlur={e => {
-                      const next = [...(data.highlights ?? [])];
+                      const next = [...(data.highlights ?? (data as any).highlight ?? [])];
                       if (!next[i]) next[i] = { label: "", value: "", suffix: "" };
                       next[i] = { ...next[i], label: e.currentTarget.textContent || "" };
                       onChange({ highlights: next });
@@ -270,7 +276,7 @@ function OverviewChapter({ data, sectionId, index, onChange }: { data: ChapterDa
                     {h.label}
                   </div>
                 ) : (
-                  <EditableText section={sectionKey} contentKey={`chapter_${index}_h${i}_label`} fallback={h.label} as="div" className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1" />
+                  <>{data.highlights?.length ? (<div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">{h.label}</div>) : (<EditableText section={sectionKey} contentKey={`chapter_${index}_h${i}_label`} fallback={h.label} as="div" className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1" />)}</>
                 )}
               </div>
             ))}

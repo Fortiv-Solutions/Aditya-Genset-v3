@@ -4,6 +4,7 @@
  * Replaces static imports from data/products.ts, data/ekl15Data.ts, data/ekl20Data.ts.
  */
 import { supabase } from "../supabase";
+import { EKL15_SHOWCASE } from "../../data/products";
 
 // ── Types matching the frontend ShowcaseProduct interface ────────────────────
 export interface V2SpecRow {
@@ -58,8 +59,9 @@ export interface V2ChapterData {
   standardItems?: string[];
   optionalItems?: string[];
   optionalGroups?: { label: string; items: string[] }[];
-  fuelCurveData?: any[];
-  efficiencyData?: any[];
+  fuelConsumptionPoints?: { load: number; lhr: number }[];
+  efficiencyPoints?: { label: string; value: number }[];
+  highlights?: { value: number | string; suffix: string; label: string }[];
 }
 
 export interface V2ShowcaseProduct {
@@ -143,23 +145,36 @@ export async function fetchProductDetailV2(slug: string): Promise<V2ShowcaseProd
   ]);
 
   // 3. Transform sections → ShowcaseSection[]
-  const sections: V2ShowcaseSection[] = (sectionsRes.data || []).map((s: any) => ({
-    id: s.chapter_key,
-    number: s.chapter_number,
-    title: s.title,
-    tagline: s.tagline || undefined,
-    image: s.image_url || "",
-    alt: s.alt_text || s.title,
-    videoUrl: s.video_url || undefined,
-    highlight: s.highlight || undefined,
-    specs: (s.product_showcase_section_specs || [])
-      .sort((a: any, b: any) => a.display_order - b.display_order)
-      .map((spec: any) => ({ label: spec.spec_label, value: spec.spec_value })),
-  }));
+  const sections: V2ShowcaseSection[] = (sectionsRes.data || []).map((s: any) => {
+    // Apply EKL15 baseline image when no chapter-specific image was uploaded
+    const eklFallback = EKL15_SHOWCASE.sections.find((es) => es.id === s.chapter_key);
+    return {
+      id: s.chapter_key,
+      number: s.chapter_number,
+      title: s.title,
+      tagline: s.tagline || undefined,
+      image: s.image_url || eklFallback?.image || "",
+      alt: s.alt_text || s.title,
+      videoUrl: s.video_url || eklFallback?.videoUrl || undefined,
+      highlight: s.highlight || undefined,
+      specs: (s.product_showcase_section_specs || [])
+        .sort((a: any, b: any) => a.display_order - b.display_order)
+        .map((spec: any) => ({ label: spec.spec_label, value: spec.spec_value })),
+    };
+  });
 
   // 4. Transform chapter data → Record<string, V2ChapterData>
   const chapterDataMap: Record<string, V2ChapterData> = {};
   for (const row of chapterRes.data || []) {
+    // Synthesize highlights for overview if not stored (legacy products)
+    let highlights = row.highlights || undefined;
+    if (row.chapter_key === "overview" && !highlights?.length) {
+      highlights = [
+        { value: product.kva, suffix: "kVA", label: "PRIME POWER" },
+        { value: 70, suffix: "dB(A)", label: "SOUND @ 1M" },
+        { value: "27", suffix: " +yrs", label: "HERITAGE" },
+      ];
+    }
     chapterDataMap[row.chapter_key] = {
       specs: row.specs || undefined,
       features: row.features || undefined,
@@ -182,8 +197,9 @@ export async function fetchProductDetailV2(slug: string): Promise<V2ShowcaseProd
       standardItems: row.standard_items || undefined,
       optionalItems: row.optional_items || undefined,
       optionalGroups: row.optional_groups || undefined,
-      fuelCurveData: row.fuel_curve_data || undefined,
-      efficiencyData: row.efficiency_data || undefined,
+      fuelConsumptionPoints: row.fuel_curve_data || undefined,
+      efficiencyPoints: row.efficiency_data || undefined,
+      highlights,
     };
   }
 

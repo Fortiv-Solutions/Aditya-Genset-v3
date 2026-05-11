@@ -115,6 +115,52 @@ function slugify(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+async function ensureUniqueSlug(baseSlug: string, excludeProductId?: string): Promise<string> {
+  let slug = baseSlug;
+  let counter = 1;
+  while (true) {
+    let query = supabase.from("products").select("id").eq("slug", slug);
+    if (excludeProductId) {
+      query = query.neq("id", excludeProductId);
+    }
+    const { data, error } = await query.maybeSingle();
+    
+    if (error && error.code !== "PGRST116") {
+      throw error;
+    }
+    if (!data) return slug;
+    
+    slug = `${baseSlug}-${counter}`;
+    counter++;
+  }
+}
+
+async function ensureUniqueModel(baseModel: string, categoryId: string | null, excludeProductId?: string): Promise<string> {
+  let model = baseModel;
+  let counter = 1;
+  while (true) {
+    let query = supabase.from("products").select("id").eq("model", model);
+    if (categoryId) {
+      query = query.eq("category_id", categoryId);
+    } else {
+      query = query.is("category_id", null);
+    }
+    
+    if (excludeProductId) {
+      query = query.neq("id", excludeProductId);
+    }
+    const { data, error } = await query.maybeSingle();
+    
+    if (error && error.code !== "PGRST116") {
+      throw error;
+    }
+    if (!data) return model;
+    
+    model = `${baseModel} (${counter})`;
+    counter++;
+  }
+}
+
 // ── Upload gallery images that are still blob: URLs ───────────────────────────
 
 async function resolveImageUrl(url: string): Promise<string> {
@@ -161,7 +207,11 @@ export async function publishProductV2(payload: PublishPayload): Promise<Publish
     });
 
     const categoryId = await ensureProductCategory(automation.categorySlug);
-    const slug = slugify(form.model || form.name);
+    let finalModel = form.model.trim() || form.name.trim();
+    finalModel = await ensureUniqueModel(finalModel, categoryId || null, existingProductId);
+
+    let slug = slugify(finalModel);
+    slug = await ensureUniqueSlug(slug, existingProductId);
 
     // 2. Upsert core product row
     const productPayload = {
@@ -169,7 +219,7 @@ export async function publishProductV2(payload: PublishPayload): Promise<Publish
       status,
       type: form.type === "open" ? "open" : "silent",
       name: form.name.trim(),
-      model: form.model.trim(),
+      model: finalModel,
       slug,
       kva: Number(form.kva),
       engine_brand: getEngineBrandLabel(brandKey, form.engineBrand),
@@ -277,6 +327,22 @@ export async function publishProductV2(payload: PublishPayload): Promise<Publish
     // 8. Upsert product_chapter_data (all chapters as JSONB)
     await supabase.from("product_chapter_data").delete().eq("product_id", productId);
 
+    // Build guaranteed highlights for the overview chapter from actual form data
+    // This prevents the frontend from falling back to static EKL15 values
+    const overviewHighlights = [
+      { value: Number(form.kva) || form.kva, suffix: "kVA", label: "PRIME POWER" },
+      { value: 70, suffix: "dB(A)", label: "SOUND @ 1M" },
+      { value: "27", suffix: " +yrs", label: "HERITAGE" },
+    ];
+    
+    // If the AI already extracted highlights for overview, prefer those but ensure kVA is correct
+    const existingOverviewHighlights = chapterDataMap.overview?.highlights;
+    const finalOverviewHighlights = existingOverviewHighlights?.length
+      ? existingOverviewHighlights.map((h, i) =>
+          i === 0 ? { ...h, value: Number(form.kva) || form.kva, suffix: "kVA", label: "PRIME POWER" } : h
+        )
+      : overviewHighlights;
+
     const chapterRows = Object.entries(chapterDataMap).map(([key, data]) => ({
       product_id: productId,
       chapter_key: key,
@@ -302,6 +368,8 @@ export async function publishProductV2(payload: PublishPayload): Promise<Publish
       standard_items: data.standardItems || null,
       optional_items: data.optionalItems || null,
       optional_groups: data.optionalGroups || null,
+      fuel_curve_data: data.fuelConsumptionPoints || null,
+      efficiency_data: data.efficiencyPoints || null,
     }));
 
     if (chapterRows.length > 0) {
@@ -312,23 +380,52 @@ export async function publishProductV2(payload: PublishPayload): Promise<Publish
     // 9. Upsert product_showcase_sections
     await supabase.from("product_showcase_sections").delete().eq("product_id", productId);
 
-    const sectionRows = sections.map((s) => ({
-      product_id: productId,
-      chapter_key: s.id,
-      chapter_number: s.number,
-      title: s.title,
-      tagline: s.tagline || null,
-      image_url: s.imageUrl || resolvedPrimaryImage || null,
-      video_url: s.videoUrl || (s.id === "video" ? resolvedVideoUrl : null) || null,
-      alt_text: s.altText || s.title,
-      display_order: s.displayOrder,
-      highlight: s.highlight || null,
-      is_active: true,
-    }));
+    const sectionRows = sections.map((s) => {
+      const chapterData = chapterDataMap[s.id];
+      const sectionHighlight = s.id === "overview" 
+        ? finalOverviewHighlights 
+        : (chapterData?.highlights || s.highlight || null);
+
+      return {
+        product_id: productId,
+        chapter_key: s.id,
+        chapter_number: s.number,
+        title: s.title,
+        tagline: s.tagline || null,
+        // Only use primary image as fallback for the overview/first chapter.
+        // Other chapters must store their own image (or null) so the frontend
+        // EKL15 baseline fallback can render the correct chapter-specific image.
+        image_url: s.imageUrl || (s.id === "overview" ? resolvedPrimaryImage : null) || null,
+        video_url: s.videoUrl || (s.id === "video" ? resolvedVideoUrl : null) || null,
+        alt_text: s.altText || s.title,
+        display_order: s.displayOrder,
+        highlight: sectionHighlight,
+        is_active: true,
+      };
+    });
 
     if (sectionRows.length > 0) {
-      const { error } = await supabase.from("product_showcase_sections").insert(sectionRows);
+      const { data: insertedSections, error } = await supabase.from("product_showcase_sections").insert(sectionRows).select("id, chapter_key");
       if (error) console.warn("showcase_sections insert warning:", error.message);
+      
+      // Insert showcase section specs
+      if (insertedSections) {
+        const sectionSpecRows: any[] = [];
+        insertedSections.forEach((insertedSec) => {
+          const specs = chapterDataMap[insertedSec.chapter_key]?.specs || [];
+          specs.forEach((sp, spIdx) => {
+            sectionSpecRows.push({
+              section_id: insertedSec.id,
+              spec_label: sp.label,
+              spec_value: sp.value,
+              display_order: spIdx,
+            });
+          });
+        });
+        if (sectionSpecRows.length > 0) {
+          await supabase.from("product_showcase_section_specs").insert(sectionSpecRows);
+        }
+      }
     }
 
     // 10. Upsert product_hotspots
@@ -356,8 +453,27 @@ export async function publishProductV2(payload: PublishPayload): Promise<Publish
     });
 
     if (hotspotRows.length > 0) {
-      const { error } = await supabase.from("product_hotspots").insert(hotspotRows);
+      const { data: insertedHotspots, error } = await supabase.from("product_hotspots").insert(hotspotRows).select("id, hotspot_key");
       if (error) console.warn("hotspots insert warning:", error.message);
+
+      // Insert hotspot specs (limit to 5)
+      if (insertedHotspots) {
+        const hotspotSpecRows: any[] = [];
+        insertedHotspots.forEach((insertedHot) => {
+          const specs = (chapterDataMap[insertedHot.hotspot_key]?.specs || []).slice(0, 5);
+          specs.forEach((sp, spIdx) => {
+            hotspotSpecRows.push({
+              hotspot_id: insertedHot.id,
+              spec_label: sp.label,
+              spec_value: sp.value,
+              display_order: spIdx,
+            });
+          });
+        });
+        if (hotspotSpecRows.length > 0) {
+          await supabase.from("product_hotspot_specs").insert(hotspotSpecRows);
+        }
+      }
     }
 
     // 11. Upsert presentation_config

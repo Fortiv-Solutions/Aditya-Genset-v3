@@ -17,6 +17,7 @@ import { enhanceProductExtraction } from "@/lib/enhancedPdfExtractor";
 import { detectTemplateFromText, detectTemplateFromBrand, getChapterKeys } from "@/lib/templateRegistry";
 import { publishProductV2, getTemplateAssets } from "@/lib/api/productPublisher";
 import { uploadImage } from "@/lib/api/storage";
+import { supabase } from "@/lib/supabase";
 import { SlideReviewer } from "@/components/admin/SlideReviewer/SlideReviewer";
 import { EKL15_SHOWCASE } from "@/data/products";
 import type { ChapterDataInput, SectionInput, PublishMediaInput, PublishFormInput } from "@/lib/api/productPublisher";
@@ -43,17 +44,20 @@ const ESCORTS_CHAPTER_LABELS: Record<string, string> = {
   dimensions: "Dimensions & Weight", video: "Product Video",
 };
 
-function buildDefaultSections(keys: readonly string[], form: PublishFormInput): SectionInput[] {
+function buildDefaultSections(keys: readonly string[], form: PublishFormInput, chapterMap?: Record<string, ChapterDataInput>): SectionInput[] {
   return keys.map((k, i) => {
     const eklBaseline = EKL15_SHOWCASE.sections.find(s => s.id === k);
+    // Only apply static EKL15 descriptions/images if the product actually is the EKL 15 kVA model
+    const isEKL15 = form.model.toLowerCase().includes("ekl 15") || String(form.kva) === "15";
+
     return {
       id: k,
       number: String(i + 1).padStart(2, "0"),
       title: (k === "overview" && form.name) ? form.name : (ESCORTS_CHAPTER_LABELS[k] || k),
-      imageUrl: eklBaseline?.image || "",
-      videoUrl: eklBaseline?.videoUrl || "",
-      altText: eklBaseline?.alt || "",
-      tagline: eklBaseline?.tagline || "",
+      imageUrl: isEKL15 ? (eklBaseline?.image || "") : "",
+      videoUrl: isEKL15 ? (eklBaseline?.videoUrl || "") : "",
+      altText: isEKL15 ? (eklBaseline?.alt || "") : "",
+      tagline: chapterMap?.[k]?.description || (isEKL15 ? (eklBaseline?.tagline || "") : ""),
       displayOrder: i,
     };
   });
@@ -72,6 +76,7 @@ function buildChapterMapFromExtraction(enhanced: ReturnType<typeof enhanceProduc
       electricalProtections: ch.electricalProtections, approvals: ch.approvals,
       standardItems: ch.standardItems, optionalItems: ch.optionalItems,
       optionalGroups: ch.optionalGroups, highlights: ch.highlights,
+      fuelConsumptionPoints: ch.fuelConsumptionPoints, efficiencyPoints: ch.efficiencyPoints,
     };
   }
   map["video"] = {};
@@ -84,6 +89,7 @@ export default function AddProduct() {
   const [phase, setPhase] = useState<Phase>("upload");
   const [extracting, setExtracting] = useState(false);
   const [extractProgress, setExtractProgress] = useState("");
+  const [loadingEdit, setLoadingEdit] = useState(!!id);
   const [templateId, setTemplateId] = useState<TemplateId>("escorts");
   const [form, setForm] = useState<PublishFormInput>(DEFAULT_FORM);
   const [media, setMedia] = useState<PublishMediaInput>(DEFAULT_MEDIA);
@@ -130,10 +136,176 @@ export default function AddProduct() {
     }
   };
 
-  // Pre-load EKL 15 assets as global baseline on mount
+  // ── Edit mode: load existing product from DB ─────────────────────────────
   useEffect(() => {
+    if (!id) return;
+    (async () => {
+      setLoadingEdit(true);
+      try {
+        // 1. Fetch core product row — use ONLY confirmed columns from productPublisher.ts schema
+        const { data: p, error: pErr } = await supabase
+          .from("products")
+          .select("id, name, model, slug, kva, engine_brand, type, cpcb, price, price_on_request, moq, lead_time_days, stock, seo_title, meta_desc, tags, status, product_categories(name, slug), product_media(kind, public_url, display_order)")
+          .eq("id", id)
+          .single();
+
+        if (pErr) {
+          console.error("Edit load — products query error:", pErr.message, pErr.details, pErr.hint);
+          toast.error(`Load error: ${pErr.message}`);
+          navigate("/admin/products");
+          return;
+        }
+        if (!p) {
+          toast.error("Product not found");
+          navigate("/admin/products");
+          return;
+        }
+
+        // 2. Fetch chapter data + showcase sections in parallel (use static supabase)
+        const [chRes, secRes] = await Promise.all([
+          supabase.from("product_chapter_data").select("*").eq("product_id", id),
+          supabase
+            .from("product_showcase_sections")
+            .select("chapter_key, chapter_number, title, tagline, image_url, video_url, alt_text, display_order, highlight")
+            .eq("product_id", id)
+            .eq("is_active", true)
+            .order("display_order"),
+        ]);
+
+        if (chRes.error) console.warn("chapter_data load warning:", chRes.error.message);
+        if (secRes.error) console.warn("showcase_sections load warning:", secRes.error.message);
+
+        // 3. Reconstruct media
+        const mediaRows: any[] = (p as any).product_media || [];
+        const primaryImg = mediaRows.find((m: any) => m.kind === "primary")?.public_url || "";
+        const videoUrl   = mediaRows.find((m: any) => m.kind === "video")?.public_url || "";
+        const videoThumb = mediaRows.find((m: any) => m.kind === "thumbnail")?.public_url || "";
+        const datasheet  = mediaRows.find((m: any) => m.kind === "datasheet")?.public_url || "";
+        const gallery    = mediaRows
+          .filter((m: any) => m.kind === "gallery")
+          .sort((a: any, b: any) => a.display_order - b.display_order)
+          .map((m: any) => m.public_url);
+
+        // 4. Reconstruct form — handle product_categories which may be object or array
+        const catRow = (p as any).product_categories;
+        const catSlug = (Array.isArray(catRow) ? catRow[0]?.slug : catRow?.slug) || "silent-dg-sets";
+        const engineBrand = (p as any).engine_brand || "escorts-kubota";
+        const detTemplateId: TemplateId = engineBrand.toLowerCase().includes("escort") ? "escorts" : "baudouin";
+
+        setTemplateId(detTemplateId);
+        setForm({
+          name: p.name || "",
+          model: p.model || "",
+          category: catSlug,
+          shortDesc: "",
+          fullDesc: "",
+          engineBrand,
+          type: p.type || "silent",
+          kva: String(p.kva || ""),
+          cpcb: p.cpcb || "iv-plus",
+          price: p.price ? String(p.price) : "",
+          priceOnRequest: !!(p as any).price_on_request,
+          moq: String((p as any).moq || "1"),
+          deliveryTime: String((p as any).lead_time_days || "21"),
+          stock: p.stock || "in_stock",
+          seoTitle: (p as any).seo_title || "",
+          metaDesc: (p as any).meta_desc || "",
+          tags: (p as any).tags || [],
+        });
+        setMedia({
+          primaryImage: primaryImg,
+          galleryImages: gallery,
+          datasheetUrl: datasheet,
+          videoUrl,
+          videoFile: null,
+          videoThumbUrl: videoThumb,
+        });
+
+        // 5. Reconstruct chapterDataMap from product_chapter_data
+        const newChapterMap: Record<string, ChapterDataInput> = {};
+        for (const row of chRes.data || []) {
+          newChapterMap[row.chapter_key] = {
+            specs:                 row.specs || undefined,
+            features:              row.features || undefined,
+            badges:                row.badges || undefined,
+            description:           row.description || undefined,
+            aboutSpecs:            row.about_specs || undefined,
+            lubeSpecs:             row.lube_specs || undefined,
+            coolingSpecs:          row.cooling_specs || undefined,
+            perfSpecs:             row.perf_specs || undefined,
+            reactanceData:         row.reactance_data || undefined,
+            acousticDims:          row.acoustic_dims || undefined,
+            openDims:              row.open_dims || undefined,
+            envSpecs:              row.env_specs || undefined,
+            engineParams:          row.engine_params || undefined,
+            electricalParams:      row.electrical_params || undefined,
+            electricalSpecs:       row.electrical_specs || undefined,
+            engineProtections:     row.engine_protections || undefined,
+            electricalProtections: row.electrical_protections || undefined,
+            approvals:             row.approvals || undefined,
+            standardItems:         row.standard_items || undefined,
+            optionalItems:         row.optional_items || undefined,
+            optionalGroups:        row.optional_groups || undefined,
+            fuelConsumptionPoints: row.fuel_curve_data || undefined,
+            efficiencyPoints:      row.efficiency_data || undefined,
+            highlights:            row.highlights || undefined,
+          };
+        }
+        if (!newChapterMap.video) newChapterMap.video = {};
+
+        // Always guarantee overview chapter has correct highlights from the product's kVA.
+        // This covers legacy products published before highlights were stored in the DB.
+        const kvaNum = Number(p.kva);
+        const correctHighlights = [
+          { value: kvaNum || p.kva, suffix: "kVA", label: "PRIME POWER" },
+          { value: 70, suffix: "dB(A)", label: "SOUND @ 1M" },
+          { value: "27", suffix: " +yrs", label: "HERITAGE" },
+        ];
+        if (!newChapterMap.overview) newChapterMap.overview = {};
+        if (!newChapterMap.overview.highlights?.length) {
+          newChapterMap.overview = { ...newChapterMap.overview, highlights: correctHighlights };
+        } else {
+          // Ensure the kVA value is always correct even if AI stored a wrong one
+          newChapterMap.overview.highlights[0] = { ...newChapterMap.overview.highlights[0], value: kvaNum || p.kva, suffix: "kVA", label: "PRIME POWER" };
+        }
+
+        setChapterDataMap(newChapterMap);
+
+
+        // 6. Reconstruct sections from product_showcase_sections with EKL15 image fallback
+        const newSections: SectionInput[] = (secRes.data || []).map((s: any, i: number) => {
+          const eklMatch = EKL15_SHOWCASE.sections.find(es => es.id === s.chapter_key);
+          return {
+            id: s.chapter_key,
+            number: s.chapter_number || String(i + 1).padStart(2, "0"),
+            title: s.title,
+            tagline: s.tagline || eklMatch?.tagline || "",
+            imageUrl: s.image_url || eklMatch?.image || "",
+            videoUrl: s.video_url || eklMatch?.videoUrl || "",
+            altText: s.alt_text || s.title,
+            displayOrder: s.display_order ?? i,
+            highlight: s.highlight || undefined,
+          };
+        });
+        setSections(newSections);
+
+        setPhase("review");
+        toast.success("Product loaded for editing");
+      } catch (err: any) {
+        console.error("Edit load — unexpected error:", err);
+        toast.error(err?.message || "Failed to load product data");
+      } finally {
+        setLoadingEdit(false);
+      }
+    })();
+  }, [id]);
+
+  // Pre-load EKL 15 assets as global baseline on mount (add-mode only)
+  useEffect(() => {
+    if (id) return; // skip for edit mode
     fetchAndApplyEKL15Defaults();
   }, []);
+
 
   const applyDefaultAssetsIfFound = async (modelName: string, kva: string) => {
     const isEKL15 = modelName.toLowerCase().includes("ekl 15") || kva === "15";
@@ -178,7 +350,7 @@ export default function AddProduct() {
 
       const chapterKeys = getChapterKeys(detection.templateId);
       const chapterMap = buildChapterMapFromExtraction(enhanced);
-      const defaultSections = buildDefaultSections(chapterKeys, newForm);
+      const defaultSections = buildDefaultSections(chapterKeys, newForm, chapterMap);
 
       setForm(newForm);
       setChapterDataMap(chapterMap);
@@ -201,7 +373,7 @@ export default function AddProduct() {
     const det = detectTemplateFromBrand(form.engineBrand);
     setTemplateId(det.templateId);
     const keys = getChapterKeys(det.templateId);
-    const defaultSections = buildDefaultSections(keys, form);
+    const defaultSections = buildDefaultSections(keys, form, {});
     
     setSections(defaultSections);
     setChapterDataMap({ video: {} });
@@ -228,6 +400,19 @@ export default function AddProduct() {
       toast.error(result.error || "Failed to publish");
     }
   };
+
+  // Show loading screen while fetching product data for edit
+  if (loadingEdit) {
+    return (
+      <div className="h-screen flex flex-col items-center justify-center bg-background gap-4">
+        <Loader2 size={32} className="animate-spin text-accent" />
+        <div className="text-center">
+          <p className="text-sm font-semibold text-foreground">Loading product data…</p>
+          <p className="text-xs text-muted-foreground mt-1">Fetching from database</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-background">

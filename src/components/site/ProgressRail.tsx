@@ -59,7 +59,7 @@ export function ProgressRail({ count, active, labels, images, videoUrls, onJump 
             <span
               className={cn(
                 "font-display text-xs uppercase tracking-widest transition-all duration-500 ease-brand",
-                isActive ? "text-foreground opacity-100" : "text-muted-foreground opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0",
+                isActive ? "text-foreground font-bold" : "text-muted-foreground opacity-60 group-hover:opacity-100",
               )}
             >
               {labels?.[i] ?? String(i + 1).padStart(2, "0")}

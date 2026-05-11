@@ -209,13 +209,13 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
                       <div className="h-px flex-1 bg-border" />
                     </div>
                   </div>
-                </div>
 
-                {/* Image fills remaining space */}
-                <div className="flex-1 min-h-0">
-                  <StickyImageStack sections={product.sections} active={active} />
-                </div>
-              </>
+                  {/* Image fills remaining space */}
+                  <div className="flex-1 min-h-0">
+                    <StickyImageStack sections={product.sections} active={active} />
+                  </div>
+                </>
+              )}
             </div>
 
             <ProgressRail
@@ -240,10 +240,12 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
           }}
         >
           {(product.sections || []).map((s, i) => {
-            const isEscorts = product.engineBrand === "Escorts";
+            // V2 products store full label e.g. 'Escorts Kubota' - use partial match
+            const isEscorts = !!(product.engineBrand?.toLowerCase().includes('escort'));
             // V2: use database-driven chapterDataMap
+            // IMPORTANT: spread chapterData LAST so highlights/specs override section fallbacks
             const chapterData = chapterDataMap ? chapterDataMap[s.id] : undefined;
-            const mergedData = isEscorts ? { ...(chapterData || {}), ...s } : null;
+            const mergedData = (isEscorts || !!chapterDataMap) ? { ...s, ...(chapterData ? Object.fromEntries(Object.entries(chapterData).filter(([_, v]) => v !== undefined)) : {}) } : null;
             const articlePaddingTop = Math.max(firstChapterOffset, 24);
             return (
               <article
@@ -277,7 +279,7 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
       {/* ── Mobile stacked layout ──────────────────────────────────────── */}
       <div className="container-x lg:hidden">
         {product.sections.map((s, i) => {
-          const isEscortsMobile = product.engineBrand === "Escorts";
+          const isEscortsMobile = !!(product.engineBrand?.toLowerCase().includes('escort')) || !!chapterDataMap;
           return (
             <article
               key={s.id}
@@ -289,7 +291,7 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
                 </div>
               )}
               {isEscortsMobile ? (
-                <ChapterInteractive chapterId={s.id} data={s as any} active={true} sectionId={sectionId} index={i} />
+                <ChapterInteractive chapterId={s.id} data={{ ...s, ...(chapterDataMap && chapterDataMap[s.id] ? Object.fromEntries(Object.entries(chapterDataMap[s.id]).filter(([_, v]) => v !== undefined)) : {}) } as any} active={true} sectionId={sectionId} index={i} />
               ) : (
                 <SectionContent section={s} active index={i} sectionId={sectionId} />
               )}

@@ -300,17 +300,17 @@ export function enhanceProductExtraction(
   };
 
   const fuelConsumptionPoints = [
-    { load: 25, lhr: parseLoadPoint(["25%", "quarter load"]) || 1.69 },
-    { load: 50, lhr: parseLoadPoint(["50%", "half load"]) || 2.28 },
-    { load: 75, lhr: parseLoadPoint(["75%", "three quarter"]) || 2.98 },
-    { load: 100, lhr: parseLoadPoint(["100%", "full load"]) || 3.78 },
-    { load: 110, lhr: parseLoadPoint(["110%", "overload"]) || 4.40 },
-  ];
+    { load: 25, lhr: parseLoadPoint(["25%", "quarter load"]) },
+    { load: 50, lhr: parseLoadPoint(["50%", "half load"]) },
+    { load: 75, lhr: parseLoadPoint(["75%", "three quarter"]) },
+    { load: 100, lhr: parseLoadPoint(["100%", "full load"]) },
+    { load: 110, lhr: parseLoadPoint(["110%", "overload"]) },
+  ].filter(p => p.lhr !== null) as { load: number; lhr: number }[];
 
   const efficiencyPoints = [
-    { label: "75% Load", value: parseLoadPoint(["efficiency", "75%"]) || 86.4 },
-    { label: "100% Load", value: parseLoadPoint(["efficiency", "100%"]) || 83.5 },
-  ];
+    { label: "75% Load", value: parseLoadPoint(["efficiency", "75%"]) },
+    { label: "100% Load", value: parseLoadPoint(["efficiency", "100%"]) },
+  ].filter(p => p.value !== null) as { label: string; value: number }[];
   
   const engineModel = extracted.engineModel || findSpec(["engine model"]);
   const cpcbLabel = extracted.cpcb === "ii" ? "CPCB II" : "CPCB IV+";
@@ -406,14 +406,14 @@ export function enhanceProductExtraction(
       number: "05",
       title: "Electrical Performance",
       specs: [
-        { label: "Short Circuit Ratio", value: findSpec(["short circuit"]) || "0.515" },
-        { label: "Battery Size", value: findSpec(["battery"]) || "60 Ah" },
-        { label: "Electrical System", value: "12 V DC" },
-      ],
+        { label: "Short Circuit Ratio", value: findSpec(["short circuit"]) },
+        { label: "Battery Size", value: findSpec(["battery"]) },
+        { label: "Electrical System", value: findSpec(["electrical system", "dc system", "battery voltage"]) || "12 V DC" },
+      ].filter(s => s.value),
       reactanceData: [
-        { symbol: "Xd", description: "Direct Axis Synchronous", value: findSpec(["xd"]) || "1.942" },
-        { symbol: "X'd", description: "Direct Axis Transient", value: findSpec(["x'd"]) || "0.109" },
-      ]
+        { symbol: "Xd", description: "Direct Axis Synchronous", value: findSpec(["xd"]) },
+        { symbol: "X'd", description: "Direct Axis Transient", value: findSpec(["x'd"]) },
+      ].filter(r => r.value)
     },
     {
       id: "enclosure",
