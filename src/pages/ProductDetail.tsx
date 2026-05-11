@@ -14,6 +14,7 @@ import videoThumb from "@/assets/products/showcase/main-view-optimized.jpg";
 import showcaseVideo from "@/assets/products/showcase/product-video.mp4";
 import escortVideo from "@/assets/products/showcase/product-video.mp4";
 import escortVideoThumb from "@/assets/products/showcase/main-view-optimized.jpg";
+import enclosureThumb from "@/assets/products/parts/enclosure.jpg";
 
 // Height of the absolute header overlay in px — used to offset first chapter
 export const SHOWCASE_HEADER_H = 230;
@@ -119,7 +120,7 @@ export default function ProductDetail() {
               number: "10",
               title: "Electrical Performance",
               tagline: "Comprehensive electrical specifications and reactance data.",
-              image: "/assets/products/parts/enclosure.jpg",
+              image: enclosureThumb,
               alt: "Electrical performance",
               specs: [
                 { label: "Short Circuit Ratio", value: finalProduct.engineBrand === "Escorts" ? (Number(finalProduct.kva) === 15 ? "0.515" : "0.410") : "0.450" },

@@ -58,6 +58,11 @@ export default function DGSetsCategory() {
           const specs = p.product_specs || [];
           const engineBrand = String(p.engine_brand || "").toLowerCase();
           
+          let image = primaryMedia?.public_url;
+          if (!image || image.startsWith('/assets/')) {
+            image = gensetFallback;
+          }
+
           return {
             id: p.id,
             slug: p.slug,
@@ -67,7 +72,7 @@ export default function DGSetsCategory() {
             application: specs.find(s => s.label.toLowerCase().includes('application'))?.value || 'Prime',
             fuel: specs.find(s => s.label.toLowerCase().includes('fuel consumption'))?.value || 'Variable',
             noise: specs.find(s => s.label.toLowerCase().includes('noise'))?.value || '70 dB(A)',
-            image: primaryMedia?.public_url || gensetFallback,
+            image: image,
             compliance: specs.find(s => s.label.toLowerCase().includes('compliance'))?.value || 'CPCB IV+',
             isHidden: p.status !== 'published'
           };

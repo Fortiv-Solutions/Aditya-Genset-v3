@@ -148,14 +148,21 @@ export async function fetchProductDetailV2(slug: string): Promise<V2ShowcaseProd
   const sections: V2ShowcaseSection[] = (sectionsRes.data || []).map((s: any) => {
     // Apply EKL15 baseline image when no chapter-specific image was uploaded
     const eklFallback = EKL15_SHOWCASE.sections.find((es) => es.id === s.chapter_key);
+    
+    let imageUrl = s.image_url;
+    if (imageUrl && imageUrl.startsWith('/assets/')) imageUrl = null;
+    
+    let videoUrl = s.video_url;
+    if (videoUrl && videoUrl.startsWith('/assets/')) videoUrl = null;
+
     return {
       id: s.chapter_key,
       number: s.chapter_number,
       title: s.title,
       tagline: s.tagline || undefined,
-      image: s.image_url || eklFallback?.image || "",
+      image: imageUrl || eklFallback?.image || "",
       alt: s.alt_text || s.title,
-      videoUrl: s.video_url || eklFallback?.videoUrl || undefined,
+      videoUrl: videoUrl || eklFallback?.videoUrl || undefined,
       highlight: s.highlight || undefined,
       specs: (s.product_showcase_section_specs || [])
         .sort((a: any, b: any) => a.display_order - b.display_order)
@@ -221,10 +228,11 @@ export async function fetchProductDetailV2(slug: string): Promise<V2ShowcaseProd
 
   // 6. Primary image
   const media = (product as any).product_media || [];
-  const primaryImage =
-    media.find((m: any) => m.kind === "primary" || m.kind === "hero")?.public_url ||
-    sections[0]?.image ||
-    "";
+  let primaryMediaUrl = media.find((m: any) => m.kind === "primary" || m.kind === "hero")?.public_url;
+  if (primaryMediaUrl && primaryMediaUrl.startsWith('/assets/')) {
+    primaryMediaUrl = null;
+  }
+  const primaryImage = primaryMediaUrl || sections[0]?.image || "";
 
   // 7. Presentation config
   const pc = configRes.data;
