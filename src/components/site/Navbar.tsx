@@ -168,11 +168,11 @@ export function Navbar() {
 
       {/* Desktop Independent Logo (Top Left) */}
       <div className="fixed top-0 left-0 z-50 hidden md:block">
-        <Link to="/" className="group inline-block rounded-br-lg bg-white/70 backdrop-blur-md px-3 py-2 shadow-sm border-r border-b border-white/20 transition-all duration-300 hover:bg-white/90 hover:shadow-md">
+        <Link to="/" className="group inline-block px-5 py-5 transition-all duration-300 hover:opacity-80">
           <img
             src={logo}
             alt="Aditya"
-            className="h-8 w-auto mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]"
+            className="h-10 w-auto mix-blend-multiply transition-transform duration-300 group-hover:scale-[1.03]"
           />
         </Link>
       </div>
