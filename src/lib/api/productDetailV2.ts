@@ -150,10 +150,10 @@ export async function fetchProductDetailV2(slug: string): Promise<V2ShowcaseProd
     const eklFallback = EKL15_SHOWCASE.sections.find((es) => es.id === s.chapter_key);
     
     let imageUrl = s.image_url;
-    if (imageUrl && imageUrl.startsWith('/assets/')) imageUrl = null;
+    if (imageUrl && (imageUrl.startsWith('/assets/') || imageUrl.startsWith('/src/assets/'))) imageUrl = null;
     
     let videoUrl = s.video_url;
-    if (videoUrl && videoUrl.startsWith('/assets/')) videoUrl = null;
+    if (videoUrl && (videoUrl.startsWith('/assets/') || videoUrl.startsWith('/src/assets/'))) videoUrl = null;
 
     return {
       id: s.chapter_key,
@@ -229,7 +229,7 @@ export async function fetchProductDetailV2(slug: string): Promise<V2ShowcaseProd
   // 6. Primary image
   const media = (product as any).product_media || [];
   let primaryMediaUrl = media.find((m: any) => m.kind === "primary" || m.kind === "hero")?.public_url;
-  if (primaryMediaUrl && primaryMediaUrl.startsWith('/assets/')) {
+  if (primaryMediaUrl && (primaryMediaUrl.startsWith('/assets/') || primaryMediaUrl.startsWith('/src/assets/'))) {
     primaryMediaUrl = null;
   }
   const primaryImage = primaryMediaUrl || sections[0]?.image || "";

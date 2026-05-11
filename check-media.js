@@ -8,11 +8,18 @@ const supabase = createClient(
 async function checkMedia() {
   const { data, error } = await supabase
     .from('products')
-    .select('id, name, product_media(*)')
+    .select('id, name, product_media(kind, public_url)')
     .eq('status', 'published')
 
   if (error) console.error(error)
-  else console.log(JSON.stringify(data, null, 2))
+  else {
+    data.forEach(p => {
+      console.log(`Product: ${p.name}`);
+      p.product_media.forEach(m => {
+        console.log(`  ${m.kind}: ${m.public_url}`);
+      });
+    });
+  }
 }
 
 checkMedia()

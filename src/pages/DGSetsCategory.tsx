@@ -59,7 +59,7 @@ export default function DGSetsCategory() {
           const engineBrand = String(p.engine_brand || "").toLowerCase();
           
           let image = primaryMedia?.public_url;
-          if (!image || image.startsWith('/assets/')) {
+          if (!image || image.startsWith('/assets/') || image.startsWith('/src/assets/')) {
             image = gensetFallback;
           }
 
