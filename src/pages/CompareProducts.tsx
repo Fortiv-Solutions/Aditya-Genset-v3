@@ -7,7 +7,7 @@ import { SEO } from "@/components/site/SEO";
 import { ArrowLeft, X, Check, Minus, Download, Printer, Share2, FileText, BarChart2, Zap, TrendingUp, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import gensetFallback from "@/assets/products/showcase/main-view.png";
+import gensetFallback from "@/assets/products/showcase/main-view-optimized.jpg";
 import { cn } from "@/lib/utils";
 import { EditableText } from "@/components/cms/EditableText";
 import {

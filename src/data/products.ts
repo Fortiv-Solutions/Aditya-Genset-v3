@@ -1,8 +1,8 @@
-import dgOverview from "@/assets/products/showcase/main-view.png";
+import dgOverview from "@/assets/products/showcase/main-view-optimized.jpg";
 import dgEngine from "@/assets/products/parts/engine-real.jpg"; // Placeholder as original is missing
 import dgAlternator from "@/assets/products/parts/engine-real.jpg"; // Placeholder as original is missing
 import dgEnclosure from "@/assets/products/parts/enclosure.jpg";
-import dgDimensions from "@/assets/products/showcase/main-view.png"; // Placeholder
+import dgDimensions from "@/assets/products/showcase/main-view-optimized.jpg"; // Placeholder
 import dgThumb from "@/assets/products/parts/enclosure.jpg";
 import dgControl from "@/assets/products/parts/enclosure.jpg"; // Placeholder
 import dgFuel from "@/assets/products/parts/enclosure.jpg"; // Placeholder
@@ -329,7 +329,7 @@ import escort20KVA2 from "@/assets/products/escorts/escort_20kva_2.jpg";
 import escort30KVA from "@/assets/products/escorts/escort_30kva.jpg";
 import escort40KVA2 from "@/assets/products/escorts/escort_40kva_2.jpg";
 import escort40KVA from "@/assets/products/escorts/escort_40kva_main.jpg";
-import escortVideoThumb from "@/assets/products/showcase/main-view.png";
+import escortVideoThumb from "@/assets/products/showcase/main-view-optimized.jpg";
 import ekl15Electrical from "@/assets/products/parts/enclosure.jpg";
 import ekl15Protection from "@/assets/products/parts/enclosure.jpg";
 

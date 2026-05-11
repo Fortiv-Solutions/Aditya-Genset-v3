@@ -3,7 +3,7 @@ import { SEO } from "@/components/site/SEO";
 import { SectionReveal } from "@/components/site/SectionReveal";
 import { ArrowRight, Zap, Package } from "lucide-react";
 import dgProduct from "@/assets/products/parts/enclosure.jpg";
-import containerImg from "@/assets/products/showcase/container.png";
+import containerImg from "@/assets/products/showcase/container-optimized.jpg";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 
@@ -89,6 +89,8 @@ export default function Products() {
                     <img
                       src={category.image}
                       alt={category.title}
+                      loading={index === 0 ? "eager" : "lazy"}
+                      decoding="async"
                       className="w-full h-full object-contain p-6 transition-transform duration-700 group-hover:scale-110"
                     />
                     {/* Gradient Overlay */}

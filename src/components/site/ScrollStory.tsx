@@ -176,21 +176,38 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
           <div className="flex h-full w-full min-w-0 items-center gap-8 py-6 xl:gap-12 2xl:gap-16">
             <div className="flex h-full min-w-0 flex-1 flex-col">
 
-              <>
-                {/* Chapter title block — uses the space above the image */}
-                <div className="min-w-0 pt-2 pb-5 transition-all duration-500 ease-brand">
-                  <div className="font-display text-[10px] uppercase tracking-[0.45em] text-accent mb-1.5 flex items-center">
-                    <EditableText section={sectionId as any} contentKey={`chapter_${active}_number`} fallback={product.sections[active]?.number} as="span" />
-                    <span className="mx-2">/</span>
-                    <EditableText section={sectionId as any} contentKey={`chapter_${active}_id`} fallback={product.sections[active]?.id} as="span" />
+              {active === 0 ? (
+                /* ── Slide 1: image centred, no title above ── */
+                <div className="flex-1 flex items-center">
+                  <div className="relative aspect-square w-full max-w-full overflow-hidden rounded-sm">
+                    <div className="relative w-full h-full flex items-center justify-center">
+                      <SmoothImage
+                        src={product.sections[0]?.image}
+                        alt={product.sections[0]?.alt}
+                        wrapperClassName="w-full h-full absolute inset-0 bg-transparent"
+                        imageClassName="w-[120%] h-[120%] object-contain transition-all duration-700"
+                      />
+                    </div>
                   </div>
-                  <h2 className="max-w-full break-words font-display text-3xl font-semibold leading-tight md:text-4xl">
-                    <EditableText section={sectionId as any} contentKey={`chapter_${active}_title`} fallback={product.sections[active]?.title} as="span" />
-                  </h2>
-                  {/* Decorative rule */}
-                  <div className="mt-4 flex items-center gap-3">
-                    <div className="h-px w-8 bg-accent" />
-                    <div className="h-px flex-1 bg-border" />
+                </div>
+              ) : (
+                /* ── Slides 2+: chapter title above image ── */
+                <>
+                  {/* Chapter title block — uses the space above the image */}
+                  <div className="min-w-0 pt-2 pb-5 transition-all duration-500 ease-brand">
+                    <div className="font-display text-[10px] uppercase tracking-[0.45em] text-accent mb-1.5 flex items-center">
+                      <EditableText section={sectionId as any} contentKey={`chapter_${active}_number`} fallback={product.sections[active]?.number} as="span" />
+                      <span className="mx-2">/</span>
+                      <EditableText section={sectionId as any} contentKey={`chapter_${active}_id`} fallback={product.sections[active]?.id} as="span" />
+                    </div>
+                    <h2 className="max-w-full break-words font-display text-3xl font-semibold leading-tight md:text-4xl">
+                      <EditableText section={sectionId as any} contentKey={`chapter_${active}_title`} fallback={product.sections[active]?.title} as="span" />
+                    </h2>
+                    {/* Decorative rule */}
+                    <div className="mt-4 flex items-center gap-3">
+                      <div className="h-px w-8 bg-accent" />
+                      <div className="h-px flex-1 bg-border" />
+                    </div>
                   </div>
                 </div>
 

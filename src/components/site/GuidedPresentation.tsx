@@ -14,7 +14,7 @@ import { ChapterInteractive } from "./ChapterInteractive";
 // EKL20_3CYL_CHAPTER_DATA import removed
 
 // Fallback images
-import mainImageFallback from "@/assets/products/showcase/main-view.png";
+import mainImageFallback from "@/assets/products/showcase/main-view-optimized.jpg";
 import subProductFallback from "@/assets/products/parts/enclosure.jpg";
 
 export function GuidedPresentation({ onClose, sectionId = "presentationData", product, chapterDataMap }: { onClose: () => void, sectionId?: string, product?: ShowcaseProduct, chapterDataMap?: Record<string, any> }) {
