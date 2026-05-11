@@ -450,11 +450,19 @@ export default function CompareProducts() {
                         </button>
                         <div className="flex flex-col items-center">
                           <div className="h-32 w-32 bg-gray-50 rounded-xl mb-4 p-2">
-                            <img
-                              src={product.product_media?.find((m: any) => m.kind === 'primary')?.public_url || gensetFallback}
-                              alt={product.name}
-                              className="w-full h-full object-contain"
-                            />
+                            {(() => {
+                              let img = product.product_media?.find((m: any) => m.kind === 'primary')?.public_url;
+                              if (img && (img.startsWith('/assets/') || img.startsWith('/src/assets/'))) {
+                                img = null;
+                              }
+                              return (
+                                <img
+                                  src={img || gensetFallback}
+                                  alt={product.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              );
+                            })()}
                           </div>
                           <h3 className="font-bold text-lg leading-tight mb-2">{product.name}</h3>
                           <div className="flex items-center gap-2 mb-4">

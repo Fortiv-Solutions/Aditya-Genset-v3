@@ -33,11 +33,16 @@ export function CompareBar() {
           <div className="flex items-center gap-3">
             <div className="flex -space-x-3 overflow-hidden">
               {products.map((p) => {
-                const img = p.product_media?.find((m: any) => m.kind === 'primary')?.public_url || gensetFallback;
+                let img = p.product_media?.find((m: any) => m.kind === 'primary')?.public_url;
+                if (img && (img.startsWith('/assets/') || img.startsWith('/src/assets/'))) {
+                  img = null;
+                }
+                const imageSrc = img || gensetFallback;
+                
                 return (
                   <div key={p.id} className="relative group">
                     <img
-                      src={img}
+                      src={imageSrc}
                       alt={p.name}
                       className="w-12 h-12 rounded-lg border-2 border-white object-cover bg-gray-50 shadow-sm"
                     />

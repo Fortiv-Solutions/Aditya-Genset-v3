@@ -69,7 +69,11 @@ function getProductPrice(product: any) {
 
 function getProductImage(product: any) {
   const primaryMedia = product?.product_media?.find((m: any) => m.kind === "primary");
-  return primaryMedia?.url || primaryMedia?.public_url || gensetFallback;
+  let url = primaryMedia?.url || primaryMedia?.public_url;
+  if (url && (url.startsWith('/assets/') || url.startsWith('/src/assets/'))) {
+    url = null;
+  }
+  return url || gensetFallback;
 }
 
 function formatCurrency(value: number) {

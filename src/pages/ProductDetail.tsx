@@ -90,8 +90,11 @@ export default function ProductDetail() {
 
         if (data && data.product) {
           const productMedia = (data.product as any).product_media || [];
-          const primaryImage =
-            productMedia.find((m: any) => m.kind === "primary" || m.kind === "hero")?.public_url ||
+          let primaryImage = productMedia.find((m: any) => m.kind === "primary" || m.kind === "hero")?.public_url;
+          if (primaryImage && (primaryImage.startsWith('/assets/') || primaryImage.startsWith('/src/assets/'))) {
+            primaryImage = null;
+          }
+          primaryImage = primaryImage ||
             data.showcase?.sections?.[0]?.image ||
             staticData?.thumbnail ||
             "";
