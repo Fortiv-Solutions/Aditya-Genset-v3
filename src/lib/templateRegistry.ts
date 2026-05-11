@@ -19,12 +19,12 @@ export const ESCORTS_CHAPTER_KEYS = [
   "engine",
   "fuel",
   "alternator",
+  "electrical",
   "enclosure",
   "control",
   "protection",
   "supply",
   "dimensions",
-  "electrical",
   "video",
 ] as const;
 

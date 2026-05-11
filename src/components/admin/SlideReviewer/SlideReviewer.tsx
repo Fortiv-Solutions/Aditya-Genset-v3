@@ -10,7 +10,7 @@ import { ChevronLeft, ChevronRight, Eye, CheckCircle2, Settings, Move, Upload } 
 import { cn } from "@/lib/utils";
 import type { ChapterDataInput, SectionInput, PublishMediaInput } from "@/lib/api/productPublisher";
 import type { TemplateId } from "@/lib/templateRegistry";
-import { ESCORTS_CHAPTER_LABELS, getChapterKeys } from "@/lib/templateRegistry";
+import { ESCORTS_CHAPTER_LABELS } from "@/lib/templateRegistry";
 import { ChapterInteractive } from "@/components/site/ChapterInteractive";
 import { StickyImageStack } from "@/components/site/StickyImageStack";
 import { ProgressRail } from "@/components/site/ProgressRail";
@@ -30,7 +30,10 @@ interface SlideReviewerProps {
   onMediaChange: (media: Partial<PublishMediaInput>) => void;
 }
 
-// Removed hardcoded SLIDE_KEYS
+const SLIDE_KEYS = [
+  "overview", "engine", "fuel", "alternator", "electrical",
+  "enclosure", "control", "protection", "supply", "dimensions", "video",
+];
 
 export function SlideReviewer({
   templateId,
@@ -43,9 +46,8 @@ export function SlideReviewer({
   onMediaChange,
 }: SlideReviewerProps) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const slideKeys = getChapterKeys(templateId);
 
-  const activeKey = slideKeys[activeIndex];
+  const activeKey = SLIDE_KEYS[activeIndex];
   const activeSection = sections.find((s) => s.id === activeKey);
   const activeChapter = chapterDataMap[activeKey] || {};
 
@@ -63,7 +65,7 @@ export function SlideReviewer({
   const advanceTo = useCallback((next: number) => {
     if (isJumping.current) return;
     isJumping.current = true;
-    const boundedNext = Math.max(0, Math.min(next, slideKeys.length - 1));
+    const boundedNext = Math.max(0, Math.min(next, SLIDE_KEYS.length - 1));
     setActiveIndex(boundedNext);
     jumpTo(boundedNext);
     window.setTimeout(() => {
@@ -79,7 +81,7 @@ export function SlideReviewer({
     const onWheel = (event: WheelEvent) => {
       event.preventDefault();
       const next = event.deltaY > 0
-        ? Math.min(activeIndex + 1, slideKeys.length - 1)
+        ? Math.min(activeIndex + 1, SLIDE_KEYS.length - 1)
         : Math.max(activeIndex - 1, 0);
       advanceTo(next);
     };
@@ -114,7 +116,7 @@ export function SlideReviewer({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [activeIndex, advanceTo]);
 
-  const showcaseSections = slideKeys.map((key, i) => {
+  const showcaseSections = SLIDE_KEYS.map((key, i) => {
     const s = sections.find(sec => sec.id === key);
     return {
       id: key,
@@ -132,7 +134,7 @@ export function SlideReviewer({
   const handleImageUpload = async (index: number, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const key = slideKeys[index];
+    const key = SLIDE_KEYS[index];
     setUploadingImage(true);
     const toastId = toast.loading("Uploading image...");
     try {
@@ -214,7 +216,7 @@ export function SlideReviewer({
           className="col-span-6 min-w-0 overflow-y-auto h-full scrollbar-none pb-[50vh]" 
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
-          {slideKeys.map((key, i) => {
+          {SLIDE_KEYS.map((key, i) => {
              const sSection = sections.find(s => s.id === key);
              const sData = chapterDataMap[key] || {};
              const mergedData = { ...sData, ...showcaseSections[i] };
