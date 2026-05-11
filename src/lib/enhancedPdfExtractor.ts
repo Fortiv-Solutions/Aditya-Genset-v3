@@ -31,6 +31,7 @@ export interface RawExtractedData {
       height_mm: number | null;
       full_string: string | null;
     } | null;
+    technical_summary?: string;
   };
   sections: Array<{
     title: string;
@@ -38,6 +39,7 @@ export interface RawExtractedData {
     specs: Array<{ label: string; value: string }>;
     features: string[];
   }>;
+  unmapped_notes?: string[];
 }
 
 export interface DimEntry { label: string; value: string; }
@@ -71,6 +73,9 @@ export interface ChapterData {
   optionalItems?: string[];
   optionalGroups?: OptionalGroup[];
   highlights?: Array<{ value: number | string; suffix: string; label: string }>;
+  fuelConsumptionPoints?: { load: number; lhr: number }[];
+  efficiencyPoints?: { label: string; value: number }[];
+  unmappedNotes?: string[];
 }
 
 export interface HotspotData {
@@ -240,17 +245,37 @@ export function enhanceProductExtraction(
   const kwe = Math.round(kva * 0.8 * 10) / 10;
   const missingFields: string[] = [];
   
+  // Pool all specs from core list and advanced sections
+  const specPool = [
+    ...additionalSpecs,
+    ...(extracted.advancedSections || []).flatMap(s => s.specs || [])
+  ];
+
+  // Pool all features from core list and advanced sections
+  const featurePool = [
+    ...(extracted.features || []),
+    ...(extracted.advancedSections || []).flatMap(s => s.features || [])
+  ];
+  
   const findSpec = (patterns: string[]) => {
-    const found = additionalSpecs.find((spec) =>
+    const found = specPool.find((spec) =>
       patterns.some((pattern) => spec.label.toLowerCase().includes(pattern.toLowerCase()))
     );
     return found?.value || "";
   };
 
   const filterSpecs = (patterns: string[]) => {
-    return additionalSpecs.filter((spec) =>
+    return specPool.filter((spec) =>
       patterns.some((pattern) => spec.label.toLowerCase().includes(pattern.toLowerCase()))
     );
+  };
+
+  const findFeatures = (patterns: string[], limit = 3) => {
+    const found = featurePool.filter((feat) =>
+      patterns.some((pattern) => feat.toLowerCase().includes(pattern.toLowerCase()))
+    );
+    if (found.length > 0) return found.slice(0, limit);
+    return [];
   };
   
   const checkField = (value: string | undefined, fieldName: string) => {
@@ -260,6 +285,32 @@ export function enhanceProductExtraction(
     }
     return true;
   };
+
+  const engineBrand = extracted.engineBrand || "Diesel";
+  const brandLabel = engineBrand.split("-").map(p => p.charAt(0).toUpperCase() + p.slice(1)).join(" ");
+  const topFeatures = findFeatures(["governing", "brushless", "alternator", "control", "sound", "compact"], 2);
+  
+  const dynamicShortDesc = `${kva} kVA Silent DG Set powered by ${brandLabel} engine. ${topFeatures.length > 0 ? `Features ${topFeatures.join(" & ")}. ` : ""}CPCB ${extracted.cpcb === "ii" ? "II" : "IV+"} compliant extraction from datasheet.`;
+
+  // Try to parse fuel points from pool
+  // Look for patterns like "Fuel Cons. 25% Load: 1.5 L/hr"
+  const parseLoadPoint = (pats: string[]) => {
+    const val = findSpec(pats);
+    return parseFloat(val.replace(/[^0-9.]/g, "")) || null;
+  };
+
+  const fuelConsumptionPoints = [
+    { load: 25, lhr: parseLoadPoint(["25%", "quarter load"]) || 1.69 },
+    { load: 50, lhr: parseLoadPoint(["50%", "half load"]) || 2.28 },
+    { load: 75, lhr: parseLoadPoint(["75%", "three quarter"]) || 2.98 },
+    { load: 100, lhr: parseLoadPoint(["100%", "full load"]) || 3.78 },
+    { load: 110, lhr: parseLoadPoint(["110%", "overload"]) || 4.40 },
+  ];
+
+  const efficiencyPoints = [
+    { label: "75% Load", value: parseLoadPoint(["efficiency", "75%"]) || 86.4 },
+    { label: "100% Load", value: parseLoadPoint(["efficiency", "100%"]) || 83.5 },
+  ];
   
   const engineModel = extracted.engineModel || findSpec(["engine model"]);
   const cpcbLabel = extracted.cpcb === "ii" ? "CPCB II" : "CPCB IV+";
@@ -278,7 +329,7 @@ export function enhanceProductExtraction(
         { label: "Speed", value: extracted.frequency === "60 Hz" ? "1800 RPM" : "1500 RPM" },
         { label: "Compliance", value: cpcbLabel },
       ],
-      description: extracted.shortDesc || `${extracted.name} is an ${extracted.engineBrand}-powered ${kva} kVA silent diesel generator set.`,
+      description: extracted.technicalSummary || dynamicShortDesc,
       aboutSpecs: [
         { label: "Power Factor", value: extracted.powerFactor || "0.8 lagging" },
         { label: "ISO Compliance", value: "ISO 8528" },
@@ -286,7 +337,8 @@ export function enhanceProductExtraction(
       ],
       highlights: [
         { value: kva, suffix: " kVA", label: "Prime power" },
-        { value: 27, suffix: "+ yrs", label: "Heritage" }
+        { value: 27, suffix: "+ yrs", label: "Heritage" },
+        { value: "CPCB", suffix: extracted.cpcb === "ii" ? " II" : " IV+", label: "Compliance" }
       ]
     },
     {
@@ -302,11 +354,13 @@ export function enhanceProductExtraction(
         { label: "Bore / Stroke", value: findSpec(["bore", "stroke"]) || "Refer datasheet" },
         { label: "Gross Power", value: findSpec(["gross power", "engine power"]) || `${Math.round(kva * 0.9)} kWm` },
       ],
-      features: [
-        "Cast iron cylinder block with rugged body construction",
-        "High carbon steel forged crankshaft",
-        "Electronic governing for fast load response",
-      ]
+      features: findFeatures(["cylinder", "crankshaft", "governing", "engine", "duty", "body", "construction", "rugged"], 4).length > 0
+        ? findFeatures(["cylinder", "crankshaft", "governing", "engine", "duty", "body", "construction", "rugged"], 4)
+        : [
+            "Cast iron cylinder block with rugged body construction",
+            "High carbon steel forged crankshaft",
+            "Electronic governing for fast load response",
+          ]
     },
     {
       id: "fuel",
@@ -322,10 +376,9 @@ export function enhanceProductExtraction(
         { label: "Lube Oil Consumption", value: "< Normal limits" },
       ],
       coolingSpecs: [
-        { label: "Cooling Method", value: extracted.coolingType || "Radiator (Water Cooled)" },
-        { label: "Coolant Capacity", value: findSpec(["coolant"]) || "Refer datasheet" },
         { label: "Silencer", value: "Residential" },
-      ]
+      ],
+      fuelConsumptionPoints,
     },
     {
       id: "alternator",
@@ -338,13 +391,15 @@ export function enhanceProductExtraction(
         { label: "Insulation", value: "H Class" },
       ],
       perfSpecs: [
-        { label: "Excitation", value: "Self excited" },
         { label: "AVR Type", value: findSpec(["avr"]) || "AS540" },
       ],
-      features: [
-        "Brushless type, screen protected",
-        "Excellent motor start capability",
-      ]
+      efficiencyPoints,
+      features: findFeatures(["brushless", "screen", "motor", "excitation", "avr", "insulation", "class"], 3).length > 0
+        ? findFeatures(["brushless", "screen", "motor", "excitation", "avr", "insulation", "class"], 3)
+        : [
+            "Brushless type, screen protected",
+            "Excellent motor start capability",
+          ]
     },
     {
       id: "electrical",
@@ -363,17 +418,21 @@ export function enhanceProductExtraction(
     {
       id: "enclosure",
       number: "06",
-      title: "Enclosure & Sound",
-      acousticDims: [
-        { label: "Length", value: extracted.dimensions.split("x")[0]?.trim() || "Refer datasheet" },
-        { label: "Width", value: extracted.dimensions.split("x")[1]?.trim() || "Refer datasheet" },
-        { label: "Height", value: extracted.dimensions.split("x")[2]?.trim() || "Refer datasheet" },
-        { label: "Fuel Tank", value: extracted.fuelTankCapacity || "Refer datasheet" },
-      ],
-      envSpecs: [
+      title: "Acoustic Enclosure",
+      specs: [
+        { label: "Enclosure Type", value: "Sound attenuated / Weather proof" },
         { label: "Noise Level", value: extracted.noiseLevel },
-        { label: "CPCB", value: cpcbLabel },
-      ]
+        { label: "CPCB Compliance", value: cpcbLabel },
+        { label: "Surface Treatment", value: findSpec(["paint", "powder"]) || "Powder coated" },
+      ],
+      features: findFeatures(["canopy", "enclosure", "sound", "acoustic", "weather", "lift", "point", "base"], 4).length > 0
+        ? findFeatures(["canopy", "enclosure", "sound", "acoustic", "weather", "lift", "point", "base"], 4)
+        : [
+            "UV resistant powder coated canopy",
+            "High quality sound absorbing insulation",
+            "Point lift for easy transportation",
+            "Lockable doors for safety"
+          ]
     },
     {
       id: "control",
@@ -384,41 +443,88 @@ export function enhanceProductExtraction(
         { label: "Display", value: "Backlit LCD" },
         { label: "Communication", value: "USB, RS-485" },
       ],
-      engineParams: ["Engine Speed", "Oil Pressure", "Coolant Temp", "Battery Voltage"],
-      electricalParams: ["Gen Voltage", "Gen Current", "Frequency", "Power Factor"],
-      electricalSpecs: [
-        { label: "Supply Voltage", value: "12 / 24 V DC" },
-      ]
+      features: findFeatures(["controller", "display", "logic", "automatic", "start", "stop", "protection", "monitoring"], 4).length > 0
+        ? findFeatures(["controller", "display", "logic", "automatic", "start", "stop", "protection", "monitoring"], 4)
+        : [
+            "Microprocessor based digital controller",
+            "Auto start/stop and protection",
+            "LCD display for clear parameters",
+            "In-built event logging"
+          ],
+      engineParams: findFeatures(["speed", "pressure", "temp", "coolant", "battery", "hours"], 4).length > 0
+        ? findFeatures(["speed", "pressure", "temp", "coolant", "battery", "hours"], 4)
+        : ["Engine Speed", "Oil Pressure", "Coolant Temp", "Battery Voltage"],
+      electricalParams: findFeatures(["voltage", "current", "frequency", "pf", "kw", "kvar", "kwh"], 4).length > 0
+        ? findFeatures(["voltage", "current", "frequency", "pf", "kw", "kvar", "kwh"], 4)
+        : ["Gen Voltage", "Gen Current", "Frequency", "Power Factor"],
+      electricalSpecs: filterSpecs(["supply", "auxiliary", "analog", "digital", "input", "output"]).length > 0
+        ? filterSpecs(["supply", "auxiliary", "analog", "digital", "input", "output"])
+        : [
+            { label: "Supply Voltage", value: "12 / 24 V DC" },
+          ]
     },
     {
       id: "protection",
       number: "08",
       title: "Protection & Approvals",
       engineProtections: ["High Water Temp", "Low Oil Pressure", "Over Speed"],
-      electricalProtections: ["Under/Over Voltage", "Under/Over Frequency", "Over Current"],
-      approvals: ["CE Compliant", "ISO 8528", "CPCB IV+"]
+      electricalProtections: findFeatures(["under", "over", "voltage", "frequency", "current", "protection"], 4).length > 0
+        ? findFeatures(["under", "over", "voltage", "frequency", "current", "protection"], 4)
+        : ["Under/Over Voltage", "Under/Over Frequency", "Over Current"],
+      approvals: ["CE Compliant", "ISO 8528", "CPCB IV+"],
+      unmappedNotes: extracted.unmappedNotes || []
     },
     {
       id: "supply",
       number: "09",
       title: "Standard Supply",
-      standardItems: [
-        "Water-cooled diesel engine",
-        "Electric starter",
-        "Acoustic enclosure",
-        "Base frame with AVM",
-        "DG Control panel"
-      ],
-      optionalItems: ["Coolant heater", "ATS", "Remote monitoring"]
+      standardItems: findFeatures(["standard", "supply", "scope", "inclusive", "base", "panel", "starter"], 6).length > 0
+        ? findFeatures(["standard", "supply", "scope", "inclusive", "base", "panel", "starter"], 6)
+        : [
+            "Water-cooled diesel engine",
+            "Electric starter",
+            "Acoustic enclosure",
+            "Base frame with AVM",
+            "DG Control panel"
+          ],
+      optionalItems: findFeatures(["optional", "extra", "accessory", "heater", "ats", "remote"], 4).length > 0
+        ? findFeatures(["optional", "extra", "accessory", "heater", "ats", "remote"], 4)
+        : ["Coolant heater", "ATS", "Remote monitoring"],
+      optionalGroups: [
+        { 
+          label: "Electrical Options", 
+          items: findFeatures(["ats", "remote", "synchronizing", "amf", "panel"], 3).length > 0 
+            ? findFeatures(["ats", "remote", "synchronizing", "amf", "panel"], 3) 
+            : ["AMF Panel", "ATS Switch", "Battery Charger"] 
+        },
+        { 
+          label: "Engine Accessories", 
+          items: findFeatures(["heater", "jacket", "lube", "pump", "drain"], 3).length > 0 
+            ? findFeatures(["heater", "jacket", "lube", "pump", "drain"], 3) 
+            : ["Lube Oil Drain Pump", "Coolant Heater", "Electronic Governor"] 
+        }
+      ]
     },
     {
       id: "dimensions",
       number: "10",
-      title: "Dimensions & Weight",
+      title: "Dimensions & Weights",
+      acousticDims: [
+        { label: "Length", value: extracted.dimensions.split(/[xX*×]/)[0]?.trim() || "Refer datasheet" },
+        { label: "Width", value: extracted.dimensions.split(/[xX*×]/)[1]?.trim() || "Refer datasheet" },
+        { label: "Height", value: extracted.dimensions.split(/[xX*×]/)[2]?.trim() || "Refer datasheet" },
+        { label: "Fuel Tank", value: extracted.fuelTankCapacity || "Refer datasheet" },
+      ],
+      openDims: [
+        { label: "Length", value: findSpec(["open", "length"]) || "Refer datasheet" },
+        { label: "Width", value: findSpec(["open", "width"]) || "Refer datasheet" },
+        { label: "Height", value: findSpec(["open", "height"]) || "Refer datasheet" },
+        { label: "Dry Weight", value: extracted.dryWeight || findSpec(["weight"]) || "Refer datasheet" },
+      ],
       specs: [
-        { label: "Dimensions", value: extracted.dimensions },
-        { label: "Dry Weight", value: extracted.dryWeight },
-        { label: "Rating", value: `${kva} kVA` },
+        { label: "Overall Dimensions", value: extracted.dimensions },
+        { label: "Dry Weight (Acoustic)", value: extracted.dryWeight },
+        { label: "Fuel Tank Capacity", value: extracted.fuelTankCapacity },
       ]
     }
   ];

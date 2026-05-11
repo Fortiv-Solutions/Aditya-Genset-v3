@@ -134,7 +134,7 @@
     @apply mx-auto w-full max-w-7xl px-6 md:px-10;
   }
   .container-showcase {
-    @apply mx-auto w-full max-w-[1440px] px-6 md:px-10 lg:pl-10 lg:pr-10;
+    @apply mx-auto w-full max-w-[1440px] px-6 md:px-10 lg:pl-[136px] lg:pr-[88px] xl:pl-[152px] xl:pr-[112px];
   }
 
   .hairline {

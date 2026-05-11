@@ -37,7 +37,7 @@ console.info('✅ Connected to Supabase:', supabaseUrl)
 // =====================================================
 
 // Enums
-export type AppRole = 'Super Admin' | 'Admin' | 'Sales Manager' | 'Sales Executive' | 'Media Editor'
+export type AppRole = 'Super Admin' | 'Admin' | 'Sales Manager' | 'Sales Executive' | 'Media Editor' | 'Viewer'
 export type ProductStatus = 'published' | 'draft' | 'archived'
 export type ProductType = 'silent' | 'open'
 export type ProductStock = 'in_stock' | 'on_order' | 'discontinued'
@@ -45,22 +45,43 @@ export type LeadStage = 'new' | 'contacted' | 'qualified' | 'site_assessment' | 
 export type LeadSource = 'website_form' | 'whatsapp' | 'phone' | 'referral' | 'indiamart' | 'trade_show' | 'dealer'
 export type QuoteStatus = 'draft' | 'sent' | 'accepted' | 'rejected' | 'expired'
 export type PresentationStatus = 'active' | 'completed' | 'abandoned'
-export type ScopeType = 'global' | 'product' | 'category' | 'page'
+export type ScopeType = 'global' | 'product' | 'category' | 'page' | 'brand'
 export type MessageDirection = 'inbound' | 'outbound'
 export type MessageSender = 'customer' | 'agent' | 'system'
+export type MediaKind = 'primary' | 'gallery' | 'datasheet' | 'video' | 'thumbnail' | 'hero' | 'cad' | 'brochure'
+export type ImportJobStatus = 'pending' | 'processing' | 'review' | 'approved' | 'rejected' | 'failed'
+export type ShowcaseLayout = 'scroll_story' | 'tabs' | 'grid' | 'carousel' | 'comparison'
+export type ChapterInteraction = 'spec_grid' | 'tab_switcher' | 'fuel_slider' | 'efficiency_bars' | 'reactance_table' | 'dimension_toggle' | 'checklist' | 'certification_badges' | 'video_player' | 'gallery' | 'comparison_table' | 'none'
 
 // Product Types
+export interface ProductBrand {
+  id: string
+  slug: string
+  name: string
+  logo_url: string | null
+  description: string | null
+  website: string | null
+  is_oem: boolean
+  sort_order: number
+  is_active: boolean
+  metadata: any
+  created_at: string
+  updated_at: string
+}
+
 export interface Product {
   id: string
   category_id: string | null
+  brand_id: string | null
   status: ProductStatus
   type: ProductType
   name: string
   model: string
   slug: string
   kva: number
-  engine_brand: string
-  cpcb: string
+  kwe: number
+  engine_brand: string | null
+  cpcb: string | null
   price: number | null
   price_on_request: boolean
   moq: number
@@ -72,7 +93,12 @@ export interface Product {
   seo_title: string | null
   meta_desc: string | null
   inquiries: number
+  view_count: number
+  is_featured: boolean
+  is_best_seller: boolean
   published_at: string | null
+  created_by: string | null
+  updated_by: string | null
   created_at: string
   updated_at: string
 }
@@ -83,8 +109,13 @@ export interface ProductCategory {
   slug: string
   name: string
   description: string | null
+  icon: string | null
+  image_url: string | null
   sort_order: number
   is_active: boolean
+  seo_title: string | null
+  meta_desc: string | null
+  metadata: any
   created_at: string
   updated_at: string
 }
@@ -92,12 +123,17 @@ export interface ProductCategory {
 export interface ProductMedia {
   id: string
   product_id: string
-  kind: string
+  kind: MediaKind
   storage_path: string | null
   public_url: string | null
   alt_text: string | null
+  caption: string | null
   mime_type: string | null
+  file_size_kb: number | null
+  width_px: number | null
+  height_px: number | null
   display_order: number
+  metadata: any
   created_at: string
   updated_at: string
 }
@@ -105,9 +141,189 @@ export interface ProductMedia {
 export interface ProductSpec {
   id: string
   product_id: string
+  group_name: string
+  spec_label: string
+  spec_value: string
+  unit: string | null
+  display_order: number
+  is_highlight: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductFeature {
+  id: string
+  product_id: string
+  group_name: string
+  feature_text: string
+  display_order: number
+  created_at: string
+}
+
+export interface ProductDocument {
+  id: string
+  product_id: string | null
+  doc_type: string
+  title: string
+  storage_path: string
+  public_url: string | null
+  file_size_kb: number | null
+  mime_type: string
+  page_count: number | null
+  uploaded_by: string | null
+  metadata: any
+  created_at: string
+}
+
+// Showcase Types
+export interface EscortsTemplate {
+  id: string
+  slug: string
+  name: string
+  brand_id: string | null
+  category_id: string | null
+  layout: ShowcaseLayout
+  chapter_count: number
+  description: string | null
+  is_default: boolean
+  config: any
+  created_at: string
+  updated_at: string
+}
+
+export interface EscortsTemplateChapter {
+  id: string
+  template_id: string
+  chapter_key: string
+  chapter_number: string
+  title: string
+  default_tagline: string | null
+  interaction_type: ChapterInteraction
+  display_order: number
+  is_required: boolean
+  config: any
+  created_at: string
+}
+
+export interface ProductShowcaseSection {
+  id: string
+  product_id: string
+  chapter_key: string
+  chapter_number: string
+  title: string
+  tagline: string | null
+  image_url: string | null
+  video_url: string | null
+  alt_text: string | null
+  display_order: number
+  is_active: boolean
+  highlight: any | null
+  metadata: any
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductShowcaseSectionSpec {
+  id: string
+  section_id: string
   spec_label: string
   spec_value: string
   display_order: number
+  created_at: string
+}
+
+export interface ProductChapterData {
+  id: string
+  product_id: string
+  chapter_key: string
+  interaction_type: ChapterInteraction
+  specs: any | null
+  features: any | null
+  badges: any | null
+  description: string | null
+  about_specs: any | null
+  lube_specs: any | null
+  cooling_specs: any | null
+  perf_specs: any | null
+  reactance_data: any | null
+  acoustic_dims: any | null
+  open_dims: any | null
+  env_specs: any | null
+  engine_params: any | null
+  electrical_params: any | null
+  electrical_specs: any | null
+  engine_protections: any | null
+  electrical_protections: any | null
+  approvals: any | null
+  standard_items: any | null
+  optional_items: any | null
+  optional_groups: any | null
+  fuel_curve_data: any | null
+  efficiency_data: any | null
+  config: any
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductHotspot {
+  id: string
+  product_id: string
+  hotspot_key: string
+  x: number
+  y: number
+  title: string
+  description: string | null
+  sub_image_url: string | null
+  zoom: number
+  offset_x: number
+  offset_y: number
+  display_order: number
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductHotspotSpec {
+  id: string
+  hotspot_id: string
+  spec_label: string
+  spec_value: string
+  display_order: number
+  created_at: string
+}
+
+export interface ProductPresentationConfig {
+  id: string
+  product_id: string
+  main_image_1: string | null
+  main_image_2: string | null
+  video_url: string | null
+  video_thumb_url: string | null
+  chapter_count: number
+  use_two_image: boolean
+  config: any
+  created_at: string
+  updated_at: string
+}
+
+export interface ProductImportJob {
+  id: string
+  document_id: string | null
+  status: ImportJobStatus
+  source_type: string
+  source_url: string | null
+  ai_provider: string
+  ai_model: string | null
+  raw_extraction: any | null
+  mapped_product: any | null
+  confidence_score: number | null
+  missing_fields: string[] | null
+  extraction_notes: string | null
+  reviewed_by: string | null
+  reviewed_at: string | null
+  target_product_id: string | null
+  error_message: string | null
+  processing_time_ms: number | null
   created_at: string
   updated_at: string
 }

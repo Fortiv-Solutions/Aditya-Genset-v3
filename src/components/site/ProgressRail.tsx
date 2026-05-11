@@ -25,7 +25,7 @@ export function ProgressRail({ count, active, labels, images, videoUrls, onJump 
             aria-label={labels?.[i] ?? `Section ${i + 1}`}
             className="group flex items-center gap-3"
           >
-            {images?.[i] ? (
+            {images?.[i] && images[i] !== "" ? (
               <div
                 className={cn(
                   "h-8 w-12 rounded-md overflow-hidden border-2 transition-all duration-500 ease-brand relative",

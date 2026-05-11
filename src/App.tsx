@@ -65,6 +65,16 @@ const AdminRoute = ({ children }: { children: React.ReactNode }) => {
   return <AdminLayout>{children}</AdminLayout>;
 };
 
+const AdminRouteNoLayout = ({ children }: { children: React.ReactNode }) => {
+  const { user, profile, loading } = useAuth();
+  
+  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  
+  if (!user) return <Navigate to="/login" replace />;
+  if (!profile?.role || !ADMIN_ROLES.includes(profile.role)) return <Navigate to="/" replace />;
+  return <>{children}</>;
+};
+
 const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
@@ -83,14 +93,14 @@ const App = () => {
                     {/* ── Admin Dashboard ─────────────────────────── */}
                     <Route path="/admin" element={<AdminRoute><AdminDashboard /></AdminRoute>} />
                     <Route path="/admin/products" element={<AdminRoute><AdminProducts /></AdminRoute>} />
-                    <Route path="/admin/products/add" element={<AdminRoute><AddProduct /></AdminRoute>} />
+                    <Route path="/admin/products/add" element={<AdminRouteNoLayout><AddProduct /></AdminRouteNoLayout>} />
                     <Route path="/admin/products/diagnostic" element={<AdminRoute><ProductDiagnostic /></AdminRoute>} />
                     <Route path="/admin/products/categories" element={
                       <AdminRoute>
                         <AdminComingSoon title="Product Categories" description="Manage the hierarchical category tree for DG Sets, Open DG Sets, Industrial Sets, and Accessories." />
                       </AdminRoute>
                     } />
-                    <Route path="/admin/products/:id/edit" element={<AdminRoute><AddProduct /></AdminRoute>} />
+                    <Route path="/admin/products/:id/edit" element={<AdminRouteNoLayout><AddProduct /></AdminRouteNoLayout>} />
 
                     <Route path="/admin/leads" element={
                       <AdminRoute>

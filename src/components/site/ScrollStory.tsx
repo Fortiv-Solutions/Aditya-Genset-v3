@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
+import { useCallback, useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import type { ShowcaseProduct } from "@/data/products";
 import { StickyImageStack } from "./StickyImageStack";
 import { ProgressRail } from "./ProgressRail";
@@ -14,8 +14,7 @@ import type { NavSection } from "./VerticalNav";
 import type { CMSSection } from "@/lib/sanity";
 import { ChapterInteractive } from "./ChapterInteractive";
 import { Clock, MonitorPlay, Clapperboard } from "lucide-react";
-import { EKL15_CHAPTER_DATA } from "@/data/ekl15Data";
-import { EKL20_3CYL_CHAPTER_DATA } from "@/data/ekl20Data";
+
 
 // No fixed header bar — ScrollStory takes full viewport height
 const HEADER_H = 0;
@@ -27,9 +26,11 @@ interface Props {
   firstChapterOffset?: number;
   /** Called whenever the active chapter index changes */
   onChapterChange?: (index: number) => void;
+  /** Database-driven chapter data map (v2). If provided, static imports are not used. */
+  chapterDataMap?: Record<string, any>;
 }
 
-export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>(({ product, sectionId = "showcaseData", firstChapterOffset = 0, onChapterChange }, ref) => {
+export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>(({ product, sectionId = "showcaseData", firstChapterOffset = 0, onChapterChange, chapterDataMap }, ref) => {
   const [active, setActive] = useState(0);
 
   // Notify parent whenever active chapter changes
@@ -37,7 +38,6 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
   const [isPresenting, setIsPresenting] = useState(false);
   const refs = useRef<(HTMLElement | null)[]>([]);
   const rightColRef = useRef<HTMLDivElement>(null);
-  // Scroll-lock: prevents rapid fire chapter jumps
   const isJumping = useRef(false);
 
   useImperativeHandle(ref, () => ({
@@ -76,12 +76,23 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
     return () => obs.disconnect();
   }, [isPresenting]);
 
-  const jumpTo = (i: number) => {
+  const jumpTo = useCallback((i: number) => {
     const el = refs.current[i];
     const col = rightColRef.current;
     if (!el || !col) return;
     col.scrollTo({ top: el.offsetTop, behavior: "smooth" });
-  };
+  }, []);
+
+  const advanceTo = useCallback((next: number) => {
+    if (isJumping.current) return;
+    isJumping.current = true;
+    const boundedNext = Math.max(0, Math.min(next, product.sections.length - 1));
+    setActive(boundedNext);
+    jumpTo(boundedNext);
+    window.setTimeout(() => {
+      isJumping.current = false;
+    }, 700);
+  }, [jumpTo, product.sections.length]);
 
   // Wheel interceptor — one wheel tick = one chapter advance/retreat
   useEffect(() => {
@@ -89,57 +100,44 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
     const col = rightColRef.current;
     if (!col) return;
 
-    const onWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      if (isJumping.current) return;
-      isJumping.current = true;
-      setActive((prev) => {
-        const next = e.deltaY > 0
-          ? Math.min(prev + 1, product.sections.length - 1)
-          : Math.max(prev - 1, 0);
-        // Scroll the column directly
-        const el = refs.current[next];
-        if (el) col.scrollTo({ top: el.offsetTop, behavior: "smooth" });
-        return next;
-      });
-      setTimeout(() => { isJumping.current = false; }, 750);
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const next = event.deltaY > 0
+        ? Math.min(active + 1, product.sections.length - 1)
+        : Math.max(active - 1, 0);
+      advanceTo(next);
     };
 
     col.addEventListener("wheel", onWheel, { passive: false });
     return () => col.removeEventListener("wheel", onWheel);
-  }, [isPresenting, product.sections.length]);
+  }, [active, advanceTo, isPresenting, product.sections.length]);
 
-  // Touch swipe interceptor for mobile
   useEffect(() => {
     if (isPresenting) return;
-    const col = rightColRef.current;
-    if (!col) return;
 
-    let touchStartY = 0;
-    const onTouchStart = (e: TouchEvent) => { touchStartY = e.touches[0].clientY; };
-    const onTouchEnd = (e: TouchEvent) => {
-      const delta = touchStartY - e.changedTouches[0].clientY;
-      if (Math.abs(delta) < 30) return; // ignore tiny swipes
-      if (isJumping.current) return;
-      isJumping.current = true;
-      setActive((prev) => {
-        const next = delta > 0
-          ? Math.min(prev + 1, product.sections.length - 1)
-          : Math.max(prev - 1, 0);
-        const el = refs.current[next];
-        if (el) col.scrollTo({ top: el.offsetTop, behavior: "smooth" });
-        return next;
-      });
-      setTimeout(() => { isJumping.current = false; }, 750);
+    const onKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const isTyping =
+        target?.tagName === "INPUT" ||
+        target?.tagName === "TEXTAREA" ||
+        target?.isContentEditable;
+
+      if (isTyping) return;
+
+      if (event.key === "PageDown" || event.key === "ArrowDown" || event.key === " ") {
+        event.preventDefault();
+        advanceTo(active + 1);
+      }
+
+      if (event.key === "PageUp" || event.key === "ArrowUp") {
+        event.preventDefault();
+        advanceTo(active - 1);
+      }
     };
 
-    col.addEventListener("touchstart", onTouchStart, { passive: true });
-    col.addEventListener("touchend", onTouchEnd, { passive: true });
-    return () => {
-      col.removeEventListener("touchstart", onTouchStart);
-      col.removeEventListener("touchend", onTouchEnd);
-    };
-  }, [isPresenting, product.sections?.length || 0]);
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [active, advanceTo, isPresenting]);
 
   // Build nav sections from product chapters
   const navSections: NavSection[] = (product.sections || []).map((s, i) => ({
@@ -160,7 +158,7 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
   }
 
   if (isPresenting) {
-    return <GuidedPresentation onClose={() => setIsPresenting(false)} sectionId={sectionId} product={product} />;
+    return <GuidedPresentation onClose={() => setIsPresenting(false)} sectionId={sectionId} product={product} chapterDataMap={chapterDataMap} />;
   }
 
   const colHeight = `calc(100vh - ${HEADER_H}px)`;
@@ -168,56 +166,39 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
   return (
     <section className="relative">
       {/* ── Desktop split layout ───────────────────────────────────────── */}
-      <div className="container-showcase hidden lg:grid lg:grid-cols-12 lg:gap-12" style={{ height: colHeight }}>
+      <div className="container-showcase hidden lg:grid lg:grid-cols-12 lg:gap-10 xl:gap-12" style={{ height: colHeight }}>
 
         {/* Left — sticky image + progress rail */}
         <aside
-          className="col-span-6 self-start flex items-center"
+          className="col-span-6 flex min-w-0 items-center self-start"
           style={{ height: colHeight, position: "sticky", top: HEADER_H }}
         >
-          <div className="flex w-full items-center gap-16 h-full py-6">
-            <div className="flex-1 h-full flex flex-col">
+          <div className="flex h-full w-full min-w-0 items-center gap-8 py-6 xl:gap-12 2xl:gap-16">
+            <div className="flex h-full min-w-0 flex-1 flex-col">
 
-              {active === 0 ? (
-                /* ── Slide 1: image centred, no title above ── */
-                <div className="flex-1 flex items-center">
-                  <div className="relative aspect-square w-full overflow-hidden rounded-sm">
-                    <div className="relative w-full h-full flex items-center justify-center">
-                      <SmoothImage
-                        src={product.sections[0]?.image}
-                        alt={product.sections[0]?.alt}
-                        wrapperClassName="w-full h-full absolute inset-0 bg-transparent"
-                        imageClassName="w-[120%] h-[120%] object-contain transition-all duration-700"
-                      />
-                    </div>
+              <>
+                {/* Chapter title block — uses the space above the image */}
+                <div className="min-w-0 pt-2 pb-5 transition-all duration-500 ease-brand">
+                  <div className="font-display text-[10px] uppercase tracking-[0.45em] text-accent mb-1.5 flex items-center">
+                    <EditableText section={sectionId as any} contentKey={`chapter_${active}_number`} fallback={product.sections[active]?.number} as="span" />
+                    <span className="mx-2">/</span>
+                    <EditableText section={sectionId as any} contentKey={`chapter_${active}_id`} fallback={product.sections[active]?.id} as="span" />
+                  </div>
+                  <h2 className="max-w-full break-words font-display text-3xl font-semibold leading-tight md:text-4xl">
+                    <EditableText section={sectionId as any} contentKey={`chapter_${active}_title`} fallback={product.sections[active]?.title} as="span" />
+                  </h2>
+                  {/* Decorative rule */}
+                  <div className="mt-4 flex items-center gap-3">
+                    <div className="h-px w-8 bg-accent" />
+                    <div className="h-px flex-1 bg-border" />
                   </div>
                 </div>
-              ) : (
-                /* ── Slides 2+: chapter title above image ── */
-                <>
-                  {/* Chapter title block — uses the space above the image */}
-                  <div className="transition-all duration-500 ease-brand pt-2 pb-5">
-                    <div className="font-display text-[10px] uppercase tracking-[0.45em] text-accent mb-1.5 flex items-center">
-                      <EditableText section={sectionId as any} contentKey={`chapter_${active}_number`} fallback={product.sections[active]?.number} as="span" />
-                      <span className="mx-2">/</span>
-                      <EditableText section={sectionId as any} contentKey={`chapter_${active}_id`} fallback={product.sections[active]?.id} as="span" />
-                    </div>
-                    <h2 className="font-display text-3xl font-semibold leading-tight md:text-4xl">
-                      <EditableText section={sectionId as any} contentKey={`chapter_${active}_title`} fallback={product.sections[active]?.title} as="span" />
-                    </h2>
-                    {/* Decorative rule */}
-                    <div className="mt-4 flex items-center gap-3">
-                      <div className="h-px w-8 bg-accent" />
-                      <div className="h-px flex-1 bg-border" />
-                    </div>
-                  </div>
 
-                  {/* Image fills remaining space */}
-                  <div className="flex-1 min-h-0">
-                    <StickyImageStack sections={product.sections} active={active} />
-                  </div>
-                </>
-              )}
+                {/* Image fills remaining space */}
+                <div className="flex-1 min-h-0">
+                  <StickyImageStack sections={product.sections} active={active} />
+                </div>
+              </>
             </div>
 
             <ProgressRail
@@ -234,28 +215,29 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
         {/* Right — snap-scroll chapter column */}
         <div
           ref={rightColRef}
-          className="col-span-6 overflow-y-auto"
+          className="col-span-6 min-w-0 overflow-y-auto"
           style={{
             height: colHeight,
-            scrollSnapType: "y mandatory",
             scrollbarWidth: "none",
             msOverflowStyle: "none",
           }}
         >
           {(product.sections || []).map((s, i) => {
             const isEscorts = product.engineBrand === "Escorts";
-            // Merge static technical data with CMS/Fallback sections to ensure tabs/reactance work
-            const chapterData = product.slug === "ekl-20-3cyl" ? EKL20_3CYL_CHAPTER_DATA[s.id] : EKL15_CHAPTER_DATA[s.id];
+            // V2: use database-driven chapterDataMap
+            const chapterData = chapterDataMap ? chapterDataMap[s.id] : undefined;
             const mergedData = isEscorts ? { ...(chapterData || {}), ...s } : null;
+            const articlePaddingTop = Math.max(firstChapterOffset, 24);
             return (
               <article
                 key={s.id}
                 ref={(el) => (refs.current[i] = el)}
                 data-index={i}
-                className="flex flex-col justify-center"
+                className="flex min-w-0 flex-col justify-start"
                 style={{
                   height: colHeight,
-                  scrollSnapAlign: "start",
+                  paddingTop: articlePaddingTop,
+                  paddingBottom: 24,
                 }}
               >
                 {isEscorts && mergedData ? (
@@ -263,6 +245,8 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
                     chapterId={s.id}
                     data={mergedData}
                     active={active === i}
+                    sectionId={sectionId}
+                    index={i}
                   />
                 ) : (
                   <SectionContent section={s} active={active === i} index={i} sectionId={sectionId} />
@@ -288,7 +272,7 @@ export const ScrollStory = forwardRef<{ enterPresentMode: () => void }, Props>((
                 </div>
               )}
               {isEscortsMobile ? (
-                <ChapterInteractive chapterId={s.id} data={s as any} active={true} />
+                <ChapterInteractive chapterId={s.id} data={s as any} active={true} sectionId={sectionId} index={i} />
               ) : (
                 <SectionContent section={s} active index={i} sectionId={sectionId} />
               )}

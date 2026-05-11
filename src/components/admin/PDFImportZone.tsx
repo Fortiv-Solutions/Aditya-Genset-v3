@@ -250,27 +250,42 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
             <div className="bg-background">
               <div className="p-4 grid grid-cols-2 md:grid-cols-3 gap-3 border-b border-border/50">
               {[
-                { label: "Product Name", value: result.data.name },
-                { label: "Model Number", value: result.data.model },
-                { label: "Power Output", value: result.data.kva ? `${result.data.kva} kVA` : null },
-                { label: "Engine Brand", value: result.data.engineBrand },
-                { label: "Engine Model", value: result.data.engineModel },
-                { label: "Application", value: result.data.application },
-                { label: "Fuel Consumption", value: result.data.fuelConsumption },
-                { label: "Noise Level", value: result.data.noiseLevel },
-                { label: "CPCB", value: result.data.cpcb },
-                { label: "Alternator", value: result.data.alternatorBrand },
-                { label: "Voltage", value: result.data.voltage },
-                { label: "Dimensions", value: result.data.dimensions },
-              ].map(({ label, value }) => (
+                { label: "Product Name", key: "name", value: result.data.name },
+                { label: "Model Number", key: "model", value: result.data.model },
+                { label: "Power Output", key: "kva", value: result.data.kva },
+                { label: "Engine Brand", key: "engineBrand", value: result.data.engineBrand },
+                { label: "Engine Model", key: "engineModel", value: result.data.engineModel },
+                { label: "Application", key: "application", value: result.data.application },
+                { label: "Fuel Consumption", key: "fuelConsumption", value: result.data.fuelConsumption },
+                { label: "Noise Level", key: "noiseLevel", value: result.data.noiseLevel },
+                { label: "CPCB", key: "cpcb", value: result.data.cpcb },
+                { label: "Alternator", key: "alternatorBrand", value: result.data.alternatorBrand },
+                { label: "Voltage", key: "voltage", value: result.data.voltage },
+                { label: "Dimensions", key: "dimensions", value: result.data.dimensions },
+              ].map(({ label, key, value }) => (
                 <div key={label} className="space-y-0.5">
                   <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{label}</p>
-                  <p className={cn(
-                    "text-sm font-medium truncate",
-                    value ? "text-foreground" : "text-muted-foreground/40 italic"
-                  )}>
-                    {value || "Not found"}
-                  </p>
+                  <div
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={e => {
+                      const newVal = e.currentTarget.textContent || "";
+                      setResult(prev => {
+                        if (!prev) return prev;
+                        return {
+                          ...prev,
+                          data: { ...prev.data, [key]: newVal }
+                        };
+                      });
+                    }}
+                    className={cn(
+                      "text-sm font-medium truncate outline-none focus:bg-accent/10 focus:ring-1 focus:ring-accent/30 rounded px-1 -mx-1 transition-all",
+                      value ? "text-foreground" : "text-muted-foreground/40 italic"
+                    )}
+                  >
+                    {value || (key === "kva" ? "" : "Not found")}
+                    {key === "kva" && value && " kVA"}
+                  </div>
                 </div>
               ))}
             </div>
@@ -284,14 +299,38 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
                 </div>
                 <div className="pt-4 grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto custom-scrollbar">
                   {result.data.advancedSections.map((sec, i) => (
-                    <div key={i} className="bg-secondary/50 rounded-lg p-3 border border-border/50">
-                      <h4 className="text-xs font-bold text-accent mb-2 uppercase tracking-wide">{sec.title}</h4>
+                    <div key={i} className="bg-secondary/50 rounded-lg p-3 border border-border/50 group/section relative">
+                      <h4
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={e => {
+                          const next = [...result.data.advancedSections];
+                          next[i] = { ...next[i], title: e.currentTarget.textContent || "" };
+                          setResult(prev => prev ? { ...prev, data: { ...prev.data, advancedSections: next } } : prev);
+                        }}
+                        className="text-xs font-bold text-accent mb-2 uppercase tracking-wide outline-none focus:bg-accent/10 focus:ring-1 focus:ring-accent/30 rounded px-1 -mx-1"
+                      >
+                        {sec.title}
+                      </h4>
                       {sec.features && sec.features.length > 0 && (
                         <ul className="space-y-1 mb-3">
                           {sec.features.map((feat, j) => (
-                            <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5 leading-tight">
+                            <li key={j} className="text-xs text-muted-foreground flex items-start gap-1.5 leading-tight group/feat">
                               <span className="text-accent/60 mt-[1px]">•</span>
-                              <span>{feat}</span>
+                              <span
+                                contentEditable
+                                suppressContentEditableWarning
+                                onBlur={e => {
+                                  const next = [...result.data.advancedSections];
+                                  const nextFeats = [...next[i].features];
+                                  nextFeats[j] = e.currentTarget.textContent || "";
+                                  next[i] = { ...next[i], features: nextFeats };
+                                  setResult(prev => prev ? { ...prev, data: { ...prev.data, advancedSections: next } } : prev);
+                                }}
+                                className="outline-none focus:bg-accent/10 focus:ring-1 focus:ring-accent/30 rounded px-1 -mx-1 flex-1"
+                              >
+                                {feat}
+                              </span>
                             </li>
                           ))}
                         </ul>
@@ -299,9 +338,35 @@ export function PDFImportZone({ onExtracted }: PDFImportZoneProps) {
                       {sec.specs && sec.specs.length > 0 && (
                         <div className="space-y-1.5">
                           {sec.specs.map((spec, j) => (
-                            <div key={j} className="flex items-start justify-between gap-4 text-xs border-b border-border/30 pb-1.5 last:border-0 last:pb-0">
-                              <span className="text-muted-foreground">{spec.label}</span>
-                              <span className="text-foreground font-medium text-right">{spec.value}</span>
+                            <div key={j} className="flex items-start justify-between gap-4 text-xs border-b border-border/30 pb-1.5 last:border-0 last:pb-0 group/spec">
+                              <span
+                                contentEditable
+                                suppressContentEditableWarning
+                                onBlur={e => {
+                                  const next = [...result.data.advancedSections];
+                                  const nextSpecs = [...next[i].specs];
+                                  nextSpecs[j] = { ...nextSpecs[j], label: e.currentTarget.textContent || "" };
+                                  next[i] = { ...next[i], specs: nextSpecs };
+                                  setResult(prev => prev ? { ...prev, data: { ...prev.data, advancedSections: next } } : prev);
+                                }}
+                                className="text-muted-foreground outline-none focus:bg-accent/10 focus:ring-1 focus:ring-accent/30 rounded px-1 -mx-1"
+                              >
+                                {spec.label}
+                              </span>
+                              <span
+                                contentEditable
+                                suppressContentEditableWarning
+                                onBlur={e => {
+                                  const next = [...result.data.advancedSections];
+                                  const nextSpecs = [...next[i].specs];
+                                  nextSpecs[j] = { ...nextSpecs[j], value: e.currentTarget.textContent || "" };
+                                  next[i] = { ...next[i], specs: nextSpecs };
+                                  setResult(prev => prev ? { ...prev, data: { ...prev.data, advancedSections: next } } : prev);
+                                }}
+                                className="text-foreground font-medium text-right outline-none focus:bg-accent/10 focus:ring-1 focus:ring-accent/30 rounded px-1 -mx-1"
+                              >
+                                {spec.value}
+                              </span>
                             </div>
                           ))}
                         </div>

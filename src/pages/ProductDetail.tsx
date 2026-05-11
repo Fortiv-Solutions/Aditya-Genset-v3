@@ -6,6 +6,9 @@ import { useRef, useState, useEffect } from "react";
 import { EditableText } from "@/components/cms/EditableText";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
 import { fetchProductShowcase } from "@/lib/api/cms";
+import { fetchProductDetailV2 } from "@/lib/api/productDetailV2";
+import type { V2ShowcaseProduct } from "@/lib/api/productDetailV2";
+// Legacy fallback (will be removed once v2 migration is confirmed)
 import { ShowcaseProduct, getProductBySlug } from "@/data/products";
 import { useCompare } from "@/context/CompareContext";
 import { BarChart2 } from "lucide-react";
@@ -24,6 +27,7 @@ export default function ProductDetail() {
   const { content, loadProductCMS } = useCMSState();
   const [activeChapter, setActiveChapter] = useState(0);
   const [product, setProduct] = useState<ShowcaseProduct | null>(null);
+  const [v2Product, setV2Product] = useState<V2ShowcaseProduct | null>(null);
   const [loading, setLoading] = useState(true);
   const { isInCompare, addToCompare, removeFromCompare } = useCompare();
 
@@ -34,10 +38,53 @@ export default function ProductDetail() {
       if (!slug) return;
       setLoading(true);
       try {
-        console.log("Fetching product showcase for slug:", slug);
+        // ── V2 path: fetch from new relational tables ──
+        const v2Data = await fetchProductDetailV2(slug);
+        if (v2Data && v2Data.sections.length > 0) {
+          console.log("✅ Using v2 product data for:", slug);
+          
+          // Ensure video slide exists (inject from bundled assets)
+          if (!v2Data.sections.find(s => s.id === "video")) {
+            v2Data.sections.push({
+              id: "video",
+              number: String(v2Data.sections.length + 1).padStart(2, "0"),
+              title: "Product Video",
+              tagline: "Escort DG Set — Multiple views and 360° product showcase.",
+              image: escortVideoThumb,
+              videoUrl: escortVideo,
+              alt: `${v2Data.name} 360 degree showcase`,
+              specs: [
+                { label: "Duration", value: "8 sec" },
+                { label: "Format", value: "MP4" },
+                { label: "Source", value: "360° View" },
+              ],
+            });
+          } else {
+            const videoSec = v2Data.sections.find(s => s.id === "video");
+            if (videoSec && !videoSec.videoUrl) videoSec.videoUrl = escortVideo;
+            if (videoSec && !videoSec.image) videoSec.image = escortVideoThumb;
+          }
+          if (!v2Data.hotspots.find(h => h.id === "video")) {
+            v2Data.hotspots.push({
+              id: "video", x: 50, y: 50,
+              title: "Product Video",
+              description: `Experience the ${v2Data.name} in action with our official 360° showcase film.`,
+              specs: [{ label: "Showcase", value: "360° View" }],
+              zoom: 1, offsetX: 0, offsetY: 0,
+            });
+          }
+
+          // Set as legacy-compatible ShowcaseProduct for ScrollStory
+          setProduct(v2Data as any);
+          setV2Product(v2Data);
+          await loadProductCMS(v2Data.id);
+          setLoading(false);
+          return;
+        }
+
+        // ── Legacy path: CMS + static fallback ──
+        console.log("⚠️ V2 data empty, falling back to legacy for:", slug);
         const data = await fetchProductShowcase(slug);
-        console.log("Data received:", !!data);
-        
         const staticData = getProductBySlug(slug);
         
         if (data && data.product) {
@@ -279,7 +326,7 @@ export default function ProductDetail() {
         }}
       >
         {/* Row 1 — Navigation: back ← ............... → Present Mode */}
-        <div className="flex items-start justify-between">
+        <div className="flex min-w-0 items-start justify-between gap-4 md:pr-[236px]">
           <button
             onClick={() => navigate(-1)}
             className="pointer-events-auto inline-flex items-center gap-1.5 text-xs uppercase tracking-widest text-muted-foreground hover:text-foreground transition-colors story-link mt-1"
@@ -287,7 +334,7 @@ export default function ProductDetail() {
             <ArrowLeft size={12} /> <EditableText section={sectionKey} contentKey="backLabel" as="span" override={isFallback ? "Back to category" : undefined} />
           </button>
 
-          <div className="flex items-center gap-3 mt-3">
+          <div className="mt-3 flex flex-wrap items-center justify-end gap-3">
             <button
               onClick={() => {
                 if (activeProduct.id) {
@@ -317,7 +364,7 @@ export default function ProductDetail() {
         </div>
 
         {/* Row 2 — Product identity */}
-        <div className="mt-5">
+        <div className="mt-5 min-w-0 max-w-[min(720px,calc(100vw-11rem))]">
           {activeProduct.sections && activeProduct.sections.length > 0 && (
             <div className="font-display text-[10px] uppercase tracking-[0.4em] text-accent">
               {activeProduct.sections[0]?.number} / {activeProduct.sections[0]?.id}
@@ -328,7 +375,7 @@ export default function ProductDetail() {
             contentKey="productName"
             override={isFallback ? productName : undefined}
             fallback={productName}
-            className="mt-1.5 font-display text-3xl font-semibold leading-tight md:text-4xl block"
+            className="mt-1.5 block max-w-full break-words font-display text-3xl font-semibold leading-tight md:text-4xl"
             as="h1"
           />
           <EditableText
@@ -336,7 +383,7 @@ export default function ProductDetail() {
             contentKey="pageSubtitle"
             override={isFallback ? `A 10-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
             fallback={isFallback ? `A 10-chapter walkthrough of the ${activeProduct.engineBrand}-powered ${activeProduct.kva} kVA generator.` : undefined}
-            className="mt-1.5 max-w-xl text-sm text-muted-foreground block"
+            className="mt-1.5 block max-w-xl break-words text-sm text-muted-foreground"
             as="p"
           />
         </div>
@@ -348,7 +395,9 @@ export default function ProductDetail() {
         ref={scrollStoryRef}
         product={activeProduct}
         sectionId={sectionKey}
+        firstChapterOffset={112}
         onChapterChange={setActiveChapter}
+        chapterDataMap={v2Product?.chapterDataMap}
       />
     </div>
   );

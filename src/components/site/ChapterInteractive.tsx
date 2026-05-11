@@ -17,48 +17,102 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ChevronDown, CheckCircle2, Circle, Zap, Shield } from "lucide-react";
-import type { EKL15ChapterData } from "@/data/ekl15Data";
+import { 
+  ChevronDown, CheckCircle2, Circle, Zap, Shield, 
+  Trash2, Plus, Info, 
+  Clock as ClockIcon, 
+  MonitorPlay as MonitorPlayIcon, 
+  Clapperboard as ClapperboardIcon 
+} from "lucide-react";
+import type { ChapterDataInput } from "@/lib/api/productPublisher";
 import { CountUp } from "@/components/site/CountUp";
 import { EditableText } from "@/components/cms/EditableText";
 import type { CMSSection } from "@/lib/sanity";
 
 interface Props {
   chapterId: string;
-  data: EKL15ChapterData;
+  data: ChapterDataInput;
   active: boolean;
   sectionId?: string;
   index?: number;
+  onChange?: (data: Partial<ChapterDataInput>) => void;
 }
 
 // ── Shared sub-components ─────────────────────────────────────────────────────
 
 function TabBar({ tabs, active, onSelect }: { tabs: string[]; active: number; onSelect: (i: number) => void }) {
   return (
-    <div className="flex gap-1 rounded-lg bg-muted/50 p-1 mb-5">
+    <div className="flex h-10 gap-1 rounded-lg bg-muted/50 p-1 mb-5">
       {tabs.map((t, i) => (
         <button
           key={t}
           onClick={() => onSelect(i)}
           className={cn(
-            "flex-1 rounded-md px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
+            "flex h-8 min-w-0 flex-1 items-center justify-center rounded-md px-3 text-[11px] font-semibold uppercase tracking-wider transition-all duration-200",
             i === active
               ? "bg-foreground text-background shadow-sm"
               : "text-muted-foreground hover:text-foreground"
           )}
         >
-          {t}
+          <span className="truncate">{t}</span>
         </button>
       ))}
     </div>
   );
 }
 
-function SpecGrid({ rows, sectionId, index }: { rows: { label: string; value: string }[]; sectionId?: CMSSection; index?: number }) {
+function SpecGrid({ rows, sectionId, index, onChange }: { rows: { label: string; value: string }[]; sectionId?: CMSSection; index?: number; onChange?: (rows: { label: string; value: string }[]) => void }) {
+  if (onChange) {
+    const update = (i: number, field: "label"|"value", val: string) => {
+      const next = [...rows];
+      next[i] = { ...next[i], [field]: val };
+      onChange(next);
+    };
+    return (
+      <div className="grid grid-cols-1 gap-0 divide-y divide-border group/grid relative pb-8">
+        {rows.map((r, i) => (
+          <div key={i} className="flex items-baseline justify-between py-2.5 gap-4 group/row">
+            <span
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={e => update(i, 'label', e.currentTarget.textContent || "")}
+              className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium shrink-0 outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 -ml-1 transition-all"
+            >
+              {r.label}
+            </span>
+            <div className="flex items-center gap-2 text-right">
+              <span
+                contentEditable
+                suppressContentEditableWarning
+                onBlur={e => update(i, 'value', e.currentTarget.textContent || "")}
+                className="text-sm font-semibold text-foreground outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 -mr-1 transition-all"
+              >
+                {r.value}
+              </span>
+              <button 
+                onClick={() => onChange(rows.filter((_, idx) => idx !== i))}
+                className="opacity-0 group-hover/row:opacity-100 p-0.5 text-red-500 hover:text-red-400 transition-opacity ml-1"
+                title="Remove Spec"
+              >
+                <Trash2 size={12} />
+              </button>
+            </div>
+          </div>
+        ))}
+        <button 
+          onClick={() => onChange([...rows, { label: "New Spec", value: "-" }])}
+          className="absolute -bottom-1 left-0 text-[10px] text-accent uppercase tracking-wider font-bold flex items-center gap-1 hover:text-accent/80 transition-colors opacity-0 group-hover/grid:opacity-100"
+        >
+          <Plus size={12} /> Add Spec
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 gap-0 divide-y divide-border">
       {rows.map((r, i) => (
-        <div key={r.label} className="flex items-baseline justify-between py-2.5 gap-4">
+        <div key={i} className="flex items-baseline justify-between py-2.5 gap-4">
           <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium shrink-0">
             {sectionId !== undefined && index !== undefined ? (
               <EditableText section={sectionId} contentKey={`chapter_${index}_spec${i}_label`} fallback={r.label} />
@@ -75,7 +129,42 @@ function SpecGrid({ rows, sectionId, index }: { rows: { label: string; value: st
   );
 }
 
-function BulletList({ items, icon, sectionId, index, listKey }: { items: string[]; icon?: React.ReactNode; sectionId?: CMSSection; index?: number; listKey?: string }) {
+function BulletList({ items, icon, sectionId, index, listKey, onChange }: { items: string[]; icon?: React.ReactNode; sectionId?: CMSSection; index?: number; listKey?: string; onChange?: (items: string[]) => void }) {
+  if (onChange) {
+    return (
+      <ul className="space-y-2 group/list relative pb-6">
+        {items.map((item, i) => (
+          <li key={i} className="flex items-start gap-2.5 text-sm text-foreground/85 group/item">
+            <span className="mt-1 shrink-0 text-accent">{icon ?? "▸"}</span>
+            <span
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={e => {
+                const n = [...items]; n[i] = e.currentTarget.textContent || ""; onChange(n);
+              }}
+              className="flex-1 outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 -mx-1 transition-all leading-relaxed"
+            >
+              {item}
+            </span>
+            <button 
+              onClick={() => onChange(items.filter((_, idx) => idx !== i))}
+              className="opacity-0 group-hover/item:opacity-100 p-0.5 text-red-500 hover:text-red-400 mt-0.5 transition-opacity"
+              title="Remove Item"
+            >
+              <Trash2 size={12} />
+            </button>
+          </li>
+        ))}
+        <button 
+          onClick={() => onChange([...items, "New feature"])}
+          className="absolute -bottom-1 left-0 mt-2 text-[10px] text-accent uppercase tracking-wider font-bold flex items-center gap-1 hover:text-accent/80 transition-colors opacity-0 group-hover/list:opacity-100"
+        >
+          <Plus size={12} /> Add Item
+        </button>
+      </ul>
+    );
+  }
+
   return (
     <ul className="space-y-2">
       {items.map((item, i) => (
@@ -106,7 +195,7 @@ function Badge({ text, color = "default" }: { text: React.ReactNode; color?: "de
 }
 
 // ── Chapter 01 — Overview ─────────────────────────────────────────────────────
-function OverviewChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
+function OverviewChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
   const [tab, setTab] = useState(0);
   const sectionKey = sectionId as CMSSection;
 
@@ -117,48 +206,132 @@ function OverviewChapter({ data, sectionId, index }: { data: EKL15ChapterData; s
         <div className="space-y-5">
           {/* Hero CountUp stats */}
           <div className="grid grid-cols-3 gap-3 border-y border-border py-4">
-            {[0, 1, 2].map((i) => (
-              <div key={i} className="text-center">
+            {(() => {
+              const base = data.highlights ?? [];
+              const defaults = [
+                { label: "KVA RATING", value: data.kva || "Refer", suffix: "kVA" },
+                { label: "VOLTAGE", value: "415", suffix: "V" },
+                { label: "FREQUENCY", value: "50", suffix: "Hz" }
+              ];
+              // Ensure we have exactly 3 items
+              const displayItems = [...base, ...defaults.slice(base.length)].slice(0, 3);
+              return displayItems;
+            })().map((h, i) => (
+              <div key={i} className="text-center group/stat relative">
                 <div className="num-display text-2xl font-semibold md:text-3xl text-foreground flex items-baseline justify-center">
-                  <EditableText 
-                    section={sectionKey} 
-                    contentKey={`chapter_${index}_h${i}_value`} 
-                    as="span"
-                  />
-                  <EditableText 
-                    section={sectionKey} 
-                    contentKey={`chapter_${index}_h${i}_suffix`} 
-                    as="span"
-                    className="text-sm font-normal"
-                  />
+                  {onChange ? (
+                    <>
+                      <span
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={e => {
+                          const next = [...(data.highlights ?? [])];
+                          if (!next[i]) next[i] = { label: "", value: "", suffix: "" };
+                          next[i] = { ...next[i], value: e.currentTarget.textContent || "" };
+                          onChange({ highlights: next });
+                        }}
+                        className="outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+                      >
+                        {h.value}
+                      </span>
+                      <span
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={e => {
+                          const next = [...(data.highlights ?? [])];
+                          if (!next[i]) next[i] = { label: "", value: "", suffix: "" };
+                          next[i] = { ...next[i], suffix: e.currentTarget.textContent || "" };
+                          onChange({ highlights: next });
+                        }}
+                        className="text-sm font-normal outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+                      >
+                        {h.suffix}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <EditableText section={sectionKey} contentKey={`chapter_${index}_h${i}_value`} fallback={String(h.value)} as="span" />
+                      <EditableText section={sectionKey} contentKey={`chapter_${index}_h${i}_suffix`} fallback={h.suffix || ""} as="span" className="text-sm font-normal" />
+                    </>
+                  )}
                 </div>
-                <EditableText 
-                  section={sectionKey} 
-                  contentKey={`chapter_${index}_h${i}_label`} 
-                  as="div"
-                  className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1"
-                />
+                {onChange ? (
+                  <div
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={e => {
+                      const next = [...(data.highlights ?? [])];
+                      if (!next[i]) next[i] = { label: "", value: "", suffix: "" };
+                      next[i] = { ...next[i], label: e.currentTarget.textContent || "" };
+                      onChange({ highlights: next });
+                    }}
+                    className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1 outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+                  >
+                    {h.label}
+                  </div>
+                ) : (
+                  <EditableText section={sectionKey} contentKey={`chapter_${index}_h${i}_label`} fallback={h.label} as="div" className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1" />
+                )}
               </div>
             ))}
           </div>
 
           {/* Feature badges */}
-          <div className="flex flex-wrap gap-2">
-            {(data.badges ?? []).slice(0, 4).map(b => (
-              <span key={b} className="inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-[11px] font-medium text-foreground/70 tracking-wide">
-                {b}
+          <div className="flex flex-wrap gap-2 group/badges relative pb-6">
+            {(data.badges ?? []).map((b, bIdx) => (
+              <span 
+                key={bIdx} 
+                className="group/badge inline-flex items-center gap-1.5 rounded-full border border-border bg-muted/60 px-3 py-1 text-[11px] font-medium text-foreground/70 tracking-wide transition-all"
+              >
+                <span
+                  contentEditable={!!onChange}
+                  suppressContentEditableWarning
+                  onBlur={e => {
+                    if (onChange) {
+                      const next = [...(data.badges ?? [])];
+                      next[bIdx] = e.currentTarget.textContent || "";
+                      onChange({ badges: next });
+                    }
+                  }}
+                  className="outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+                >
+                  {b}
+                </span>
+                {onChange && (
+                  <button 
+                    onClick={() => onChange({ badges: data.badges?.filter((_, i) => i !== bIdx) })}
+                    className="opacity-0 group-hover/badge:opacity-100 text-red-500 hover:text-red-400 transition-opacity ml-1"
+                  >
+                    <Trash2 size={10} />
+                  </button>
+                )}
               </span>
             ))}
+            {onChange && (
+              <button 
+                onClick={() => onChange({ badges: [...(data.badges ?? []), "New Badge"] })}
+                className="absolute -bottom-1 left-0 text-[10px] text-accent uppercase tracking-wider font-bold flex items-center gap-1 hover:text-accent/80 transition-colors opacity-0 group-hover/badges:opacity-100"
+              >
+                <Plus size={12} /> Add Badge
+              </button>
+            )}
           </div>
 
           {/* Spec grid */}
-          <SpecGrid rows={data.specs ?? []} />
+          <SpecGrid rows={data.specs ?? []} onChange={onChange ? (specs) => onChange({ specs }) : undefined} />
         </div>
       )}
       {tab === 1 && (
         <div className="space-y-4">
-          <p className="text-sm leading-relaxed text-foreground/80 border-l-2 border-accent pl-4 font-display italic">{data.description}</p>
-          <SpecGrid rows={data.aboutSpecs ?? []} />
+          <p 
+            contentEditable={!!onChange}
+            suppressContentEditableWarning
+            onBlur={e => onChange?.({ description: e.currentTarget.textContent || "" })}
+            className="text-sm leading-relaxed text-foreground/80 border-l-2 border-accent pl-4 font-display italic outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+          >
+            {data.description}
+          </p>
+          <SpecGrid rows={data.aboutSpecs ?? []} onChange={onChange ? (aboutSpecs) => onChange({ aboutSpecs }) : undefined} />
         </div>
       )}
     </div>
@@ -166,16 +339,16 @@ function OverviewChapter({ data, sectionId, index }: { data: EKL15ChapterData; s
 }
 
 // ── Chapter 02 — Engine ───────────────────────────────────────────────────────
-function EngineChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
+function EngineChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
   const [tab, setTab] = useState(0);
   const sectionKey = sectionId as CMSSection;
   return (
     <div>
       <TabBar tabs={["Core Specs", "Engine Features"]} active={tab} onSelect={setTab} />
-      {tab === 0 && <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} />}
+      {tab === 0 && <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (specs) => onChange({ specs }) : undefined} />}
       {tab === 1 && (
         <div className="space-y-4">
-          <BulletList items={data.features ?? []} sectionId={sectionKey} index={index} listKey="features" />
+          <BulletList items={data.features ?? []} sectionId={sectionKey} index={index} listKey="features" onChange={onChange ? (features) => onChange({ features }) : undefined} />
         </div>
       )}
     </div>
@@ -183,12 +356,12 @@ function EngineChapter({ data, sectionId, index }: { data: EKL15ChapterData; sec
 }
 
 // ── Chapter 03 — Fuel, Lube & Cooling ────────────────────────────────────────
-function FuelChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
+function FuelChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
   const [load, setLoad] = useState(100);
   const [tab, setTab] = useState(0);
   const sectionKey = sectionId as CMSSection;
 
-  const fuelPoints = [
+  const fuelPoints = data.fuelConsumptionPoints ?? [
     { load: 25, lhr: 1.69 },
     { load: 50, lhr: 2.28 },
     { load: 75, lhr: 2.98 },
@@ -220,7 +393,27 @@ function FuelChapter({ data, sectionId, index }: { data: EKL15ChapterData; secti
           className="w-full h-1.5 rounded-full accent-amber-500 cursor-pointer"
         />
         <div className="flex justify-between text-[10px] text-muted-foreground mt-1.5">
-          <span>25%</span><span>50%</span><span>75%</span><span>100%</span><span>110%</span>
+          {fuelPoints.map((p, i) => (
+            <div key={i} className="flex flex-col items-center group/p">
+              <span>{p.load}%</span>
+              {onChange ? (
+                <span
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={e => {
+                    const next = [...fuelPoints];
+                    next[i] = { ...next[i], lhr: parseFloat(e.currentTarget.textContent || "0") || 0 };
+                    onChange({ fuelConsumptionPoints: next });
+                  }}
+                  className="text-[9px] font-bold text-accent mt-0.5 outline-none focus:bg-accent/10 rounded px-0.5 transition-all"
+                >
+                  {p.lhr}
+                </span>
+              ) : (
+                <span className="text-[8px] opacity-60">{p.lhr}</span>
+              )}
+            </div>
+          ))}
         </div>
         <div className="text-center mt-1">
           <span className="text-xs font-semibold text-foreground/70">{load}% Load</span>
@@ -229,56 +422,90 @@ function FuelChapter({ data, sectionId, index }: { data: EKL15ChapterData; secti
 
       {/* Lube / Cooling tabs */}
       <TabBar tabs={["Lubrication", "Cooling"]} active={tab} onSelect={setTab} />
-      {tab === 0 && <SpecGrid rows={data.lubeSpecs ?? []} sectionId={sectionKey} index={index} />}
-      {tab === 1 && <SpecGrid rows={data.coolingSpecs ?? []} sectionId={sectionKey} index={index} />}
+      {tab === 0 && <SpecGrid rows={data.lubeSpecs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (lubeSpecs) => onChange({ lubeSpecs }) : undefined} />}
+      {tab === 1 && <SpecGrid rows={data.coolingSpecs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (coolingSpecs) => onChange({ coolingSpecs }) : undefined} />}
     </div>
   );
 }
 
 // ── Chapter 04 — Alternator ───────────────────────────────────────────────────
-function AlternatorChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
+function AlternatorChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
   const [tab, setTab] = useState(0);
   const sectionKey = sectionId as CMSSection;
   return (
     <div>
       <TabBar tabs={["Core Specs", "Performance", "Features"]} active={tab} onSelect={setTab} />
-      {tab === 0 && <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} />}
+      {tab === 0 && <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (specs) => onChange({ specs }) : undefined} />}
       {tab === 1 && (
         <div className="space-y-4">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Efficiency @ 0.8 p.f.</p>
-          {[
-            { label: "75% Load", value: 86.4, bar: 86.4 },
-            { label: "100% Load", value: 83.5, bar: 83.5 },
-          ].map(row => (
-            <div key={row.label}>
+          {(data.efficiencyPoints ?? [
+            { label: "75% Load", value: 86.4 },
+            { label: "100% Load", value: 83.5 },
+          ]).map((row, i) => (
+            <div key={i} className="group/eff relative mb-4 last:mb-0">
               <div className="flex justify-between text-sm mb-1.5">
-                <span className="text-muted-foreground">{row.label}</span>
-                <span className="font-semibold text-foreground">{row.value}%</span>
+                {onChange ? (
+                   <span
+                    contentEditable
+                    suppressContentEditableWarning
+                    onBlur={e => {
+                      const next = [...(data.efficiencyPoints ?? [{ label: "75% Load", value: 86.4 }, { label: "100% Load", value: 83.5 }])];
+                      next[i] = { ...next[i], label: e.currentTarget.textContent || "" };
+                      onChange({ efficiencyPoints: next });
+                    }}
+                    className="text-muted-foreground outline-none focus:bg-accent/10 rounded px-1 -mx-1"
+                  >
+                    {row.label}
+                  </span>
+                ) : (
+                  <span className="text-muted-foreground">{row.label}</span>
+                )}
+                
+                {onChange ? (
+                   <div className="flex items-center gap-0.5">
+                    <span
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={e => {
+                        const next = [...(data.efficiencyPoints ?? [{ label: "75% Load", value: 86.4 }, { label: "100% Load", value: 83.5 }])];
+                        next[i] = { ...next[i], value: parseFloat(e.currentTarget.textContent || "0") || 0 };
+                        onChange({ efficiencyPoints: next });
+                      }}
+                      className="font-semibold text-foreground outline-none focus:bg-accent/10 rounded px-1"
+                    >
+                      {row.value}
+                    </span>
+                    <span className="font-semibold text-foreground">%</span>
+                   </div>
+                ) : (
+                  <span className="font-semibold text-foreground">{row.value}%</span>
+                )}
               </div>
               <div className="h-2 rounded-full bg-muted overflow-hidden">
                 <div
                   className="h-full rounded-full bg-gradient-to-r from-accent to-amber-400 transition-all duration-700"
-                  style={{ width: `${row.bar}%` }}
+                  style={{ width: `${row.value}%` }}
                 />
               </div>
             </div>
           ))}
-          <SpecGrid rows={data.perfSpecs ?? []} sectionId={sectionKey} index={index} />
+          <SpecGrid rows={data.perfSpecs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (perfSpecs) => onChange({ perfSpecs }) : undefined} />
         </div>
       )}
-      {tab === 2 && <BulletList items={data.features ?? []} sectionId={sectionKey} index={index} listKey="features" />}
+      {tab === 2 && <BulletList items={data.features ?? []} sectionId={sectionKey} index={index} listKey="features" onChange={onChange ? (features) => onChange({ features }) : undefined} />}
     </div>
   );
 }
 
 // ── Chapter 05 — Electrical Performance ──────────────────────────────────────
-function ElectricalChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
+function ElectricalChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
   const [tab, setTab] = useState(0);
   const sectionKey = sectionId as CMSSection;
   return (
     <div>
       <TabBar tabs={["Key Specs", "Reactance Data"]} active={tab} onSelect={setTab} />
-      {tab === 0 && <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} />}
+      {tab === 0 && <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (specs) => onChange({ specs }) : undefined} />}
       {tab === 1 && (
         <div className="rounded-lg border border-border overflow-hidden">
           <table className="w-full text-xs">
@@ -291,20 +518,85 @@ function ElectricalChapter({ data, sectionId, index }: { data: EKL15ChapterData;
             </thead>
             <tbody className="divide-y divide-border">
               {(data.reactanceData ?? []).map((row, rIdx) => (
-                <tr key={row.symbol} className="hover:bg-muted/20 transition-colors">
+                <tr key={rIdx} className="hover:bg-muted/20 transition-colors group/reactance">
                   <td className="px-3 py-2.5 font-mono font-bold text-accent">
-                    <EditableText section={sectionKey} contentKey={`chapter_${index}_reactance${rIdx}_symbol`} fallback={row.symbol} />
+                    {onChange ? (
+                      <span
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={e => {
+                          const next = [...(data.reactanceData ?? [])];
+                          next[rIdx] = { ...next[rIdx], symbol: e.currentTarget.textContent || "" };
+                          onChange({ reactanceData: next });
+                        }}
+                        className="outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+                      >
+                        {row.symbol}
+                      </span>
+                    ) : (
+                      <EditableText section={sectionKey} contentKey={`chapter_${index}_reactance${rIdx}_symbol`} fallback={row.symbol} />
+                    )}
                   </td>
                   <td className="px-3 py-2.5 text-foreground/80 leading-snug">
-                    <EditableText section={sectionKey} contentKey={`chapter_${index}_reactance${rIdx}_desc`} fallback={row.description} />
+                    {onChange ? (
+                      <span
+                        contentEditable
+                        suppressContentEditableWarning
+                        onBlur={e => {
+                          const next = [...(data.reactanceData ?? [])];
+                          next[rIdx] = { ...next[rIdx], description: e.currentTarget.textContent || "" };
+                          onChange({ reactanceData: next });
+                        }}
+                        className="outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+                      >
+                        {row.description}
+                      </span>
+                    ) : (
+                      <EditableText section={sectionKey} contentKey={`chapter_${index}_reactance${rIdx}_desc`} fallback={row.description} />
+                    )}
                   </td>
                   <td className="px-3 py-2.5 font-semibold text-right text-foreground">
-                    <EditableText section={sectionKey} contentKey={`chapter_${index}_reactance${rIdx}_value`} fallback={row.value} />
+                    <div className="flex items-center justify-end gap-2">
+                      {onChange ? (
+                        <span
+                          contentEditable
+                          suppressContentEditableWarning
+                          onBlur={e => {
+                            const next = [...(data.reactanceData ?? [])];
+                            next[rIdx] = { ...next[rIdx], value: e.currentTarget.textContent || "" };
+                            onChange({ reactanceData: next });
+                          }}
+                          className="outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+                        >
+                          {row.value}
+                        </span>
+                      ) : (
+                        <EditableText section={sectionKey} contentKey={`chapter_${index}_reactance${rIdx}_value`} fallback={row.value} />
+                      )}
+                      {onChange && (
+                        <button 
+                          onClick={() => onChange({ reactanceData: data.reactanceData?.filter((_, i) => i !== rIdx) })}
+                          className="opacity-0 group-hover/reactance:opacity-100 p-0.5 text-red-500 hover:text-red-400 transition-opacity"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {onChange && (
+            <div className="p-2 border-t border-border bg-muted/10">
+              <button 
+                onClick={() => onChange({ reactanceData: [...(data.reactanceData ?? []), { symbol: "X'd", description: "Transient Reactance", value: "0.15" }] })}
+                className="text-[10px] text-accent uppercase tracking-wider font-bold flex items-center gap-1 hover:text-accent/80 transition-colors"
+              >
+                <Plus size={12} /> Add Row
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -312,141 +604,278 @@ function ElectricalChapter({ data, sectionId, index }: { data: EKL15ChapterData;
 }
 
 // ── Chapter 06 — Enclosure & Sound ───────────────────────────────────────────
-function EnclosureChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
-  const [isAcoustic, setIsAcoustic] = useState(true);
+function EnclosureChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
+  const [tab, setTab] = useState(0);
   const sectionKey = sectionId as CMSSection;
-  const dims = isAcoustic ? data.acousticDims : data.openDims;
-  const dimKeyPrefix = isAcoustic ? "acousticDims" : "openDims";
 
   return (
-    <div className="space-y-5">
-      {/* Toggle */}
-      <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 p-1">
-        <button
-          onClick={() => setIsAcoustic(false)}
-          className={cn("flex-1 rounded-md py-2 text-xs font-semibold transition-all", !isAcoustic ? "bg-foreground text-background shadow" : "text-muted-foreground")}
-        >Open Set</button>
-        <button
-          onClick={() => setIsAcoustic(true)}
-          className={cn("flex-1 rounded-md py-2 text-xs font-semibold transition-all", isAcoustic ? "bg-foreground text-background shadow" : "text-muted-foreground")}
-        >Acoustic Set</button>
-      </div>
-
-      {dims && (
-        <div className="grid grid-cols-3 gap-3">
-          {dims.map((d, dIdx) => (
-            <div key={d.label} className="rounded-lg border border-border bg-muted/20 p-3 text-center">
-              <div className="font-display text-xl font-bold text-foreground">
-                <EditableText section={sectionKey} contentKey={`chapter_${index}_${dimKeyPrefix}${dIdx}_value`} fallback={d.value} />
-              </div>
-              <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1">
-                <EditableText section={sectionKey} contentKey={`chapter_${index}_${dimKeyPrefix}${dIdx}_label`} fallback={d.label} />
-              </div>
-            </div>
-          ))}
+    <div className="space-y-6">
+      <TabBar tabs={["Features", "Compliance & Ratings"]} active={tab} onSelect={setTab} />
+      
+      {tab === 0 && (
+        <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Enclosure Features</p>
+          <BulletList 
+            items={data.features ?? []} 
+            sectionId={sectionKey} 
+            index={index} 
+            listKey="features" 
+            onChange={onChange ? (features) => onChange({ features }) : undefined} 
+          />
         </div>
       )}
 
-      <div className="border-t border-border pt-4">
-        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Environmental Ratings</p>
-        <SpecGrid rows={data.envSpecs ?? []} sectionId={sectionKey} index={index} />
-      </div>
+      {tab === 1 && (
+        <div className="animate-in fade-in slide-in-from-right-2 duration-300">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Compliance & Ratings</p>
+          <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (specs) => onChange({ specs }) : undefined} />
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Chapter 07 — Control Panel ────────────────────────────────────────────────
-function ControlChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
-  const [tab, setTab] = useState(0);
+function ControlChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
+  const [mainTab, setMainTab] = useState(0);
+  const [meterTab, setMeterTab] = useState(0);
   const sectionKey = sectionId as CMSSection;
   return (
     <div>
-      <TabBar tabs={["Controller", "Features", "Metering", "Electrical"]} active={tab} onSelect={setTab} />
-      {tab === 0 && <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} />}
-      {tab === 1 && <BulletList items={data.features ?? []} sectionId={sectionKey} index={index} listKey="features" />}
-      {tab === 2 && (
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Engine Parameters</p>
-            <BulletList items={data.engineParams ?? []} sectionId={sectionKey} index={index} listKey="engineParams" />
+      <TabBar tabs={["Controller", "Features", "Metering", "Electrical"]} active={mainTab} onSelect={setMainTab} />
+      {mainTab === 0 && <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (specs) => onChange({ specs }) : undefined} />}
+      {mainTab === 1 && <BulletList items={data.features ?? []} sectionId={sectionKey} index={index} listKey="features" onChange={onChange ? (features) => onChange({ features }) : undefined} />}
+      {mainTab === 2 && (
+        <div className="space-y-4">
+          <div className="flex gap-1 bg-muted/50 p-1 rounded-md w-fit">
+            {["Engine Metering", "Electrical Metering"].map((t, i) => (
+              <button
+                key={t}
+                onClick={() => setMeterTab(i)}
+                className={cn(
+                  "px-3 py-1 rounded text-[10px] font-bold uppercase transition-all",
+                  meterTab === i ? "bg-foreground text-background shadow-sm" : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {t}
+              </button>
+            ))}
           </div>
-          <div>
-            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Electrical Parameters</p>
-            <BulletList items={data.electricalParams ?? []} sectionId={sectionKey} index={index} listKey="electricalParams" />
+          <div className="rounded-xl border border-border bg-muted/20 p-5 min-h-[10rem]">
+            {meterTab === 0 ? (
+              <div className="animate-in fade-in slide-in-from-left-2 duration-300">
+                <p className="text-[11px] uppercase tracking-wider text-accent font-bold mb-3">Engine Parameters</p>
+                <BulletList items={data.engineParams ?? []} sectionId={sectionKey} index={index} listKey="engineParams" onChange={onChange ? (engineParams) => onChange({ engineParams }) : undefined} />
+              </div>
+            ) : (
+              <div className="animate-in fade-in slide-in-from-right-2 duration-300">
+                <p className="text-[11px] uppercase tracking-wider text-accent font-bold mb-3">Electrical Parameters</p>
+                <BulletList items={data.electricalParams ?? []} sectionId={sectionKey} index={index} listKey="electricalParams" onChange={onChange ? (electricalParams) => onChange({ electricalParams }) : undefined} />
+              </div>
+            )}
           </div>
         </div>
       )}
-      {tab === 3 && <SpecGrid rows={data.electricalSpecs ?? []} sectionId={sectionKey} index={index} />}
+      {mainTab === 3 && <SpecGrid rows={data.electricalSpecs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (electricalSpecs) => onChange({ electricalSpecs }) : undefined} />}
     </div>
   );
 }
 
 // ── Chapter 08 — Protection & Approvals ──────────────────────────────────────
-function ProtectionChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
+function ProtectionChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
   const [tab, setTab] = useState(0);
   const sectionKey = sectionId as CMSSection;
   return (
     <div className="space-y-5">
       <TabBar tabs={["Engine Protection", "Electrical Protection"]} active={tab} onSelect={setTab} />
-      {tab === 0 && <BulletList items={data.engineProtections ?? []} icon={<Shield size={13} />} sectionId={sectionKey} index={index} listKey="engineProtections" />}
-      {tab === 1 && <BulletList items={data.electricalProtections ?? []} icon={<Zap size={13} />} sectionId={sectionKey} index={index} listKey="electricalProtections" />}
+      {tab === 0 && <BulletList items={data.engineProtections ?? []} icon={<Shield size={13} />} sectionId={sectionKey} index={index} listKey="engineProtections" onChange={onChange ? (engineProtections) => onChange({ engineProtections }) : undefined} />}
+      {tab === 1 && <BulletList items={data.electricalProtections ?? []} icon={<Zap size={13} />} sectionId={sectionKey} index={index} listKey="electricalProtections" onChange={onChange ? (electricalProtections) => onChange({ electricalProtections }) : undefined} />}
       <div className="border-t border-border pt-4">
         <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Approvals & Compliance</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 group/approvals relative pb-6">
           {(data.approvals ?? []).map((a, aIdx) => (
-            <Badge key={a} text={
-              <EditableText section={sectionKey} contentKey={`chapter_${index}_approval${aIdx}`} fallback={a} />
-            } color="green" />
+            <span 
+              key={aIdx} 
+              className="group/badge inline-flex items-center gap-1.5 rounded-full border border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400 px-3 py-1 text-[11px] font-semibold tracking-wide transition-all"
+            >
+              <span
+                contentEditable={!!onChange}
+                suppressContentEditableWarning
+                onBlur={e => {
+                  if (onChange) {
+                    const next = [...(data.approvals ?? [])];
+                    next[aIdx] = e.currentTarget.textContent || "";
+                    onChange({ approvals: next });
+                  }
+                }}
+                className="outline-none focus:bg-green-500/10 focus:ring-2 focus:ring-green-500/30 rounded px-1 transition-all"
+              >
+                {a}
+              </span>
+              {onChange && (
+                <button 
+                  onClick={() => onChange({ approvals: data.approvals?.filter((_, i) => i !== aIdx) })}
+                  className="opacity-0 group-hover/badge:opacity-100 text-red-500 hover:text-red-400 transition-opacity ml-1"
+                >
+                  <Trash2 size={10} />
+                </button>
+              )}
+            </span>
           ))}
+          {onChange && (
+            <button 
+              onClick={() => onChange({ approvals: [...(data.approvals ?? []), "New Approval"] })}
+              className="absolute -bottom-1 left-0 text-[10px] text-accent uppercase tracking-wider font-bold flex items-center gap-1 hover:text-accent/80 transition-colors opacity-0 group-hover/approvals:opacity-100"
+            >
+              <Plus size={12} /> Add Approval
+            </button>
+          )}
         </div>
       </div>
+
+      {(data.unmappedNotes && data.unmappedNotes.length > 0) && (
+        <div className="border-t border-border pt-4">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Additional Technical Notes</p>
+          <BulletList 
+            items={data.unmappedNotes} 
+            icon={<Info size={13} className="text-blue-500" />} 
+            sectionId={sectionKey} 
+            index={index} 
+            listKey="unmappedNotes" 
+            onChange={onChange ? (unmappedNotes) => onChange({ unmappedNotes }) : undefined} 
+          />
+        </div>
+      )}
     </div>
   );
 }
 
 // ── Chapter 09 — Standard Supply & Optional Extras ───────────────────────────
-function SupplyChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
-  const [tab, setTab] = useState(0);
+function SupplyChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
+  const [mainTab, setMainTab] = useState(0);
+  const [subTab, setSubTab] = useState(0);
   const sectionKey = sectionId as CMSSection;
+
   return (
     <div>
-      <TabBar tabs={["Standard Supply", "Optional Supply"]} active={tab} onSelect={setTab} />
+      <TabBar tabs={["Standard Supply", "Optional Supply"]} active={mainTab} onSelect={setMainTab} />
       
-      {tab === 0 && (
+      {mainTab === 0 && (
         <div className="space-y-3">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Standard Scope ({data.standardItems?.length} items)</p>
-          <div className="grid grid-cols-1 gap-1.5 max-h-[16rem] overflow-y-auto pr-1">
-            {(data.standardItems ?? []).map((item, i) => (
-              <div key={i} className="flex items-center gap-2.5 text-sm">
-                <CheckCircle2 size={14} className="text-accent shrink-0" />
-                <span className="text-foreground/85">
-                  <EditableText section={sectionKey} contentKey={`chapter_${index}_standardItem${i}`} fallback={item} />
-                </span>
-              </div>
-            ))}
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Standard Scope ({data.standardItems?.length || 0} items)</p>
+          <div className="grid grid-cols-1 gap-1.5 max-h-[22rem] overflow-y-auto pr-1">
+            {onChange ? (
+              <BulletList 
+                items={data.standardItems ?? []} 
+                icon={<CheckCircle2 size={14} className="text-accent shrink-0" />} 
+                onChange={(standardItems) => onChange({ standardItems })} 
+              />
+            ) : (
+              (data.standardItems ?? []).map((item, i) => (
+                <div key={i} className="flex items-center gap-2.5 text-sm">
+                  <CheckCircle2 size={14} className="text-accent shrink-0" />
+                  <span className="text-foreground/85">
+                    <EditableText section={sectionKey} contentKey={`chapter_${index}_standardItem${i}`} fallback={item} />
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
       )}
 
-      {tab === 1 && (
-        <div className="space-y-3">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Optional Extras ({data.optionalItems?.length} items)</p>
-          <div className="rounded-lg border border-border p-4 space-y-4 max-h-[16rem] overflow-y-auto">
-            {(data.optionalGroups ?? []).map((group, gIdx) => (
-              <div key={group.label}>
-                <p className="text-[10px] uppercase tracking-wider text-accent font-semibold mb-2">
-                  <EditableText section={sectionKey} contentKey={`chapter_${index}_optionalGroup${gIdx}_label`} fallback={group.label} />
-                </p>
-                <div className="space-y-1.5">
-                  {group.items.map((item, i) => (
-                    <div key={i} className="flex items-center gap-2.5 text-sm text-foreground/80">
-                      <Circle size={12} className="text-muted-foreground shrink-0" />
-                      <EditableText section={sectionKey} contentKey={`chapter_${index}_optionalGroup${gIdx}_item${i}`} fallback={item} />
-                    </div>
-                  ))}
-                </div>
+      {mainTab === 1 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Optional Extras</p>
+            {data.optionalGroups && data.optionalGroups.length > 0 && (
+              <div className="flex gap-1">
+                {data.optionalGroups.map((g, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSubTab(i)}
+                    className={cn(
+                      "px-2 py-0.5 rounded text-[9px] font-bold uppercase transition-all",
+                      subTab === i ? "bg-accent text-white shadow-sm" : "bg-muted text-muted-foreground hover:bg-muted/80"
+                    )}
+                  >
+                    {g.label}
+                  </button>
+                ))}
               </div>
-            ))}
+            )}
+          </div>
+
+          <div className="rounded-xl border border-border bg-muted/20 p-5 min-h-[12rem] relative group/optional">
+            {data.optionalGroups?.[subTab] ? (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  {onChange ? (
+                    <span
+                      contentEditable
+                      suppressContentEditableWarning
+                      onBlur={e => {
+                        const next = [...(data.optionalGroups ?? [])];
+                        next[subTab] = { ...next[subTab], label: e.currentTarget.textContent || "" };
+                        onChange({ optionalGroups: next });
+                      }}
+                      className="text-xs font-bold text-accent uppercase tracking-wide outline-none focus:bg-accent/10 rounded px-1"
+                    >
+                      {data.optionalGroups[subTab].label}
+                    </span>
+                  ) : (
+                    <span className="text-xs font-bold text-accent uppercase tracking-wide">
+                      {data.optionalGroups[subTab].label}
+                    </span>
+                  )}
+                  {onChange && (
+                    <button 
+                      onClick={() => onChange({ optionalGroups: data.optionalGroups?.filter((_, i) => i !== subTab) })}
+                      className="text-red-500 hover:text-red-400 opacity-0 group-hover/optional:opacity-100 transition-opacity"
+                    >
+                      <Trash2 size={12} />
+                    </button>
+                  )}
+                </div>
+                
+                <BulletList 
+                  items={data.optionalGroups[subTab].items} 
+                  icon={<Circle size={10} className="text-muted-foreground shrink-0 mt-1" />} 
+                  onChange={onChange ? (items) => {
+                    const next = [...(data.optionalGroups ?? [])];
+                    next[subTab] = { ...next[subTab], items };
+                    onChange({ optionalGroups: next });
+                  } : undefined} 
+                />
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full text-center py-8 opacity-40">
+                <Circle size={24} className="mb-2" />
+                <p className="text-xs">No optional extras defined.</p>
+                {onChange && (
+                  <button 
+                    onClick={() => onChange({ optionalGroups: [{ label: "Electrical", items: ["ATS"] }] })}
+                    className="mt-4 text-xs font-bold text-accent hover:underline"
+                  >
+                    + Add New Group
+                  </button>
+                )}
+              </div>
+            )}
+            
+            {onChange && (
+               <button 
+                onClick={() => {
+                  const next = [...(data.optionalGroups ?? []), { label: "New Group", items: ["New Item"] }];
+                  onChange({ optionalGroups: next });
+                  setSubTab(next.length - 1);
+                }}
+                className="absolute bottom-4 right-4 p-1.5 rounded-full bg-accent text-white shadow-lg hover:scale-110 transition-transform opacity-0 group-hover/optional:opacity-100"
+                title="Add New Group"
+              >
+                <Plus size={14} />
+              </button>
+            )}
           </div>
         </div>
       )}
@@ -455,10 +884,22 @@ function SupplyChapter({ data, sectionId, index }: { data: EKL15ChapterData; sec
 }
 
 // ── Chapter 10 — Dimensions & Weights ────────────────────────────────────────
-function DimensionsChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
+function DimensionsChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
   const [isAcoustic, setIsAcoustic] = useState(true);
   const sectionKey = sectionId as CMSSection;
   const dims = isAcoustic ? data.acousticDims : data.openDims;
+
+  const updateDim = (label: string, newVal: string) => {
+    if (!onChange) return;
+    const next = [...(dims ?? [])];
+    const idx = next.findIndex(d => d.label === label);
+    if (idx > -1) {
+      next[idx] = { ...next[idx], value: newVal };
+    } else {
+      next.push({ label, value: newVal });
+    }
+    onChange({ [isAcoustic ? 'acousticDims' : 'openDims']: next });
+  };
 
   return (
     <div className="space-y-5">
@@ -470,73 +911,104 @@ function DimensionsChapter({ data, sectionId, index }: { data: EKL15ChapterData;
       {/* SVG dimension diagram */}
       {dims && (
         <div className="rounded-xl border border-border bg-muted/20 p-4">
-          <DimensionDiagram dims={dims} sectionId={sectionKey} index={index} isAcoustic={isAcoustic} />
+          <DimensionDiagram 
+            dims={dims} 
+            sectionId={sectionKey} 
+            index={index} 
+            isAcoustic={isAcoustic} 
+            onChange={onChange ? updateDim : undefined}
+          />
         </div>
       )}
 
-      <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} />
+      <div className="space-y-4">
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Dimension Details</p>
+        <SpecGrid 
+          rows={dims ?? []} 
+          onChange={onChange ? (newDims) => onChange({ [isAcoustic ? 'acousticDims' : 'openDims']: newDims }) : undefined} 
+        />
+      </div>
+
+      <div className="border-t border-border pt-4">
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium mb-3">Overall Specifications</p>
+        <SpecGrid rows={data.specs ?? []} sectionId={sectionKey} index={index} onChange={onChange ? (specs) => onChange({ specs }) : undefined} />
+      </div>
     </div>
   );
 }
 
-function DimensionDiagram({ dims, sectionId, index, isAcoustic }: { dims: { label: string; value: string }[]; sectionId?: CMSSection; index?: number; isAcoustic?: boolean }) {
+function DimensionDiagram({ dims, sectionId, index, isAcoustic, onChange }: { dims: { label: string; value: string }[]; sectionId?: CMSSection; index?: number; isAcoustic?: boolean; onChange?: (label: string, val: string) => void }) {
   const L = dims.find(d => d.label === "Length")?.value ?? "—";
   const W = dims.find(d => d.label === "Width")?.value ?? "—";
   const H = dims.find(d => d.label === "Height")?.value ?? "—";
 
-  const dimKeyPrefix = isAcoustic ? "acousticDims" : "openDims";
+  const EditableLabel = ({ val, label, className, x, y, transform }: { val: string; label: string; className?: string; x: number; y: number; transform?: string }) => {
+    if (!onChange) {
+      return (
+        <text x={x} y={y} textAnchor="middle" fontSize="9" className={className} transform={transform} fontFamily="monospace" fontWeight="600">
+          {label[0]} = {val}
+        </text>
+      );
+    }
+    return (
+      <foreignObject x={x - 40} y={y - 10} width="80" height="20" transform={transform}>
+        <div className="w-full h-full flex items-center justify-center">
+          <span className={cn("text-[9px] font-mono font-bold whitespace-nowrap", className)}>
+            {label[0]} = 
+            <span
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={e => onChange(label, e.currentTarget.textContent || "")}
+              className="ml-1 outline-none focus:bg-accent/20 focus:ring-1 focus:ring-accent/50 rounded px-1 min-w-[20px] inline-block"
+            >
+              {val}
+            </span>
+          </span>
+        </div>
+      </foreignObject>
+    );
+  };
 
   return (
-    <svg viewBox="0 0 240 160" className="w-3/4 max-w-[280px] mx-auto h-auto text-foreground block">
-      {/* Box */}
-      <rect x="40" y="20" width="140" height="90" rx="4"
-        fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="none" opacity="0.3" />
-      {/* Front face */}
-      <rect x="40" y="20" width="140" height="90" rx="4"
-        fill="hsl(var(--muted))" stroke="hsl(var(--border))" strokeWidth="1.5" />
-
-      {/* Length arrow */}
-      <line x1="40" y1="128" x2="180" y2="128" stroke="hsl(var(--accent))" strokeWidth="1.5" markerEnd="url(#arrowR)" markerStart="url(#arrowL)" />
-      <text x="110" y="142" textAnchor="middle" fontSize="9" fill="hsl(var(--accent))" fontFamily="monospace" fontWeight="600">
-        L = {sectionId !== undefined && index !== undefined ? (
-          <EditableText section={sectionId} contentKey={`chapter_${index}_${dimKeyPrefix}0_value`} fallback={L} as="tspan" />
-        ) : L}
-      </text>
-
-      {/* Height arrow */}
-      <line x1="24" y1="20" x2="24" y2="110" stroke="hsl(var(--accent))" strokeWidth="1.5" markerEnd="url(#arrowD)" markerStart="url(#arrowU)" />
-      <text x="12" y="68" textAnchor="middle" fontSize="9" fill="hsl(var(--accent))" fontFamily="monospace" fontWeight="600" transform="rotate(-90, 12, 68)">
-        H = {sectionId !== undefined && index !== undefined ? (
-          <EditableText section={sectionId} contentKey={`chapter_${index}_${dimKeyPrefix}2_value`} fallback={H} as="tspan" />
-        ) : H}
-      </text>
-
-      {/* Width label */}
-      <text x="110" y="75" textAnchor="middle" fontSize="9" fill="hsl(var(--foreground))" opacity="0.6" fontFamily="monospace">
-        W = {sectionId !== undefined && index !== undefined ? (
-          <EditableText section={sectionId} contentKey={`chapter_${index}_${dimKeyPrefix}1_value`} fallback={W} as="tspan" />
-        ) : W}
-      </text>
-
+    <svg viewBox="0 0 240 160" className="w-full max-w-[320px] mx-auto h-auto text-foreground block overflow-visible">
       <defs>
         <marker id="arrowR" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="hsl(var(--accent))" /></marker>
         <marker id="arrowL" markerWidth="6" markerHeight="6" refX="1" refY="3" orient="auto"><path d="M6,0 L0,3 L6,6" fill="hsl(var(--accent))" /></marker>
         <marker id="arrowD" markerWidth="6" markerHeight="6" refX="3" refY="5" orient="auto"><path d="M0,0 L3,6 L6,0" fill="hsl(var(--accent))" /></marker>
         <marker id="arrowU" markerWidth="6" markerHeight="6" refX="3" refY="1" orient="auto"><path d="M0,6 L3,0 L6,6" fill="hsl(var(--accent))" /></marker>
       </defs>
+
+      {/* Shadow box */}
+      <rect x="45" y="25" width="140" height="90" rx="4"
+        fill="none" stroke="currentColor" strokeWidth="1.5" strokeDasharray="4 2" opacity="0.2" />
+      
+      {/* Main box */}
+      <rect x="40" y="20" width="140" height="90" rx="4"
+        fill="hsl(var(--muted))" stroke="hsl(var(--border))" strokeWidth="1.5" />
+
+      {/* Length arrow */}
+      <line x1="40" y1="128" x2="180" y2="128" stroke="hsl(var(--accent))" strokeWidth="1.5" markerEnd="url(#arrowR)" markerStart="url(#arrowL)" />
+      <EditableLabel val={L} label="Length" x={110} y={142} className="text-accent" />
+
+      {/* Height arrow */}
+      <line x1="24" y1="20" x2="24" y2="110" stroke="hsl(var(--accent))" strokeWidth="1.5" markerEnd="url(#arrowD)" markerStart="url(#arrowU)" />
+      <EditableLabel val={H} label="Height" x={12} y={68} className="text-accent" transform="rotate(-90, 12, 68)" />
+
+      {/* Width indicator */}
+      <line x1="180" y1="20" x2="210" y2="50" stroke="hsl(var(--foreground))" strokeWidth="1" strokeDasharray="2 2" opacity="0.4" />
+      <EditableLabel val={W} label="Width" x={110} y={75} className="text-foreground/60" />
     </svg>
   );
 }
 
-import { Clock, MonitorPlay, Clapperboard } from "lucide-react";
 
 // ── Chapter 10 — Video ────────────────────────────────────────────────────────
-function VideoChapter({ data, sectionId, index }: { data: EKL15ChapterData; sectionId: string; index: number }) {
+function VideoChapter({ data, sectionId, index, onChange }: { data: ChapterDataInput; sectionId: string; index: number; onChange?: (d: Partial<ChapterDataInput>) => void }) {
   const sectionKey = sectionId as CMSSection;
   const stats = [
-    { icon: <Clock size={18} />, valueKey: "duration", labelKey: "DURATION", fallbackValue: "8 sec", fallbackLabel: "DURATION" },
-    { icon: <MonitorPlay size={18} />, valueKey: "resolution", labelKey: "RESOLUTION", fallbackValue: "1080p HD", fallbackLabel: "RESOLUTION" },
-    { icon: <Clapperboard size={18} />, valueKey: "views", labelKey: "VIEWS", fallbackValue: "360°", fallbackLabel: "VIEWS" },
+    { icon: <ClockIcon size={18} />, valueKey: "duration", labelKey: "DURATION", fallbackValue: "8 sec", fallbackLabel: "DURATION" },
+    { icon: <MonitorPlayIcon size={18} />, valueKey: "resolution", labelKey: "RESOLUTION", fallbackValue: "1080p HD", fallbackLabel: "RESOLUTION" },
+    { icon: <ClapperboardIcon size={18} />, valueKey: "views", labelKey: "VIEWS", fallbackValue: "360°", fallbackLabel: "VIEWS" },
   ];
 
   return (
@@ -544,13 +1016,35 @@ function VideoChapter({ data, sectionId, index }: { data: EKL15ChapterData; sect
       <div className="space-y-1">
         <p className="text-[10px] font-black uppercase tracking-[0.2em] text-accent">Official Film</p>
         <h3 className="font-display text-2xl font-bold text-slate-900 dark:text-white">
-          <EditableText section={sectionKey} contentKey={`chapter_${index}_tagline`} fallback={data.tagline || "Escort DG Set — In Action"} />
+          {onChange ? (
+            <span
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={e => onChange?.({ tagline: e.currentTarget.textContent || "" })}
+              className="outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+            >
+              {data.tagline || "Escort DG Set — In Action"}
+            </span>
+          ) : (
+            <EditableText section={sectionKey} contentKey={`chapter_${index}_tagline`} fallback={data.tagline || "Escort DG Set — In Action"} />
+          )}
         </h3>
       </div>
 
       <div className="border-l-[3px] border-accent pl-5">
         <p className="text-sm leading-relaxed text-slate-600 dark:text-slate-400 italic">
-          <EditableText section={sectionKey} contentKey={`chapter_${index}_description`} fallback={data.description || "Multiple angles of the Escort DG Set — showcasing the final product from every side, including a full 360° view of the complete unit."} />
+          {onChange ? (
+            <span
+              contentEditable
+              suppressContentEditableWarning
+              onBlur={e => onChange?.({ description: e.currentTarget.textContent || "" })}
+              className="outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+            >
+              {data.description || "Multiple angles of the Escort DG Set — showcasing the final product from every side, including a full 360° view of the complete unit."}
+            </span>
+          ) : (
+            <EditableText section={sectionKey} contentKey={`chapter_${index}_description`} fallback={data.description || "Multiple angles of the Escort DG Set — showcasing the final product from every side, including a full 360° view of the complete unit."} />
+          )}
         </p>
       </div>
 
@@ -559,10 +1053,27 @@ function VideoChapter({ data, sectionId, index }: { data: EKL15ChapterData; sect
           <div key={s.labelKey} className="flex flex-col items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 p-5 text-center transition-all hover:border-accent/30 hover:bg-slate-50 dark:hover:bg-slate-900">
             <div className="mb-3 text-accent">{s.icon}</div>
             <div className="mb-1 text-lg font-bold text-slate-900 dark:text-white">
-              <EditableText section={sectionKey} contentKey={`chapter_${index}_stat_${s.valueKey}`} fallback={s.fallbackValue} />
+              {onChange ? (
+                <span
+                  contentEditable
+                  suppressContentEditableWarning
+                  onBlur={e => {
+                    onChange({ [s.valueKey]: e.currentTarget.textContent || "" } as any);
+                  }}
+                  className="outline-none focus:bg-accent/10 focus:ring-2 focus:ring-accent/30 rounded px-1 transition-all"
+                >
+                  {(data as any)[s.valueKey] || s.fallbackValue}
+                </span>
+              ) : (
+                <EditableText section={sectionKey} contentKey={`chapter_${index}_stat_${s.valueKey}`} fallback={s.fallbackValue} />
+              )}
             </div>
             <div className="text-[9px] font-black uppercase tracking-widest text-slate-400">
-              <EditableText section={sectionKey} contentKey={`chapter_${index}_stat_${s.labelKey}`} fallback={s.fallbackLabel} />
+              {onChange ? (
+                s.fallbackLabel
+              ) : (
+                <EditableText section={sectionKey} contentKey={`chapter_${index}_stat_${s.labelKey}`} fallback={s.fallbackLabel} />
+              )}
             </div>
           </div>
         ))}
@@ -572,23 +1083,23 @@ function VideoChapter({ data, sectionId, index }: { data: EKL15ChapterData; sect
 }
 
 // ── Main dispatcher ───────────────────────────────────────────────────────────
-export function ChapterInteractive({ chapterId, data, active, sectionId = "showcaseData", index = 0 }: Props) {
+export function ChapterInteractive({ chapterId, data, active, sectionId = "showcaseData", index = 0, onChange }: Props) {
   return (
     <div className={cn(
-      "transition-all duration-700 ease-brand",
+      "w-full min-w-0 transition-all duration-700 ease-brand",
       active ? "opacity-100 translate-y-0" : "opacity-40 translate-y-3 pointer-events-none"
     )}>
-      {chapterId === "overview"    && <OverviewChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "engine"      && <EngineChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "fuel"        && <FuelChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "alternator"  && <AlternatorChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "electrical"  && <ElectricalChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "enclosure"   && <EnclosureChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "control"     && <ControlChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "protection"  && <ProtectionChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "supply"      && <SupplyChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "dimensions"  && <DimensionsChapter data={data} sectionId={sectionId} index={index} />}
-      {chapterId === "video"       && <VideoChapter data={data} sectionId={sectionId} index={index} />}
+      {chapterId === "overview"    && <OverviewChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "engine"      && <EngineChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "fuel"        && <FuelChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "alternator"  && <AlternatorChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "electrical"  && <ElectricalChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "enclosure"   && <EnclosureChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "control"     && <ControlChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "protection"  && <ProtectionChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "supply"      && <SupplyChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "dimensions"  && <DimensionsChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
+      {chapterId === "video"       && <VideoChapter data={data} sectionId={sectionId} index={index} onChange={onChange} />}
     </div>
   );
 }

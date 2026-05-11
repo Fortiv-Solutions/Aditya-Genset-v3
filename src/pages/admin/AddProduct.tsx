@@ -1,959 +1,527 @@
-import { useEffect, useState } from "react";
+/**
+ * AddProduct V2 — 3-phase workflow:
+ * Phase A: Upload PDF or manual entry
+ * Phase B: 11-slide review
+ * Phase C: Publish
+ */
+import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-  ArrowLeft,
-  ChevronDown,
-  Cpu,
-  Eye,
-  Film,
-  Image as ImageIcon,
-  IndianRupee,
-  Package,
-  Plus,
-  Save,
-  Search as SearchIcon,
-  Tag,
-  Trash2,
-  Upload,
-  X,
+import { 
+  ArrowLeft, FileText, PenLine, Loader2, AlertCircle, 
+  CheckCircle2, Eye, Save, Upload, Trash2, Plus 
 } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
-import { updateCMSSection } from "@/lib/api/cms";
-import {
-  ensureProductCategory,
-  generateProductAutomation,
-  getEngineBrandLabel,
-  normalizeEngineBrandKey,
-} from "@/lib/productAutomation";
-import { uploadProductMediaFile } from "@/lib/productMediaUpload";
-
-type ProductFormState = {
-  name: string;
-  model: string;
-  category: string;
-  shortDesc: string;
-  fullDesc: string;
-  engineBrand: string;
-  type: string;
-  kva: string;
-  cpcb: string;
-  price: string;
-  moq: string;
-  deliveryTime: string;
-  stock: string;
-  seoTitle: string;
-  metaDesc: string;
-  tags: string[];
-};
-
-type MediaState = {
-  primaryImage: string;
-  galleryUrls: string;
-  datasheetUrl: string;
-  videoUrl: string;
-};
-
-type SpecRow = {
-  label: string;
-  value: string;
-};
-
-const DEFAULT_SPECS: SpecRow[] = [
-  { label: "Power Output (kVA)", value: "" },
-  { label: "Engine Make & Model", value: "" },
-  { label: "Alternator Brand", value: "" },
-  { label: "Frequency (Hz)", value: "50 Hz" },
-  { label: "Voltage Output", value: "415V / 3-phase" },
-  { label: "Fuel Consumption (L/hr)", value: "" },
-  { label: "Noise Level (dB @ 1m)", value: "" },
-  { label: "Dimensions (LxWxH mm)", value: "" },
-  { label: "Dry Weight (kg)", value: "" },
-  { label: "CPCB Compliance", value: "IV+" },
-  { label: "Warranty", value: "12 months" },
-];
-
-const DEFAULT_FORM: ProductFormState = {
-  name: "",
-  model: "",
-  category: "silent-dg-sets",
-  shortDesc: "",
-  fullDesc: "",
-  engineBrand: "baudouin",
-  type: "silent",
-  kva: "",
-  cpcb: "iv-plus",
-  price: "",
-  moq: "1",
-  deliveryTime: "21",
-  stock: "in_stock",
-  seoTitle: "",
-  metaDesc: "",
-  tags: [],
-};
-
-const DEFAULT_MEDIA: MediaState = {
-  primaryImage: "",
-  galleryUrls: "",
-  datasheetUrl: "",
-  videoUrl: "",
-};
-
-const CATEGORY_OPTIONS = [
-  { value: "dg-sets-baudouin", label: "DG Sets / Baudouin" },
-  { value: "dg-sets-escort", label: "DG Sets / Escort" },
-  { value: "silent-dg-sets", label: "Silent DG Sets" },
-  { value: "open-dg-sets", label: "Open DG Sets" },
-  { value: "industrial", label: "Industrial DG Sets" },
-  { value: "accessories", label: "Accessories & Parts" },
-];
-
-const TAG_OPTIONS = ["Hospital Grade", "CPCB IV+", "Weatherproof", "Export Quality", "AMF Ready", "Soundproof"];
-const MAX_VIDEO_UPLOAD_BYTES = 50 * 1024 * 1024;
-const MAX_VIDEO_UPLOAD_MB = Math.round(MAX_VIDEO_UPLOAD_BYTES / 1024 / 1024);
-
-function FormSection({
-  title,
-  icon: Icon,
-  children,
-}: {
-  title: string;
-  icon: React.ElementType;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="bg-card shadow-sm border border-border rounded-xl overflow-hidden">
-      <div className="flex items-center gap-3 px-5 py-4 border-b border-border bg-secondary">
-        <div className="w-7 h-7 rounded-lg bg-accent/15 flex items-center justify-center">
-          <Icon size={14} className="text-accent" />
-        </div>
-        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      </div>
-      <div className="p-5">{children}</div>
-    </div>
-  );
-}
-
-function Input({
-  label,
-  type = "text",
-  placeholder,
-  required,
-  hint,
-  value,
-  onChange,
-  readOnly,
-}: {
-  label: string;
-  type?: string;
-  placeholder?: string;
-  required?: boolean;
-  hint?: string;
-  value?: string;
-  onChange?: (value: string) => void;
-  readOnly?: boolean;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        {label}
-        {required && <span className="text-accent ml-1">*</span>}
-      </label>
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        readOnly={readOnly}
-        onChange={(event) => onChange?.(event.target.value)}
-        className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition-all read-only:text-muted-foreground"
-      />
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function Select({
-  label,
-  options,
-  value,
-  onChange,
-  required,
-}: {
-  label: string;
-  options: { value: string; label: string }[];
-  value?: string;
-  onChange?: (value: string) => void;
-  required?: boolean;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-        {label}
-        {required && <span className="text-accent ml-1">*</span>}
-      </label>
-      <div className="relative">
-        <select
-          value={value}
-          onChange={(event) => onChange?.(event.target.value)}
-          className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-accent/60 appearance-none cursor-pointer transition-all"
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none" />
-      </div>
-    </div>
-  );
-}
-
-function Textarea({
-  label,
-  placeholder,
-  rows = 3,
-  maxLen,
-  hint,
-  value,
-  onChange,
-}: {
-  label: string;
-  placeholder?: string;
-  rows?: number;
-  maxLen?: number;
-  hint?: string;
-  value: string;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between">
-        <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-        {maxLen && (
-          <span className={`text-[11px] ${value.length > maxLen * 0.9 ? "text-accent" : "text-muted-foreground"}`}>
-            {value.length}/{maxLen}
-          </span>
-        )}
-      </div>
-      <textarea
-        placeholder={placeholder}
-        rows={rows}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        maxLength={maxLen}
-        className="w-full px-3.5 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/60 focus:ring-1 focus:ring-accent/30 transition-all resize-none"
-      />
-      {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
-    </div>
-  );
-}
-
-function SpecBuilder({
-  specs,
-  setSpecs,
-}: {
-  specs: SpecRow[];
-  setSpecs: React.Dispatch<React.SetStateAction<SpecRow[]>>;
-}) {
-  const updateSpec = (index: number, field: "label" | "value", nextValue: string) => {
-    setSpecs((current) => current.map((row, rowIndex) => (rowIndex === index ? { ...row, [field]: nextValue } : row)));
-  };
-
-  return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-2 gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
-        <span>Specification Label</span>
-        <span>Value</span>
-      </div>
-      {specs.map((spec, index) => (
-        <div key={`${spec.label}-${index}`} className="flex gap-2 items-center group">
-          <input
-            type="text"
-            value={spec.label}
-            onChange={(event) => updateSpec(index, "label", event.target.value)}
-            placeholder="e.g. Power Output"
-            className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 transition-all"
-          />
-          <input
-            type="text"
-            value={spec.value}
-            onChange={(event) => updateSpec(index, "value", event.target.value)}
-            placeholder="e.g. 62.5 kVA"
-            className="flex-1 px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/50 transition-all"
-          />
-          <button
-            type="button"
-            onClick={() => setSpecs((current) => current.filter((_, rowIndex) => rowIndex !== index))}
-            className="p-2 rounded-lg text-muted-foreground hover:text-red-400 hover:bg-red-500/10 transition-colors opacity-0 group-hover:opacity-100"
-          >
-            <Trash2 size={13} />
-          </button>
-        </div>
-      ))}
-      <button
-        type="button"
-        onClick={() => setSpecs((current) => [...current, { label: "", value: "" }])}
-        className="flex items-center gap-2 px-3 py-2 text-xs text-accent border border-dashed border-accent/30 hover:border-accent/60 rounded-lg w-full justify-center transition-colors"
-      >
-        <Plus size={13} /> Add Specification Row
-      </button>
-    </div>
-  );
-}
-
+import { motion, AnimatePresence } from "framer-motion";
+import { extractTextFromPdf, extractPdfAssets, extractProductDataWithAI, blobToBase64 } from "@/lib/pdfExtractor";
+import { enhanceProductExtraction } from "@/lib/enhancedPdfExtractor";
+import { detectTemplateFromText, detectTemplateFromBrand, getChapterKeys } from "@/lib/templateRegistry";
+import { publishProductV2, getTemplateAssets } from "@/lib/api/productPublisher";
 import { uploadImage } from "@/lib/api/storage";
+import { SlideReviewer } from "@/components/admin/SlideReviewer/SlideReviewer";
+import { EKL15_SHOWCASE } from "@/data/products";
+import type { ChapterDataInput, SectionInput, PublishMediaInput, PublishFormInput } from "@/lib/api/productPublisher";
+import type { TemplateId } from "@/lib/templateRegistry";
 
-// ─── Image Upload Zone ────────────────────────────────────────────────────────
-function ImageUploadZone({ 
-  label, 
-  hint, 
-  value, 
-  onChange,
-  multiple = false 
-}: { 
-  label: string; 
-  hint?: string;
-  value?: string | string[];
-  onChange: (v: string | string[]) => void;
-  multiple?: boolean;
-}) {
-  const [isUploading, setIsUploading] = useState(false);
+type Phase = "upload" | "review" | "publishing" | "done";
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+const DEFAULT_MEDIA: PublishMediaInput = {
+  primaryImage: "", galleryImages: [], datasheetUrl: "",
+  videoUrl: "", videoFile: null, videoThumbUrl: "",
+};
 
-    setIsUploading(true);
-    try {
-      if (multiple) {
-        const uploadPromises = Array.from(files).map(file => uploadImage(file));
-        const urls = await Promise.all(uploadPromises);
-        const currentUrls = Array.isArray(value) ? value : [];
-        onChange([...currentUrls, ...urls]);
-        toast.success(`Successfully uploaded ${urls.length} images`);
-      } else {
-        const url = await uploadImage(files[0]);
-        onChange(url);
-        toast.success("Primary image uploaded successfully");
-      }
-    } catch (err: any) {
-      toast.error(err.message || "Failed to upload image");
-    } finally {
-      setIsUploading(false);
-    }
-  };
+const DEFAULT_FORM: PublishFormInput = {
+  name: "", model: "", category: "silent-dg-sets", shortDesc: "", fullDesc: "",
+  engineBrand: "escorts-kubota", type: "silent", kva: "", cpcb: "iv-plus",
+  price: "", priceOnRequest: false, moq: "1", deliveryTime: "21",
+  stock: "in_stock", seoTitle: "", metaDesc: "", tags: [],
+};
 
-  return (
-    <div className="space-y-1.5">
-      <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{label}</label>
-      
-      {/* Previews */}
-      {!multiple && typeof value === "string" && value && (
-        <div className="relative w-full aspect-video rounded-xl overflow-hidden mb-3 group">
-          <img src={value} alt="Primary" className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <button 
-              onClick={() => onChange("")}
-              className="p-2 bg-red-500 rounded-lg text-white hover:bg-red-600 transition-colors"
-            >
-              <Trash2 size={16} />
-            </button>
-          </div>
-        </div>
-      )}
+const ESCORTS_CHAPTER_LABELS: Record<string, string> = {
+  overview: "Overview", engine: "Engine", fuel: "Fuel, Lube & Cooling",
+  alternator: "Alternator", electrical: "Electrical Performance", enclosure: "Enclosure & Sound",
+  control: "Control Panel", protection: "Protection & Approvals", supply: "Standard Supply",
+  dimensions: "Dimensions & Weight", video: "Product Video",
+};
 
-      {multiple && Array.isArray(value) && value.length > 0 && (
-        <div className="grid grid-cols-4 md:grid-cols-6 gap-3 mb-3">
-          {value.map((url, i) => (
-            <div key={i} className="relative aspect-square rounded-lg overflow-hidden group border border-border">
-              <img src={url} alt={`Gallery ${i}`} className="w-full h-full object-cover" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <button 
-                  onClick={() => onChange((value as string[]).filter((_, idx) => idx !== i))}
-                  className="p-1.5 bg-red-500 rounded text-white hover:bg-red-600 transition-colors"
-                >
-                  <Trash2 size={12} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <label className={`
-        border-2 border-dashed border-border hover:border-accent/40 rounded-xl p-8 text-center transition-colors cursor-pointer group block
-        ${isUploading ? "opacity-50 pointer-events-none" : ""}
-      `}>
-        <input 
-          type="file" 
-          className="hidden" 
-          accept="image/*" 
-          multiple={multiple}
-          onChange={handleFileChange}
-        />
-        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center mx-auto mb-3 group-hover:bg-accent/10 transition-colors">
-          <Upload size={18} className={`${isUploading ? "animate-bounce" : ""} text-muted-foreground group-hover:text-accent transition-colors`} />
-        </div>
-        <p className="text-sm text-muted-foreground group-hover:text-muted-foreground transition-colors">
-          {isUploading ? "Uploading images..." : multiple ? "Add gallery images" : "Select primary image"}
-        </p>
-        {!isUploading && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Drop images here or <span className="text-accent">browse</span>
-          </p>
-        )}
-        {hint && <p className="text-xs text-muted-foreground mt-1">{hint}</p>}
-      </label>
-    </div>
-  );
+function buildDefaultSections(keys: readonly string[], form: PublishFormInput): SectionInput[] {
+  return keys.map((k, i) => {
+    const eklBaseline = EKL15_SHOWCASE.sections.find(s => s.id === k);
+    return {
+      id: k,
+      number: String(i + 1).padStart(2, "0"),
+      title: (k === "overview" && form.name) ? form.name : (ESCORTS_CHAPTER_LABELS[k] || k),
+      imageUrl: eklBaseline?.image || "",
+      videoUrl: eklBaseline?.videoUrl || "",
+      altText: eklBaseline?.alt || "",
+      tagline: eklBaseline?.tagline || "",
+      displayOrder: i,
+    };
+  });
 }
+
+function buildChapterMapFromExtraction(enhanced: ReturnType<typeof enhanceProductExtraction>): Record<string, ChapterDataInput> {
+  const map: Record<string, ChapterDataInput> = {};
+  for (const ch of enhanced.chapters) {
+    map[ch.id] = {
+      specs: ch.specs, features: ch.features, badges: ch.badges,
+      description: ch.description, aboutSpecs: ch.aboutSpecs, lubeSpecs: ch.lubeSpecs,
+      coolingSpecs: ch.coolingSpecs, perfSpecs: ch.perfSpecs, reactanceData: ch.reactanceData,
+      acousticDims: ch.acousticDims, openDims: ch.openDims, envSpecs: ch.envSpecs,
+      engineParams: ch.engineParams, electricalParams: ch.electricalParams,
+      electricalSpecs: ch.electricalSpecs, engineProtections: ch.engineProtections,
+      electricalProtections: ch.electricalProtections, approvals: ch.approvals,
+      standardItems: ch.standardItems, optionalItems: ch.optionalItems,
+      optionalGroups: ch.optionalGroups, highlights: ch.highlights,
+    };
+  }
+  map["video"] = {};
+  return map;
+}
+
 export default function AddProduct() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const isEditing = Boolean(id);
-  const [priceOnRequest, setPriceOnRequest] = useState(false);
-  const [savingDraft, setSavingDraft] = useState(false);
-  const [publishing, setPublishing] = useState(false);
-  const [specs, setSpecs] = useState<SpecRow[]>(DEFAULT_SPECS);
-  const [media, setMedia] = useState<MediaState>(DEFAULT_MEDIA);
-  const [form, setForm] = useState<ProductFormState>(DEFAULT_FORM);
-  const [videoFile, setVideoFile] = useState<File | null>(null);
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
+  const [phase, setPhase] = useState<Phase>("upload");
+  const [extracting, setExtracting] = useState(false);
+  const [extractProgress, setExtractProgress] = useState("");
+  const [templateId, setTemplateId] = useState<TemplateId>("escorts");
+  const [form, setForm] = useState<PublishFormInput>(DEFAULT_FORM);
+  const [media, setMedia] = useState<PublishMediaInput>(DEFAULT_MEDIA);
+  const [chapterDataMap, setChapterDataMap] = useState<Record<string, ChapterDataInput>>({});
+  const [sections, setSections] = useState<SectionInput[]>([]);
+  const [publishStatus, setPublishStatus] = useState<"idle"|"publishing"|"done"|"error">("idle");
+  const [errorMsg, setErrorMsg] = useState("");
 
-  const updateForm = (key: keyof ProductFormState, value: string | string[]) => {
-    setForm((current) => ({ ...current, [key]: value }));
-  };
-
-  const toggleTag = (tag: string) => {
-    setForm((current) => ({
-      ...current,
-      tags: current.tags.includes(tag)
-        ? current.tags.filter((item) => item !== tag)
-        : [...current.tags, tag],
-    }));
-  };
-
-  const slugify = (value: string) =>
-    value
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-|-$/g, "");
-
-  const handleVideoFileChange = (file?: File) => {
-    if (!file) return;
-
-    if (!file.type.startsWith("video/")) {
-      toast.error("Please upload a valid video file.");
-      return;
-    }
-
-    if (file.size > MAX_VIDEO_UPLOAD_BYTES) {
-      toast.error(`Video must be ${MAX_VIDEO_UPLOAD_MB} MB or smaller.`);
-      return;
-    }
-
-    setVideoFile(file);
-    setMedia((current) => ({ ...current, videoUrl: "" }));
-  };
-
-  const clearVideoFile = () => {
-    setVideoFile(null);
-  };
-
-  useEffect(() => {
-    if (!videoFile) {
-      setVideoPreviewUrl(null);
-      return;
-    }
-
-    const nextPreviewUrl = URL.createObjectURL(videoFile);
-    setVideoPreviewUrl(nextPreviewUrl);
-
-    return () => URL.revokeObjectURL(nextPreviewUrl);
-  }, [videoFile]);
-
-  useEffect(() => {
-    if (!id) return;
-
-    async function loadProduct() {
-      try {
-        const { data: product, error } = await supabase
-          .from("products")
-          .select("*, product_categories(slug), product_specs(spec_label, spec_value, display_order), product_media(kind, public_url, display_order)")
-          .eq("id", id)
-          .single();
-
-        if (error) throw error;
-
-        setPriceOnRequest(Boolean(product.price_on_request));
-        setForm({
-          name: product.name || "",
-          model: product.model || "",
-          category: product.product_categories?.slug || "silent-dg-sets",
-          shortDesc: product.short_desc || "",
-          fullDesc: product.full_desc || "",
-          engineBrand: normalizeEngineBrandKey(product.engine_brand) === "other" ? "baudouin" : normalizeEngineBrandKey(product.engine_brand),
-          type: product.type || "silent",
-          kva: product.kva ? String(product.kva) : "",
-          cpcb: product.cpcb === "II" || product.cpcb === "ii" ? "ii" : "iv-plus",
-          price: product.price ? String(product.price) : "",
-          moq: product.moq ? String(product.moq) : "1",
-          deliveryTime: product.lead_time_days ? String(product.lead_time_days) : "21",
-          stock: product.stock || "in_stock",
-          seoTitle: product.seo_title || "",
-          metaDesc: product.meta_desc || "",
-          tags: Array.isArray(product.tags) ? product.tags : [],
-        });
-
-        const loadedSpecs = [...(product.product_specs || [])]
-          .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
-          .map((spec) => ({ label: spec.spec_label || "", value: spec.spec_value || "" }));
-        if (loadedSpecs.length > 0) setSpecs(loadedSpecs);
-
-        const productMedia = [...(product.product_media || [])].sort((a, b) => (a.display_order || 0) - (b.display_order || 0));
-        setMedia({
-          primaryImage: productMedia.find((item) => item.kind === "primary")?.public_url || "",
-          galleryUrls: productMedia
-            .filter((item) => item.kind === "gallery")
-            .map((item) => item.public_url)
-            .filter(Boolean)
-            .join("\n"),
-          datasheetUrl: productMedia.find((item) => item.kind === "datasheet")?.public_url || "",
-          videoUrl: productMedia.find((item) => item.kind === "video")?.public_url || "",
-        });
-      } catch (error) {
-        console.error(error);
-        toast.error("Unable to load product for editing");
-        navigate("/admin/products");
-      }
-    }
-
-    void loadProduct();
-  }, [id, navigate]);
-
-  const saveProduct = async (status: "draft" | "published") => {
-    if (!form.name || !form.model || !form.kva) {
-      toast.error("Please fill in all required fields (Name, Model, kVA)");
-      return;
-    }
-
-    const setLoading = status === "draft" ? setSavingDraft : setPublishing;
-    setLoading(true);
-
+  const fetchAndApplyEKL15Defaults = async (forceUpdateSections = false) => {
     try {
-      const slug = slugify(form.model || form.name);
-      const draftAutomation = generateProductAutomation({
-        form,
-        specs,
-        media,
-      });
-      const categoryId = await ensureProductCategory(draftAutomation.categorySlug);
-
-      const payload = {
-        category_id: categoryId || null,
-        status,
-        type: draftAutomation.type,
-        name: form.name.trim(),
-        model: form.model.trim(),
-        slug,
-        kva: Number(form.kva),
-        engine_brand: draftAutomation.brandLabel || getEngineBrandLabel(normalizeEngineBrandKey(form.engineBrand), form.engineBrand),
-        cpcb: form.cpcb === "ii" ? "II" : "IV+",
-        price: priceOnRequest || !form.price ? null : Number(form.price),
-        price_on_request: priceOnRequest,
-        moq: Number(form.moq || 1),
-        lead_time_days: Number(form.deliveryTime || 21),
-        stock: form.stock,
-        short_desc: form.shortDesc || null,
-        full_desc: form.fullDesc || null,
-        tags: form.tags,
-        seo_title: form.seoTitle || null,
-        meta_desc: form.metaDesc || null,
-        published_at: status === "published" ? new Date().toISOString() : null,
-      };
-
-      const query = id
-        ? supabase.from("products").update(payload).eq("id", id).select("id").single()
-        : supabase.from("products").insert(payload).select("id").single();
-
-      const { data: savedProduct, error } = await query;
-      if (error) throw error;
-
-      const productId = savedProduct.id;
-      const uploadedVideo = videoFile
-        ? await uploadProductMediaFile({
-            productId,
-            slug,
-            file: videoFile,
-            kind: "video",
-          })
-        : null;
-
-      const resolvedMedia: MediaState = {
-        primaryImage: media.primaryImage.trim(),
-        galleryUrls: media.galleryUrls
-          .split(/\r?\n/)
-          .map((url) => url.trim())
-          .filter(Boolean)
-          .join("\n"),
-        datasheetUrl: media.datasheetUrl.trim(),
-        videoUrl: uploadedVideo?.publicUrl || media.videoUrl.trim(),
-      };
-
-      const { error: specDeleteError } = await supabase.from("product_specs").delete().eq("product_id", productId);
-      if (specDeleteError) throw specDeleteError;
-
-      const cleanSpecs = specs
-        .filter((spec) => spec.label.trim() && spec.value.trim())
-        .map((spec, index) => ({
-          product_id: productId,
-          spec_label: spec.label.trim(),
-          spec_value: spec.value.trim(),
-          display_order: index,
+      const dbAssets = await getTemplateAssets("EKL 15");
+      if (dbAssets) {
+        setMedia(prev => ({
+          ...prev,
+          primaryImage: dbAssets.primaryImage || prev.primaryImage,
+          galleryImages: dbAssets.galleryImages.length > 0 ? dbAssets.galleryImages : prev.galleryImages,
+          videoUrl: dbAssets.videoUrl || prev.videoUrl,
+          videoThumbUrl: dbAssets.videoThumbUrl || prev.videoThumbUrl,
         }));
 
-      if (cleanSpecs.length > 0) {
-        const { error: specInsertError } = await supabase.from("product_specs").insert(cleanSpecs);
-        if (specInsertError) throw specInsertError;
+        if (forceUpdateSections) {
+          setSections(prev => prev.map(s => ({
+            ...s,
+            imageUrl: s.imageUrl || dbAssets.primaryImage || ""
+          })));
+        }
+      } else {
+        // Fallback to static EKL15_SHOWCASE data
+        setMedia(prev => ({
+          ...prev,
+          primaryImage: EKL15_SHOWCASE.hero || prev.primaryImage,
+          videoUrl: EKL15_SHOWCASE.sections.find(s => s.id === "video")?.videoUrl || prev.videoUrl,
+        }));
+        
+        if (forceUpdateSections) {
+          setSections(prev => prev.map(s => {
+            const staticMatch = EKL15_SHOWCASE.sections.find(ss => ss.id === s.id);
+            return { ...s, imageUrl: s.imageUrl || staticMatch?.image || "" };
+          }));
+        }
       }
-
-      const { error: mediaDeleteError } = await supabase.from("product_media").delete().eq("product_id", productId);
-      if (mediaDeleteError) throw mediaDeleteError;
-
-      const mediaRows: Array<{
-        product_id: string;
-        kind: string;
-        public_url: string;
-        storage_path?: string | null;
-        mime_type?: string | null;
-        alt_text: string;
-        display_order: number;
-      }> = [];
-
-      if (resolvedMedia.primaryImage.trim()) {
-        mediaRows.push({
-          product_id: productId,
-          kind: "primary",
-          public_url: resolvedMedia.primaryImage.trim(),
-          storage_path: null,
-          mime_type: null,
-          alt_text: form.name.trim(),
-          display_order: 0,
-        });
-      }
-
-      resolvedMedia.galleryUrls
-        .split(/\r?\n/)
-        .map((url) => url.trim())
-        .filter(Boolean)
-        .forEach((url, index) => {
-          mediaRows.push({
-            product_id: productId,
-            kind: "gallery",
-            public_url: url,
-            storage_path: null,
-            mime_type: null,
-            alt_text: `${form.name.trim()} gallery ${index + 1}`,
-            display_order: index + 1,
-          });
-        });
-
-      if (resolvedMedia.datasheetUrl.trim()) {
-        mediaRows.push({
-          product_id: productId,
-          kind: "datasheet",
-          public_url: resolvedMedia.datasheetUrl.trim(),
-          storage_path: null,
-          mime_type: null,
-          alt_text: `${form.name.trim()} datasheet`,
-          display_order: 100,
-        });
-      }
-
-      if (resolvedMedia.videoUrl.trim()) {
-        mediaRows.push({
-          product_id: productId,
-          kind: "video",
-          public_url: resolvedMedia.videoUrl.trim(),
-          storage_path: uploadedVideo?.storagePath || null,
-          mime_type: uploadedVideo?.mimeType || null,
-          alt_text: `${form.name.trim()} video`,
-          display_order: 101,
-        });
-      }
-
-      if (mediaRows.length > 0) {
-        const { error: mediaInsertError } = await supabase.from("product_media").insert(mediaRows);
-        if (mediaInsertError) throw mediaInsertError;
-      }
-
-      const finalAutomation = generateProductAutomation({
-        form,
-        specs,
-        media: resolvedMedia,
-      });
-
-      await Promise.all([
-        updateCMSSection("showcaseData", finalAutomation.showcaseData, "product", productId),
-        updateCMSSection("presentationData", finalAutomation.presentationData, "product", productId),
-      ]);
-
-      toast.success(status === "published" ? "Product published successfully" : "Product saved as draft");
-      navigate("/admin/products");
-    } catch (error) {
-      console.error(error);
-      toast.error("Unable to save product");
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.warn("Failed to apply EKL 15 defaults:", err);
     }
   };
 
+  // Pre-load EKL 15 assets as global baseline on mount
+  useEffect(() => {
+    fetchAndApplyEKL15Defaults();
+  }, []);
+
+  const applyDefaultAssetsIfFound = async (modelName: string, kva: string) => {
+    const isEKL15 = modelName.toLowerCase().includes("ekl 15") || kva === "15";
+    if (isEKL15) {
+      setExtractProgress("Applying EKL 15 baseline assets...");
+      await fetchAndApplyEKL15Defaults(true);
+    }
+  };
+
+  const handlePdfDrop = useCallback(async (file: File) => {
+    if (!file.name.endsWith(".pdf")) { toast.error("Please upload a PDF file."); return; }
+    setExtracting(true);
+    setExtractProgress("Reading PDF...");
+    try {
+      const [rawText, assets] = await Promise.all([
+        extractTextFromPdf(file),
+        extractPdfAssets(file, 6),
+      ]);
+
+      setExtractProgress("Detecting template...");
+      const detection = detectTemplateFromText(rawText, file.name);
+      setTemplateId(detection.templateId);
+
+      setExtractProgress("Running AI extraction...");
+      const pageB64 = await Promise.all(assets.pageImages.slice(0, 4).map(img => blobToBase64(img.blob)));
+      const extracted = await extractProductDataWithAI(rawText, file.name, pageB64, 3, setExtractProgress);
+
+      setExtractProgress("Building showcase chapters...");
+      const enhanced = enhanceProductExtraction(extracted, extracted.specs || []);
+
+      const newForm: PublishFormInput = {
+        ...DEFAULT_FORM,
+        name: extracted.name || "",
+        model: extracted.model || "",
+        kva: extracted.kva || "",
+        engineBrand: extracted.engineBrand || "escorts-kubota",
+        cpcb: extracted.cpcb || "iv-plus",
+        shortDesc: extracted.shortDesc || "",
+        fullDesc: extracted.fullDesc || "",
+        category: extracted.engineBrand?.includes("escort") ? "dg-sets-escort" : "silent-dg-sets",
+      };
+
+      const chapterKeys = getChapterKeys(detection.templateId);
+      const chapterMap = buildChapterMapFromExtraction(enhanced);
+      const defaultSections = buildDefaultSections(chapterKeys, newForm);
+
+      setForm(newForm);
+      setChapterDataMap(chapterMap);
+      setSections(defaultSections);
+      
+      // Apply defaults if EKL 15
+      await applyDefaultAssetsIfFound(newForm.model, newForm.kva);
+
+      setPhase("review");
+      toast.success(`Template detected: ${detection.templateId} (${detection.confidence} confidence)`);
+    } catch (err: any) {
+      toast.error(err.message || "Extraction failed");
+    } finally {
+      setExtracting(false);
+      setExtractProgress("");
+    }
+  }, []);
+
+  const handleManualStart = async () => {
+    const det = detectTemplateFromBrand(form.engineBrand);
+    setTemplateId(det.templateId);
+    const keys = getChapterKeys(det.templateId);
+    const defaultSections = buildDefaultSections(keys, form);
+    
+    setSections(defaultSections);
+    setChapterDataMap({ video: {} });
+    
+    // Apply defaults if EKL 15
+    await applyDefaultAssetsIfFound(form.model, form.kva);
+    
+    setPhase("review");
+  };
+
+  const handlePublish = async (status: "draft" | "published") => {
+    setPublishStatus("publishing");
+    const result = await publishProductV2({
+      form, media, templateId, chapterDataMap, sections, status,
+      existingProductId: id,
+    });
+    if (result.success) {
+      setPublishStatus("done");
+      toast.success(status === "published" ? "Product published!" : "Draft saved!");
+      setTimeout(() => navigate("/admin/products"), 1200);
+    } else {
+      setPublishStatus("error");
+      setErrorMsg(result.error || "Unknown error");
+      toast.error(result.error || "Failed to publish");
+    }
+  };
 
   return (
-    <div className="admin-page admin-page-narrow space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => navigate("/admin/products")}
-            className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
-          >
-            <ArrowLeft size={18} />
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
+      {/* Unified Thin Header */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-card shrink-0">
+        
+        {/* Left Side: Back button & Title */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <button onClick={() => navigate("/admin/products")}
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
+            <ArrowLeft size={16} />
           </button>
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-accent">Product Catalogue</p>
-            <h1 className="mt-2 text-3xl font-bold text-foreground font-display">{isEditing ? "Edit Product" : "Add New Product"}</h1>
-            <p className="text-sm text-muted-foreground mt-0.5">
-              {isEditing ? "Update generator listing details" : "Create a new generator listing for the catalogue"}
-            </p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-accent leading-none mb-0.5">Product Catalogue</p>
+            <h1 className="text-sm font-bold text-foreground font-display leading-none">
+              {id ? "Edit Product" : "Add New Product"}
+            </h1>
           </div>
         </div>
-        <div className="flex gap-2">
-          <button
-            onClick={() => void saveProduct("draft")}
-            disabled={savingDraft}
-            className="flex items-center gap-1.5 px-4 py-2 bg-secondary border border-border rounded-lg text-sm font-medium text-muted-foreground transition-colors disabled:opacity-50"
-          >
-            <Save size={15} />
-            {savingDraft ? "Saving..." : "Save Draft"}
-          </button>
-          <button
-            onClick={() => void saveProduct("published")}
-            disabled={publishing}
-            className="flex items-center gap-1.5 px-4 py-2 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors disabled:opacity-70"
-          >
-            <Eye size={15} />
-            {publishing ? "Publishing..." : "Publish"}
-          </button>
+
+        {/* Middle: Phases */}
+        <div className="flex items-center justify-center gap-0 flex-1 min-w-0">
+          {(["upload","review","done"] as Phase[]).map((p, i) => (
+            <div key={p} className="flex items-center gap-0">
+              <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium transition-colors ${
+                phase === p ? "text-accent bg-accent/10" : (["upload","review","done"].indexOf(phase) > i) ? "text-emerald-500" : "text-muted-foreground"
+              }`}>
+                {["upload","review","done"].indexOf(phase) > i
+                  ? <CheckCircle2 size={12} />
+                  : <span className="w-3.5 h-3.5 rounded-full border border-current flex items-center justify-center text-[8px]">{i+1}</span>
+                }
+                {p === "upload" ? "1. Upload / Setup" : p === "review" ? "2. Review Slides" : "3. Published"}
+              </div>
+              {i < 2 && <div className="w-4 h-px bg-border mx-1" />}
+            </div>
+          ))}
+        </div>
+
+        {/* Right Side: Actions */}
+        <div className="flex items-center justify-end gap-2 flex-1 min-w-0">
+          {phase === "review" && (
+            <>
+              <button onClick={() => void handlePublish("draft")} disabled={publishStatus === "publishing"}
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-secondary border border-border rounded-md text-[11px] font-medium text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors">
+                <Save size={13} /> Save Draft
+              </button>
+              <button onClick={() => void handlePublish("published")} disabled={publishStatus === "publishing"}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-accent hover:bg-accent/90 rounded-md text-[11px] font-bold text-accent-foreground disabled:opacity-70 transition-colors shadow-sm">
+                {publishStatus === "publishing" ? <Loader2 size={13} className="animate-spin" /> : <Eye size={13} />}
+                {publishStatus === "publishing" ? "Publishing..." : "Publish"}
+              </button>
+            </>
+          )}
         </div>
       </div>
 
-      <FormSection title="A. Basic Information" icon={Package}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Input label="Product Name" placeholder="e.g. 250 kVA Silent DG Set" required value={form.name} onChange={(value) => updateForm("name", value)} />
-          <Input label="Model Number" placeholder="e.g. ATM-250S" required hint="Used to generate the public slug" value={form.model} onChange={(value) => updateForm("model", value)} />
-          <Select
-            label="Category"
-            required
-            value={form.category}
-            onChange={(value) => updateForm("category", value)}
-            options={CATEGORY_OPTIONS}
-          />
-          <Select
-            label="Type"
-            required
-            value={form.type}
-            onChange={(value) => updateForm("type", value)}
-            options={[
-              { value: "silent", label: "Silent (Acoustic Enclosure)" },
-              { value: "open", label: "Open Frame" },
-            ]}
-          />
+      {/* Main content */}
+      <div className="flex-1 min-h-0 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {phase === "upload" && (
+            <motion.div key="upload" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+              className="h-full overflow-y-auto p-8">
+              <UploadPhase
+                form={form}
+                setForm={setForm}
+                extracting={extracting}
+                extractProgress={extractProgress}
+                onPdfDrop={handlePdfDrop}
+                onManualStart={handleManualStart}
+                media={media}
+                setMedia={setMedia}
+              />
+            </motion.div>
+          )}
+
+          {phase === "review" && (
+            <motion.div key="review" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="h-full">
+              <SlideReviewer
+                templateId={templateId}
+                chapterDataMap={chapterDataMap}
+                sections={sections}
+                media={media}
+                productName={form.name}
+                onChapterChange={(key, data) => setChapterDataMap(prev => ({ ...prev, [key]: data }))}
+                onSectionChange={(key, patch) =>
+                  setSections(prev => prev.map(s => s.id === key ? { ...s, ...patch } : s))
+                }
+                onMediaChange={(patch) => setMedia(prev => ({ ...prev, ...patch }))}
+              />
+            </motion.div>
+          )}
+
+          {publishStatus === "done" && (
+            <motion.div key="done" initial={{opacity:0,scale:0.95}} animate={{opacity:1,scale:1}}
+              className="h-full flex items-center justify-center">
+              <div className="text-center space-y-3">
+                <CheckCircle2 size={48} className="text-emerald-500 mx-auto" />
+                <p className="text-xl font-bold text-foreground">Product Published!</p>
+                <p className="text-sm text-muted-foreground">Redirecting to products list...</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+// ── Phase A upload component ───────────────────────────────────────────────────
+function UploadPhase({
+  form, setForm, extracting, extractProgress, onPdfDrop, onManualStart, media, setMedia
+}: {
+  form: PublishFormInput;
+  setForm: (f: PublishFormInput) => void;
+  extracting: boolean;
+  extractProgress: string;
+  onPdfDrop: (f: File) => void;
+  onManualStart: () => void;
+  media: PublishMediaInput;
+  setMedia: (m: PublishMediaInput) => void;
+}) {
+  const [dragOver, setDragOver] = useState(false);
+  const [mode, setMode] = useState<"pdf"|"manual">("pdf");
+  const [uploading, setUploading] = useState(false);
+
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: "primary" | "gallery") => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    setUploading(true);
+    const toastId = toast.loading("Uploading to Supabase...");
+    
+    try {
+      if (type === "primary") {
+        const url = await uploadImage(files[0]);
+        setMedia({ ...media, primaryImage: url });
+        toast.success("Hero image uploaded", { id: toastId });
+      } else {
+        const urls = await Promise.all(Array.from(files).map(f => uploadImage(f)));
+        setMedia({ ...media, galleryImages: [...media.galleryImages, ...urls] });
+        toast.success(`${urls.length} images added to gallery`, { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Upload failed", { id: toastId });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault(); setDragOver(false);
+    const file = e.dataTransfer.files[0];
+    if (file) onPdfDrop(file);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-8">
+      <div className="text-center space-y-2">
+        <h2 className="text-2xl font-bold text-foreground font-display">How would you like to add this product?</h2>
+        <p className="text-sm text-muted-foreground">Upload a PDF datasheet for AI-powered extraction, or start manually.</p>
+      </div>
+
+      {/* Mode selector */}
+      <div className="grid grid-cols-2 gap-3">
+        {[{id:"pdf",icon:FileText,title:"Upload PDF Datasheet",desc:"AI extracts all data automatically"},{id:"manual",icon:PenLine,title:"Enter Manually",desc:"Fill in product data yourself"}].map(opt => (
+          <button key={opt.id} onClick={() => setMode(opt.id as any)}
+            className={`flex flex-col items-start gap-3 p-5 rounded-xl border-2 text-left transition-all ${
+              mode === opt.id ? "border-accent bg-accent/5" : "border-border hover:border-accent/40"
+            }`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${mode === opt.id ? "bg-accent/15" : "bg-secondary"}`}>
+              <opt.icon size={20} className={mode === opt.id ? "text-accent" : "text-muted-foreground"} />
+            </div>
+            <div>
+              <p className="font-semibold text-foreground text-sm">{opt.title}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{opt.desc}</p>
+            </div>
+          </button>
+        ))}
+      </div>
+
+      {mode === "pdf" && (
+        <div
+          onDrop={handleDrop}
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          className={`relative border-2 border-dashed rounded-2xl p-12 text-center transition-all ${
+            dragOver ? "border-accent bg-accent/5" : "border-border hover:border-accent/40"
+          } ${extracting ? "opacity-60 pointer-events-none" : ""}`}
+        >
+          {extracting ? (
+            <div className="space-y-4">
+              <Loader2 size={32} className="animate-spin text-accent mx-auto" />
+              <p className="text-sm font-medium text-foreground">{extractProgress}</p>
+              <p className="text-xs text-muted-foreground">This may take 15–30 seconds...</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center mx-auto">
+                <FileText size={24} className="text-accent" />
+              </div>
+              <div>
+                <p className="font-semibold text-foreground">Drop your PDF datasheet here</p>
+                <p className="text-sm text-muted-foreground mt-1">or <label className="text-accent cursor-pointer hover:underline">
+                  browse
+                  <input type="file" accept=".pdf" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if(f) onPdfDrop(f); }} />
+                </label></p>
+              </div>
+              <p className="text-xs text-muted-foreground">Gemini AI will extract product name, specs, features, and generate all 11 showcase chapters automatically.</p>
+            </div>
+          )}
         </div>
-        <div className="mt-4">
-          <Textarea
-            label="Short Description"
-            placeholder="Industrial-grade reliability, whisper-quiet by design."
-            maxLen={160}
-            hint="Used for product cards and search snippets."
-            value={form.shortDesc}
-            onChange={(value) => updateForm("shortDesc", value)}
-          />
-        </div>
-        <div className="mt-4">
-          <Textarea
-            label="Full Description"
-            placeholder="Write a detailed product description..."
-            rows={5}
-            hint="Describe applications, features, and commercial positioning."
-            value={form.fullDesc}
-            onChange={(value) => updateForm("fullDesc", value)}
-          />
-        </div>
-        <div className="mt-4 space-y-1.5">
-          <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Product Tags</label>
-          <div className="flex flex-wrap gap-2">
-            {TAG_OPTIONS.map((tag) => (
-              <button
-                key={tag}
-                type="button"
-                onClick={() => toggleTag(tag)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs border transition-colors ${
-                  form.tags.includes(tag)
-                    ? "border-accent/60 bg-accent/10 text-accent"
-                    : "border-border text-muted-foreground hover:border-accent/40 hover:text-accent hover:bg-accent/5"
-                }`}
-              >
-                <Tag size={10} /> {tag}
-              </button>
+      )}
+
+      {mode === "manual" && (
+        <div className="space-y-4 bg-card border border-border rounded-xl p-5">
+          <p className="text-sm font-semibold text-foreground">Basic Info</p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              {key:"name",label:"Product Name",ph:"e.g. 15 kVA Silent DG Set"},
+              {key:"model",label:"Model Number",ph:"e.g. EKL 15-IV"},
+              {key:"kva",label:"kVA Rating",ph:"15"},
+              {key:"engineBrand",label:"Engine Brand",ph:"escorts-kubota"},
+            ].map(f => (
+              <div key={f.key} className="space-y-1.5">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{f.label}</label>
+                <input value={(form as any)[f.key]} onChange={e => setForm({...form,[f.key]:e.target.value})}
+                  placeholder={f.ph}
+                  className="w-full px-3 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/60 transition-all" />
+              </div>
             ))}
           </div>
+          <button onClick={onManualStart}
+            className="w-full py-3 bg-accent hover:bg-accent/90 text-accent-foreground font-bold rounded-xl text-sm transition-colors">
+            Continue to Review Slides →
+          </button>
         </div>
-      </FormSection>
+      )}
 
-      <FormSection title="B. Technical Specifications" icon={Cpu}>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-5">
-          <Input label="Power Output (kVA)" placeholder="e.g. 250" required type="number" value={form.kva} onChange={(value) => updateForm("kva", value)} />
-          <Select
-            label="Engine Brand"
-            required
-            value={form.engineBrand}
-            onChange={(value) => updateForm("engineBrand", value)}
-            options={[
-              { value: "baudouin", label: "Baudouin" },
-              { value: "kubota", label: "Kubota" },
-              { value: "escorts-kubota", label: "Escorts-Kubota" },
-              { value: "kohler", label: "Kohler" },
-              { value: "mahindra", label: "Mahindra" },
-              { value: "cummins", label: "Cummins" },
-            ]}
-          />
-          <Select
-            label="CPCB Compliance"
-            required
-            value={form.cpcb}
-            onChange={(value) => updateForm("cpcb", value)}
-            options={[
-              { value: "iv-plus", label: "CPCB IV+" },
-              { value: "ii", label: "CPCB II" },
-            ]}
-          />
+      {/* Global Media Assets (Hero & Gallery) */}
+      <div className="space-y-4 bg-card border border-border rounded-xl p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">Hero & Gallery Assets</p>
+            <p className="text-xs text-muted-foreground mt-0.5">Stored securely in Supabase product-assets bucket</p>
+          </div>
+          {uploading && <Loader2 size={16} className="animate-spin text-accent" />}
         </div>
-        <SpecBuilder specs={specs} setSpecs={setSpecs} />
-      </FormSection>
 
-      <FormSection title="C. Pricing & Availability" icon={IndianRupee}>
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-          <div className="space-y-1.5 md:col-span-2">
-            <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Base Price (INR, Ex-Works) <span className="text-accent">*</span>
-            </label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">Rs</span>
-              <input
-                type="number"
-                placeholder="695000"
-                disabled={priceOnRequest}
-                value={form.price}
-                onChange={(event) => updateForm("price", event.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-accent/60 transition-all disabled:opacity-40"
-              />
+        <div className="grid grid-cols-2 gap-6">
+          {/* Primary Hero Image */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block">Primary Hero Image</label>
+            <div className="relative group aspect-video rounded-xl border border-border bg-muted/20 overflow-hidden flex items-center justify-center">
+              {media.primaryImage ? (
+                <>
+                  <img src={media.primaryImage} className="w-full h-full object-cover" alt="Hero" />
+                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <label className="cursor-pointer bg-white/20 backdrop-blur-md text-white px-3 py-1.5 rounded-full text-[10px] font-bold border border-white/30 hover:bg-white/30 transition-all">
+                      Change Image
+                      <input type="file" accept="image/*" className="hidden" onChange={e => handleMediaUpload(e, "primary")} />
+                    </label>
+                  </div>
+                </>
+              ) : (
+                <label className="cursor-pointer flex flex-col items-center gap-2 text-muted-foreground hover:text-accent transition-colors">
+                  <Upload size={20} />
+                  <span className="text-[10px] font-medium">Upload Hero</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={e => handleMediaUpload(e, "primary")} />
+                </label>
+              )}
             </div>
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={priceOnRequest}
-                onChange={(event) => setPriceOnRequest(event.target.checked)}
-                className="rounded border-border accent-amber-500"
-              />
-              <span className="text-xs text-muted-foreground">Price on Request</span>
-            </label>
           </div>
-          <Select
-            label="Availability"
-            required
-            value={form.stock}
-            onChange={(value) => updateForm("stock", value)}
-            options={[
-              { value: "in_stock", label: "In Stock" },
-              { value: "on_order", label: "On Order" },
-              { value: "discontinued", label: "Discontinued" },
-            ]}
-          />
-          <Input label="Delivery Time (days)" placeholder="21" type="number" hint="Days from order to delivery" value={form.deliveryTime} onChange={(value) => updateForm("deliveryTime", value)} />
-          <Input label="Minimum Order Quantity" placeholder="1" type="number" value={form.moq} onChange={(value) => updateForm("moq", value)} />
-        </div>
-      </FormSection>
 
-      <FormSection title="D. Media" icon={ImageIcon}>
-        <div className="space-y-5">
-          <ImageUploadZone
-            label="Primary Image *"
-            hint="JPG, PNG, WebP — min 800×600px, max 5MB. This is the main product card image."
-            value={media.primaryImage}
-            onChange={(v) => setMedia(prev => ({ ...prev, primaryImage: v as string }))}
-          />
-          <ImageUploadZone
-            label="Image Gallery (up to 12)"
-            hint="Select multiple images. Supported: JPG, PNG, WebP"
-            value={media.galleryUrls.split('\n').filter(Boolean)}
-            onChange={(v) => setMedia(prev => ({ ...prev, galleryUrls: (v as string[]).join('\n') }))}
-            multiple
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input
-              label="Product Video URL"
-              placeholder="https://youtube.com/watch?v=..."
-              value={media.videoUrl}
-              onChange={(value) => setMedia((current) => ({ ...current, videoUrl: value }))}
-              hint={videoFile ? "A selected upload will be used instead of this URL." : "Optional external video URL."}
-            />
+          {/* Gallery Images */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground block">Product Gallery ({media.galleryImages.length})</label>
+            <div className="grid grid-cols-3 gap-2">
+              {media.galleryImages.map((url, i) => (
+                <div key={i} className="aspect-square rounded-lg border border-border bg-muted/10 overflow-hidden relative group">
+                  <img src={url} className="w-full h-full object-cover" alt={`Gallery ${i}`} />
+                  <button onClick={() => setMedia({ ...media, galleryImages: media.galleryImages.filter((_, idx) => idx !== i) })}
+                    className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-md opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Trash2 size={10} />
+                  </button>
+                </div>
+              ))}
+              <label className="aspect-square rounded-lg border-2 border-dashed border-border hover:border-accent/40 flex flex-col items-center justify-center gap-1 cursor-pointer text-muted-foreground transition-all">
+                <Plus size={16} />
+                <span className="text-[9px] font-bold">Add</span>
+                <input type="file" accept="image/*" multiple className="hidden" onChange={e => handleMediaUpload(e, "gallery")} />
+              </label>
+            </div>
           </div>
         </div>
-      </FormSection>
-
-      <FormSection title="E. SEO (Optional)" icon={SearchIcon}>
-        <div className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Input label="SEO Title" placeholder="250 kVA Silent DG Set | Aditya Tech Mech" hint="Optional. Leave blank to use the product name." value={form.seoTitle} onChange={(value) => updateForm("seoTitle", value)} />
-            <Input label="Canonical URL" value={`/products/${slugify(form.model || form.name)}`} hint="Generated from the product slug" readOnly />
-          </div>
-          <Textarea
-            label="Meta Description"
-            placeholder="Buy 250 kVA CPCB IV+ silent diesel generator set from Aditya Tech Mech..."
-            maxLen={160}
-            hint="Optional. Leave blank to use the product description."
-            value={form.metaDesc}
-            onChange={(value) => updateForm("metaDesc", value)}
-          />
-          <p className="text-xs text-muted-foreground">
-            SEO fields can be skipped. Search visibility and featured placement still use the saved product content, tags, and category.
-          </p>
-        </div>
-      </FormSection>
-
-      <div className="sticky bottom-0 flex justify-end gap-3 py-4 bg-gradient-to-t from-background via-background to-transparent mt-2">
-        <button
-          onClick={() => navigate("/admin/products")}
-          className="px-5 py-2.5 bg-secondary border border-border rounded-lg text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          onClick={() => void saveProduct("draft")}
-          disabled={savingDraft}
-          className="flex items-center gap-1.5 px-5 py-2.5 bg-secondary border border-border rounded-lg text-sm font-medium text-muted-foreground transition-colors disabled:opacity-50"
-        >
-          <Save size={15} /> {savingDraft ? "Saving..." : "Save Draft"}
-        </button>
-        <button
-          onClick={() => void saveProduct("published")}
-          disabled={publishing}
-          className="flex items-center gap-1.5 px-6 py-2.5 bg-accent hover:bg-accent/90 rounded-lg text-sm font-bold text-accent-foreground transition-colors disabled:opacity-70"
-        >
-          <Eye size={15} /> {publishing ? "Publishing..." : "Publish Product"}
-        </button>
       </div>
     </div>
   );

@@ -1,6 +1,5 @@
 import { supabase } from '../supabase'
 import type { Product, ProductMedia, ProductSpec } from '../supabase'
-import { PRODUCTS } from '@/data/products'
 
 /**
  * Fetch all published products with their media and specs
@@ -24,7 +23,7 @@ export async function fetchPublishedProducts() {
   }
 
   // Transform the data to match the expected format
-  const transformedData = (data || []).map(product => ({
+  const products = (data || []).map(product => ({
     ...product,
     product_media: product.product_media?.map((media: any) => ({
       ...media,
@@ -34,73 +33,11 @@ export async function fetchPublishedProducts() {
       ...spec,
       label: spec.spec_label,
       value: spec.spec_value,
-    })),
+      display_order: spec.display_order
+    })).sort((a: any, b: any) => (a.display_order || 0) - (b.display_order || 0)),
   }))
 
-  // Merge with static PRODUCTS
-  const staticProducts = PRODUCTS.map(p => ({
-    id: p.slug,
-    slug: p.slug,
-    name: p.name,
-    kva: p.kva,
-    engine_brand: (p.name.toLowerCase().includes('escort') || p.name.toLowerCase().includes('ekl')) ? 'Escorts' : 'Baudouin',
-    status: 'published' as const,
-    product_media: p.thumbnail ? [{ public_url: p.thumbnail, kind: 'primary' }] : [],
-    product_specs: [
-      { spec_label: 'Power Output', spec_value: `${p.kva} kVA` },
-      ...Object.entries(p.specs || {}).map(([label, value]) => ({
-        spec_label: label,
-        spec_value: value,
-      }))
-    ]
-  }));
-
-  const allMerged = [...transformedData, ...staticProducts];
-
-  // 1. Initial filter to remove unwanted models
-  const filtered = allMerged.filter(p => {
-    // Exclude Baudouin 20kVA as requested
-    const isBaudouin20 = Number(p.kva) === 20 && String(p.name).toLowerCase().includes('baudouin');
-    if (isBaudouin20) return false;
-
-    // Escorts 20kVA Logic
-    const isEscorts20 = Number(p.kva) === 20 && 
-      (String(p.engine_brand || "").toLowerCase().includes('escort') || 
-       String(p.name || "").toLowerCase().includes('ekl'));
-
-    if (isEscorts20) {
-      const appSpec = p.product_specs?.find((s: any) => 
-        String(s.label || s.spec_label || "").toLowerCase().includes('application')
-      );
-      const appValue = String(appSpec?.value || appSpec?.spec_value || "");
-      
-      // Specifically EXCLUDE the "Prime Power" version
-      if (appValue === "Prime Power") return false;
-      
-      // Keep if it has a decent amount of data
-      if (p.product_specs && p.product_specs.length >= 5) return true;
-      
-      // Otherwise, only keep if it's the static fallback (which has exactly 5 specs usually)
-      return p.id === p.slug; // Static ones have id === slug
-    }
-
-    return true;
-  });
-
-  // 2. Final deduplication - Keep the version with the MOST specs
-  const productMap = new Map<string, any>();
-  filtered.forEach(p => {
-    const key = String(p.name).toLowerCase().replace(/[^a-z0-9]/g, '');
-    const existing = productMap.get(key);
-    
-    if (!existing || (p.product_specs?.length || 0) > (existing.product_specs?.length || 0)) {
-      productMap.set(key, p);
-    }
-  });
-
-  const finalResult = Array.from(productMap.values());
-  console.log('📊 Final products for comparison:', finalResult.length);
-  return finalResult;
+  return products;
 }
 
 /**

@@ -6,17 +6,18 @@ import { durations, easings } from "@/lib/animations";
 import { EditableText } from "@/components/cms/EditableText";
 import { EditableImage } from "@/components/cms/EditableImage";
 import { useCMSState } from "@/components/cms/CMSEditorProvider";
-import { CMSSection as CMSSectionKey } from "@/lib/sanity";
+import type { CMSSection as CMSSectionKey } from "@/lib/sanity";
 import type { ShowcaseProduct } from "@/data/products";
 import { ChapterInteractive } from "./ChapterInteractive";
-import { EKL15_CHAPTER_DATA } from "@/data/ekl15Data";
-import { EKL20_3CYL_CHAPTER_DATA } from "@/data/ekl20Data";
+// Legacy static data — used as fallback when chapterDataMap prop is not provided
+// Legacy static data removed
+// EKL20_3CYL_CHAPTER_DATA import removed
 
 // Fallback images
 import mainImageFallback from "@/assets/products/showcase/main-view.png";
 import subProductFallback from "@/assets/products/parts/enclosure.jpg";
 
-export function GuidedPresentation({ onClose, sectionId = "presentationData", product }: { onClose: () => void, sectionId?: string, product?: ShowcaseProduct }) {
+export function GuidedPresentation({ onClose, sectionId = "presentationData", product, chapterDataMap }: { onClose: () => void, sectionId?: string, product?: ShowcaseProduct, chapterDataMap?: Record<string, any> }) {
   const { isEditMode, content, updateContentLive, commitHistory } = useCMSState();
   const cmsContent = content[sectionId as keyof typeof content] as Record<string, any>;
   const showcaseContent = cmsContent; // Use the same section for both hotspot and showcase labels
@@ -245,7 +246,10 @@ export function GuidedPresentation({ onClose, sectionId = "presentationData", pr
                         <ChapterInteractive 
                           chapterId={activeHotspot.id} 
                           data={{
-                            ...(product?.slug === "ekl-20-3cyl" ? EKL20_3CYL_CHAPTER_DATA[activeHotspot.id] : EKL15_CHAPTER_DATA[activeHotspot.id] || {}),
+                            // V2: use chapterDataMap
+                            ...(chapterDataMap ? (chapterDataMap[activeHotspot.id] || {}) : {}),
+                            // removed 251
+                            // removed 252
                             ...(product?.sections.find(s => s.id === activeHotspot.id) || {})
                           } as any} 
                           active={true} 

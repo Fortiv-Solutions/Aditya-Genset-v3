@@ -40,16 +40,17 @@ function VideoSlide({ section, isActive }: { section: ShowcaseSection; isActive:
 
   return (
     <div className="relative h-full w-full bg-black">
-      {/* Actual video — always mounted; shows first frame as thumbnail */}
-      <video
-        ref={videoRef}
-        src={section.videoUrl}
-        preload="metadata"
-        playsInline
-        className="h-full w-full object-cover"
-        controls={isPlaying}
-        onEnded={() => setIsPlaying(false)}
-      />
+      {section.videoUrl && (
+        <video
+          ref={videoRef}
+          src={section.videoUrl}
+          preload="metadata"
+          playsInline
+          className="h-full w-full object-cover"
+          controls={isPlaying}
+          onEnded={() => setIsPlaying(false)}
+        />
+      )}
 
       {/* Play overlay — shown when not playing */}
       <div
@@ -90,13 +91,17 @@ export function StickyImageStack({ sections, active }: Props) {
         >
           {s.videoUrl ? (
             <VideoSlide section={s} isActive={i === active} />
-          ) : (
+          ) : (s.image || (s as any).imageUrl) ? (
             <img
-              src={s.image}
-              alt={s.alt}
+              src={s.image || (s as any).imageUrl}
+              alt={s.alt || (s as any).altText}
               loading={i === 0 ? "eager" : "lazy"}
               className="h-full w-full object-contain"
             />
+          ) : (
+            <div className="h-full w-full flex items-center justify-center bg-muted/20 border-2 border-dashed border-border rounded-lg">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">No Image Uploaded</span>
+            </div>
           )}
         </div>
       ))}

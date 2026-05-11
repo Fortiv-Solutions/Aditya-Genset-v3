@@ -159,60 +159,67 @@ export interface ExtractedProduct {
   advancedSections: ExtractedSection[];
   confidence: "high" | "medium" | "low";
   rawNotes: string;
+  unmappedNotes: string[];
+  technicalSummary: string;
   extractionSource?: "ai" | "local-fallback";
 }
 
 // ─── Schema sent to Gemini ────────────────────────────────────────────────────
 const EXTRACTION_SYSTEM_PROMPT = `
-You are an advanced Data Extraction AI for Aditya Tech Mech (Escorts-Kubota) DG sets.
-Your task is to comprehensively parse the ENTIRE PDF and extract ALL technical data, features, highlights, and specifications.
+You are a highly precise Technical Data Extraction Specialist for Aditya Tech Mech (DG sets).
+Your goal is to achieve 100% DATA FIDELITY. Every number, every unit, and every technical feature mentioned in the PDF MUST be captured.
 
-You MUST return ONLY a valid JSON object following this EXACT structure:
+Return ONLY a valid JSON object with this structure:
 
 {
   "basic_info": {
-    "product_name": "string or null",
-    "model_number": "string or null",
-    "power_kva": "number or null",
-    "engine_brand": "string or null (e.g., 'Escorts Kubota', 'Baudouin', 'Cummins')",
-    "engine_model": "string or null",
-    "alternator_brand": "string or null (e.g., 'Stamford', 'Leroy Somer')",
-    "cpcb_compliance": "string or null (e.g., 'iv-plus' or 'ii')",
-    "application": "string or null (e.g., 'prime', 'standby')",
-    "rated_voltage": "string or null (e.g., '415V')",
-    "frequency_hz": "number or null (e.g., 50)",
-    "power_factor": "number or null (e.g., 0.8)",
-    "noise_level": "string or null (e.g., '75 dB(A)')",
-    "fuel_consumption_75": "string or null (e.g., '2.5 L/hr')",
-    "fuel_tank_capacity": "string or null (e.g., '60 Litres')",
-    "dry_weight_kg": "number or null",
+    "product_name": "string",
+    "model_number": "string",
+    "power_kva": "number",
+    "engine_brand": "string",
+    "engine_model": "string",
+    "alternator_brand": "string",
+    "cpcb_compliance": "string",
+    "application": "string",
+    "rated_voltage": "string",
+    "frequency_hz": "number",
+    "power_factor": "number",
+    "noise_level": "string",
+    "fuel_consumption_75": "string",
+    "fuel_tank_capacity": "string",
+    "dry_weight_kg": "number",
     "dimensions": {
-      "length_mm": "number or null",
-      "width_mm": "number or null",
-      "height_mm": "number or null",
-      "full_string": "string or null (e.g., '1450 x 850 x 1100 mm')"
-    }
+      "length_mm": "number",
+      "width_mm": "number",
+      "height_mm": "number",
+      "full_string": "string"
+    },
+    "technical_summary": "A 2-3 sentence technical overview of the set."
   },
   "sections": [
     {
-      "title": "string (e.g., 'Engine Features', 'Alternator Data', 'DG Control Panel')",
-      "type": "string (MUST BE exactly 'specs' OR 'features' OR 'mixed')",
+      "title": "string (e.g., 'Lubrication System', 'Cooling System', 'Electrical Interface')",
+      "type": "exactly 'specs' OR 'features' OR 'mixed'",
       "specs": [
         { "label": "string", "value": "string" }
       ],
       "features": [
-        "string (bullet points or textual descriptions)"
+        "string (detailed feature description)"
       ]
     }
+  ],
+  "unmapped_notes": [
+    "Any data point that didn't fit elsewhere (e.g., paint type, warranty terms, specific component part numbers)"
   ]
 }
 
-CRITICAL RULES:
-1. CAPTURE EVERYTHING: Do not summarize. If there is a table (e.g., Cooling System, Fuel System, Alternator Options), extract every row into the "specs" array of a new section.
-2. EXTRACT FEATURES: Look for bullet points under headings like "Product Highlights", "Engine Features", "DG Control Panel", etc., and put them in the "features" array of that section.
-3. SILENT/ACOUSTIC PRIORITY: If there is data for both "Open" and "Acoustic/Silent" sets (like Dimensions & Weights), prioritize the Acoustic/Silent data in the main basic_info.
-4. CLEAN STRINGS: For models and brands, extract ONLY the model name (e.g., 'EKL15-IV') and not descriptive text.
-5. NO CONVERSATION: Return ONLY the JSON object. Do not wrap in markdown fences if possible.
+CRITICAL RULES FOR 100% COVERAGE:
+1. EXHAUSTIVE EXTRACTION: Do not omit anything. If there is a table for 'Reactance Data' or 'Alternator Efficiency', extract every single row.
+2. PRESERVE UNITS: Always include units (mm, kg, L/hr, dB(A)) in the values.
+3. TABLE RECONSTRUCTION: Use the provided page images to understand complex table layouts. Each row in a table should become a 'spec' entry.
+4. FEATURE CAPTURE: Every bullet point under 'Standard Features' or 'Benefits' must be in a 'features' array.
+5. NO HALLUCINATION: Only extract what is in the PDF.
+6. NO MARKDOWN: Return only the JSON object.
 `;
 
 const EMPTY_PRODUCT: ExtractedProduct = {
@@ -244,6 +251,8 @@ const EMPTY_PRODUCT: ExtractedProduct = {
   advancedSections: [],
   confidence: "low",
   rawNotes: "",
+  unmappedNotes: [],
+  technicalSummary: "",
   extractionSource: "local-fallback",
 };
 
@@ -458,6 +467,8 @@ function buildLocalProductFromText(
     rawNotes: fallbackReason
       ? `AI extraction unavailable — local parsing used. Reason: ${fallbackReason}`
       : "Local PDF parsing used. Please review before publishing.",
+    unmappedNotes: [],
+    technicalSummary: "",
     extractionSource: "local-fallback",
   };
 }
@@ -468,7 +479,8 @@ export async function extractProductDataWithAI(
   rawText: string,
   sourceFileName?: string,
   pageImages?: string[],
-  retries = 2
+  retries = 2,
+  onProgress?: (msg: string) => void
 ): Promise<ExtractedProduct> {
   const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
 
@@ -485,7 +497,7 @@ ${rawText.slice(0, 15000)}`;
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent?key=${apiKey}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${apiKey}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -513,8 +525,11 @@ ${rawText.slice(0, 15000)}`;
         }
       );
 
-      if (response.status === 503 && attempt < retries) {
-        await new Promise((res) => setTimeout(res, 1500 * (attempt + 1)));
+      if ((response.status === 503 || response.status === 429) && attempt < retries) {
+        // Exponential backoff: 2s, 4s, 8s...
+        const delay = Math.pow(2, attempt + 1) * 1000;
+        onProgress?.(`Rate limit hit. Retrying in ${delay / 1000}s... (Attempt ${attempt + 1}/${retries})`);
+        await new Promise((res) => setTimeout(res, delay));
         continue;
       }
 
@@ -601,6 +616,8 @@ ${rawText.slice(0, 15000)}`;
         features: [],
         confidence: filledFields >= 8 ? "high" : filledFields >= 5 ? "medium" : "low",
         rawNotes: `AI keys found: ${Object.keys(rawAiData).join(", ")}`,
+        unmappedNotes: rawAiData.unmapped_notes || [],
+        technicalSummary: rawAiData.basic_info.technical_summary || "",
         extractionSource: "ai",
       };
     } catch (err) {

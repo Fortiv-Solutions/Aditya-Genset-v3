@@ -1,0 +1,1795 @@
+﻿import dgOverview from "@/assets/products/showcase/main-view.png";
+import dgEngine from "@/assets/products/parts/engine-real.jpg"; // Placeholder as original is missing
+import dgAlternator from "@/assets/products/parts/engine-real.jpg"; // Placeholder as original is missing
+import dgEnclosure from "@/assets/products/parts/enclosure.jpg";
+import dgDimensions from "@/assets/products/showcase/main-view.png"; // Placeholder
+import dgThumb from "@/assets/products/parts/enclosure.jpg";
+import dgControl from "@/assets/products/parts/enclosure.jpg"; // Placeholder
+import dgFuel from "@/assets/products/parts/enclosure.jpg"; // Placeholder
+import escortVideo from "@/assets/products/showcase/product-video.mp4";
+
+export type ProductStatus = "active" | "coming_soon";
+export type KvaRange = "15-62.5" | "75-200" | "250-500";
+
+export interface ProductSummary {
+  id?: string;
+  slug: string;
+  name: string;
+  kva: number;
+  range: KvaRange;
+  status: ProductStatus;
+  thumbnail: string;
+  specs?: Record<string, string>;
+}
+
+export interface SpecRow {
+  label: string;
+  value: string;
+}
+
+export interface ShowcaseSection {
+  id: string;
+  number: string;
+  title: string;
+  tagline?: string;
+  image: string;
+  alt: string;
+  specs: SpecRow[];
+  highlight?: { value: number | string; suffix?: string; label: string }[];
+  videoUrl?: string;
+}
+
+export interface Hotspot {
+  id: string;
+  x: number;
+  y: number;
+  title: string;
+  description: string;
+  specs: SpecRow[];
+  subImage?: string;
+  zoom?: number;
+  offsetX?: number;
+  offsetY?: number;
+}
+
+export interface ShowcaseProduct extends ProductSummary {
+  status: "active";
+  hero: string;
+  sections: ShowcaseSection[];
+  hotspots: Hotspot[];
+  engineBrand?: string;
+}
+
+export const SHOWCASE: ShowcaseProduct = {
+  slug: "silent-62-5",
+  name: "62.5 kVA Silent DG Set",
+  kva: 62.5,
+  range: "15-62.5",
+  status: "active",
+  thumbnail: dgOverview,
+  hero: dgOverview,
+  hotspots: [
+    {
+      id: "overview",
+      x: 50, y: 50,
+      title: "Silent Diesel Generator",
+      description: "62.5 kVA silent diesel generator overview. Engineered for premium reliability and quiet operation.",
+      subImage: dgThumb,
+      zoom: 1,
+      offsetX: 0,
+      offsetY: 0,
+      specs: [
+        { label: "Rating", value: "62.5 kVA" },
+        { label: "Phase", value: "3 Phase" },
+        { label: "Compliance", value: "CPCB IV+" }
+      ]
+    },
+    {
+      id: "engine",
+      x: 42, y: 48,
+      title: "Turbocharged Engine",
+      description: "Turbocharged 4-cylinder diesel engine. Built for continuous duty and tight load response.",
+      subImage: dgEngine,
+      zoom: 1.8,
+      offsetX: 8,
+      offsetY: 2,
+      specs: [
+        { label: "Configuration", value: "4-cylinder, inline" },
+        { label: "Aspiration", value: "Turbocharged" },
+        { label: "Displacement", value: "~3.9 L" },
+        { label: "Cooling", value: "Water-cooled" },
+        { label: "Fuel", value: "High-speed diesel" }
+      ]
+    },
+    {
+      id: "power",
+      x: 35, y: 55,
+      title: "Power Output",
+      description: "Industrial brushless alternator with copper windings. Clean, stable 3-phase power for sensitive loads.",
+      subImage: dgAlternator,
+      zoom: 1.6,
+      offsetX: 15,
+      offsetY: -5,
+      specs: [
+        { label: "Rating", value: "62.5 kVA / 50 kW" },
+        { label: "Voltage", value: "415 V" },
+        { label: "Frequency", value: "50 Hz" },
+        { label: "Phase", value: "3-phase, 4-wire" },
+        { label: "Power factor", value: "0.8 lagging" }
+      ]
+    },
+    {
+      id: "sound",
+      x: 65, y: 45,
+      title: "Sound & Enclosure",
+      description: "Acoustic enclosure with louvered ventilation. CPCB IV+ compliant. Engineered to disappear into its environment.",
+      subImage: dgEnclosure,
+      zoom: 1.5,
+      offsetX: -15,
+      offsetY: 5,
+      specs: [
+        { label: "Sound level", value: "75 dB(A) @ 1m" },
+        { label: "At 7m", value: "63 dB(A)" },
+        { label: "Construction", value: "1.6 mm CRCA panels" },
+        { label: "Insulation", value: "PU foam, 50 mm" },
+        { label: "Finish", value: "7-tank powder coat" }
+      ]
+    },
+    {
+      id: "dimensions",
+      x: 50, y: 75,
+      title: "Dimensions & Weight",
+      description: "Side profile view of silent diesel generator. Compact footprint, easy to site and service.",
+      subImage: dgDimensions,
+      zoom: 1.2,
+      offsetX: 0,
+      offsetY: -10,
+      specs: [
+        { label: "Length", value: "2400 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1550 mm" },
+        { label: "Dry weight", value: "~1250 kg" },
+        { label: "Wet weight", value: "~1450 kg" }
+      ]
+    },
+    {
+      id: "video",
+      x: 50, y: 50,
+      title: "Product Video",
+      description: "Escort DG Set ΓÇö Multiple views and 360┬░ product showcase.",
+      subImage: escortVideoThumb,
+      zoom: 1, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Showcase", value: "360┬░ View" },
+      ]
+    }
+  ],
+  sections: [
+    {
+      id: "overview",
+      number: "01",
+      title: "62.5 kVA Silent DG Set",
+      tagline: "Industrial-grade reliability, whisper-quiet by design.",
+      image: dgOverview,
+      alt: "62.5 kVA silent diesel generator overview",
+      specs: [
+        { label: "Model", value: "ADG-62.5S" },
+        { label: "Rating", value: "62.5 kVA / 50 kW" },
+        { label: "Compliance", value: "CPCB IV+" },
+      ],
+      highlight: [
+        { value: 62.5, suffix: " kVA", label: "Power" },
+        { value: 75, suffix: " dB(A)", label: "Sound @ 1m" },
+        { value: 27, suffix: "+ yrs", label: "Heritage" },
+      ],
+    },
+    {
+      id: "engine",
+      number: "02",
+      title: "Engine",
+      tagline: "Built for continuous duty and tight load response.",
+      image: dgEngine,
+      alt: "Turbocharged 4-cylinder diesel engine",
+      specs: [
+        { label: "Configuration", value: "4-cylinder, inline" },
+        { label: "Aspiration", value: "Turbocharged" },
+        { label: "Displacement", value: "~3.9 L" },
+        { label: "Cooling", value: "Water-cooled" },
+        { label: "Fuel", value: "High-speed diesel" },
+      ],
+    },
+    {
+      id: "fuel",
+      number: "03",
+      title: "Fuel & Cooling",
+      tagline: "High-capacity fuel tank and optimized radiator cooling.",
+      image: dgFuel,
+      alt: "Fuel tank and radiator system",
+      specs: [
+        { label: "Fuel Tank", value: "120 L" },
+        { label: "Cooling", value: "Radiator / Fan" },
+        { label: "Lube Oil", value: "15W40 CI4+" },
+      ],
+    },
+    {
+      id: "power",
+      number: "04",
+      title: "Power Output",
+      tagline: "Clean, stable 3-phase power for sensitive loads.",
+      image: dgAlternator,
+      alt: "Industrial brushless alternator with copper windings",
+      specs: [
+        { label: "Rating", value: "62.5 kVA / 50 kW" },
+        { label: "Voltage", value: "415 V" },
+        { label: "Frequency", value: "50 Hz" },
+        { label: "Phase", value: "3-phase, 4-wire" },
+        { label: "Power factor", value: "0.8 lagging" },
+      ],
+    },
+    {
+      id: "sound",
+      number: "05",
+      title: "Sound & Enclosure",
+      tagline: "CPCB IV+ compliant. Engineered to disappear into its environment.",
+      image: dgEnclosure,
+      alt: "Acoustic enclosure with louvered ventilation",
+      specs: [
+        { label: "Sound level", value: "75 dB(A) @ 1m" },
+        { label: "At 7m", value: "63 dB(A)" },
+        { label: "Construction", value: "1.6 mm CRCA panels" },
+        { label: "Insulation", value: "PU foam, 50 mm" },
+        { label: "Finish", value: "7-tank powder coat" },
+      ],
+    },
+    {
+      id: "control",
+      number: "06",
+      title: "Control Panel",
+      tagline: "Intelligent management and remote monitoring.",
+      image: dgControl,
+      alt: "Digital control panel interface",
+      specs: [
+        { label: "Controller", value: "Deep Sea / DEIF" },
+        { label: "Display", value: "Backlit LCD" },
+        { label: "Monitoring", value: "Voltage, Current, Hz, Oil" },
+        { label: "Protection", value: "IP65 rated" },
+      ],
+    },
+    {
+      id: "protection",
+      number: "07",
+      title: "Protection & Approvals",
+      tagline: "Engine and electrical safeguards as standard.",
+      image: dgOverview,
+      alt: "Generator protection systems",
+      specs: [
+        { label: "Engine", value: "Low oil, High temp shutdown" },
+        { label: "Electrical", value: "Under/Over voltage, Overload" },
+        { label: "Compliance", value: "CE, ISO 8528" },
+      ],
+    },
+    {
+      id: "supply",
+      number: "08",
+      title: "Standard Supply",
+      tagline: "Complete turnkey solution ready to run.",
+      image: dgFuel,
+      alt: "Scope of supply overview",
+      specs: [
+        { label: "Standard", value: "First fill lube oil & coolant" },
+        { label: "Inclusions", value: "Battery, cables, day tank" },
+        { label: "Documents", value: "Manuals & wiring diagrams" },
+      ],
+    },
+    {
+      id: "dimensions",
+      number: "09",
+      title: "Dimensions & Weight",
+      tagline: "Compact footprint, easy to site and service.",
+      image: dgDimensions,
+      alt: "Side profile view of silent diesel generator",
+      specs: [
+        { label: "Length", value: "2400 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1550 mm" },
+        { label: "Dry weight", value: "~1250 kg" },
+        { label: "Wet weight", value: "~1450 kg" },
+      ],
+    },
+    {
+      id: "video",
+      number: "10",
+      title: "Product Video",
+      tagline: "Escort DG Set ΓÇö Multiple views and 360┬░ product showcase.",
+      image: dgOverview,
+      videoUrl: escortVideo,
+      alt: "Escort DG set 360 degree showcase",
+      specs: [
+        { label: "Duration", value: "8 sec" },
+        { label: "Quality", value: "1080p HD" },
+        { label: "Format", value: "MP4" },
+      ],
+    },
+  ],
+};
+
+// ΓöÇΓöÇ Shared Assets for Escort Products ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+import ekl15Engine    from "@/assets/products/parts/engine-real.jpg";
+import ekl15Control   from "@/assets/products/parts/enclosure.jpg";
+import ekl15Overview  from "@/assets/products/escorts/escort_15kva.jpg";
+import ekl15Alternator from "@/assets/products/parts/engine-real.jpg";
+import ekl15Dimensions from "@/assets/products/escorts/escort_40kva_main.jpg";
+import ekl15Enclosure  from "@/assets/products/parts/enclosure.jpg";
+import ekl15Supply     from "@/assets/products/escorts/escort_20kva_1.jpg";
+
+import escort15KVA from "@/assets/products/escorts/escort_15kva.jpg";
+import escort15KVA2 from "@/assets/products/escorts/escort_15kva_2.jpg";
+import escort20KVA1 from "@/assets/products/escorts/escort_20kva_1.jpg";
+import escort20KVA2 from "@/assets/products/escorts/escort_20kva_2.jpg";
+import escort30KVA from "@/assets/products/escorts/escort_30kva.jpg";
+import escort40KVA2 from "@/assets/products/escorts/escort_40kva_2.jpg";
+import escort40KVA from "@/assets/products/escorts/escort_40kva_main.jpg";
+import escortVideoThumb from "@/assets/products/showcase/main-view.png";
+import ekl15Electrical from "@/assets/products/parts/enclosure.jpg";
+import ekl15Protection from "@/assets/products/parts/enclosure.jpg";
+
+export const PRODUCTS: ProductSummary[] = [
+  {
+    slug: "ekl-15-2cyl",
+    name: "ATM EKL 15 (2 Cyl)-IV",
+    kva: 15,
+    range: "15-62.5",
+    status: "active",
+    thumbnail: escort15KVA,
+    specs: {
+      "Engine": "Escorts",
+      "Fuel Consumption": "3.5 L/hr",
+      "Noise": "68 dB(A)",
+      "Compliance": "CPCB IV+"
+    }
+  },
+  {
+    slug: "ekl-20-3cyl",
+    name: "EKL20(3cyl)-IV",
+    kva: 20,
+    range: "15-62.5",
+    status: "active",
+    thumbnail: escort20KVA2,
+    specs: {
+      "Engine": "Escorts",
+      "Fuel Consumption": "4.17 L/hr",
+      "Noise": "70 dB(A)",
+      "Compliance": "CPCB IV+"
+    }
+  },
+];
+
+// ΓöÇΓöÇ EKL 15 (2 Cyl)-IV Showcase ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export const EKL15_SHOWCASE: ShowcaseProduct = {
+  slug: "ekl-15-2cyl",
+  name: "ATM EKL 15 (2 Cyl)-IV",
+  kva: 15,
+  range: "15-62.5",
+  status: "active",
+  engineBrand: "Escorts",
+  thumbnail: escort15KVA,
+  hero: escort15KVA,
+  hotspots: [
+    {
+      id: "overview",
+      x: 50, y: 50,
+      title: "ATM EKL 15 (2 Cyl)-IV",
+      description: "Escorts-powered 15 kVA silent generator. Features the G15-IV 2-cylinder engine for reliable performance.",
+      subImage: escort15KVA,
+      zoom: 1, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Model", value: "ATM EKL 15 (2 Cyl)-IV" },
+        { label: "Rating", value: "15 kVA / 12 kWe" },
+        { label: "Compliance", value: "CPCB IV+" },
+      ]
+    },
+    {
+      id: "engine",
+      x: 42, y: 55,
+      title: "Escorts G15-IV Engine",
+      description: "2-cylinder, naturally aspirated diesel engine with electronic governor for stable frequency output.",
+      subImage: ekl15Engine,
+      zoom: 1.8, offsetX: 8, offsetY: 2,
+      specs: [
+        { label: "Make", value: "Escorts" },
+        { label: "Model", value: "G15-IV" },
+        { label: "Config", value: "2-cyl inline" },
+      ]
+    },
+    {
+      id: "fuel",
+      x: 58, y: 65,
+      title: "Fuel, Lube & Cooling",
+      description: "Optimized for efficiency. Fuel consumption: 3.5 L/hr at 100% load.",
+      subImage: escort15KVA,
+      zoom: 1.4, offsetX: -5, offsetY: -5,
+      specs: [
+        { label: "Fuel (100%)", value: "3.5 L/hr" },
+        { label: "Tank", value: "70 L" },
+        { label: "Lube Oil", value: "5.5 L" },
+      ]
+    },
+    {
+      id: "alternator",
+      x: 25, y: 48,
+      title: "Alternator & Electrical",
+      description: "Brushless, self-excited alternator with ┬▒1% AVR and high-precision electrical output.",
+      subImage: ekl15Alternator,
+      zoom: 1.6, offsetX: 15, offsetY: -5,
+      specs: [
+        { label: "Make", value: "Stamford" },
+        { label: "Voltage", value: "415 V" },
+        { label: "AVR", value: "AS540" },
+      ]
+    },
+    {
+      id: "enclosure",
+      x: 85, y: 58,
+      title: "Enclosure & Sound",
+      description: "Acoustic enclosure designed for 15 kVA requirements. Quiet operation at 68 dB(A).",
+      subImage: ekl15Enclosure,
+      zoom: 1.5, offsetX: -15, offsetY: 5,
+      specs: [
+        { label: "Noise", value: "68 dB(A)" },
+        { label: "Length", value: "1850 mm" },
+        { label: "Width", value: "950 mm" },
+      ]
+    },
+    {
+      id: "control",
+      x: 75, y: 35,
+      title: "Control Panel",
+      description: "Advanced DEIF SGC 120 microprocessor controller with full AMF support and CANbus.",
+      subImage: ekl15Control,
+      zoom: 2.0, offsetX: -20, offsetY: 15,
+      specs: [
+        { label: "Controller", value: "DEIF SGC 120" },
+        { label: "Display", value: "Backlit LCD" },
+        { label: "Event Log", value: "100 events" },
+      ]
+    },
+    {
+      id: "protection",
+      x: 70, y: 38,
+      title: "Protection & Approvals",
+      description: "Comprehensive ANSI electrical and engine shutdown protections. CE compliant.",
+      subImage: ekl15Protection,
+      zoom: 2.2, offsetX: -15, offsetY: 12,
+      specs: [
+        { label: "Compliance", value: "CE / ISO 9001" },
+        { label: "Electrical", value: "ANSI suite" },
+        { label: "Engine", value: "5 shutdowns" },
+      ]
+    },
+    {
+      id: "supply",
+      x: 50, y: 50,
+      title: "Standard Supply",
+      description: "Complete turnkey package with extensive standard inclusions and optional upgrades.",
+      subImage: ekl15Supply,
+      zoom: 1.2, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Standard Items", value: "17 (complete turnkey)" },
+        { label: "Optional Extras", value: "Available" },
+        { label: "Warranty", value: "Standard" },
+      ]
+    },
+    {
+      id: "dimensions",
+      x: 50, y: 78,
+      title: "Dimensions & Weight",
+      description: "Compact dimensions ΓÇö easy to transport, site and service.",
+      subImage: ekl15Dimensions,
+      zoom: 1.2, offsetX: 0, offsetY: -10,
+      specs: [
+        { label: "Length", value: "1760 mm" },
+        { label: "Width", value: "950 mm" },
+        { label: "Height", value: "1495 mm" },
+      ]
+    },
+    {
+      id: "video",
+      x: 50, y: 50,
+      title: "Product Video",
+      description: "Escort DG Set ΓÇö Multiple views and 360┬░ product showcase.",
+      subImage: escortVideoThumb,
+      zoom: 1, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Showcase", value: "360┬░ View" },
+      ]
+    }
+  ],
+  sections: [
+    {
+      id: "overview",
+      number: "01",
+      title: "EKL 15 kVA Silent DG Set",
+      tagline: "CPCB IV+ compliant, ISO 8528 certified ΓÇö built for demanding environments.",
+      image: escort15KVA,
+      alt: "ATM EKL 15 kVA 2-cylinder silent diesel generator",
+      specs: [
+        { label: "Model", value: "EKL15-IV (2 Cyl)" },
+        { label: "Rating", value: "15 kVA / 12 kWe" },
+        { label: "Voltage", value: "415 V, 50 Hz" },
+        { label: "Overload", value: "10% per ISO 3046" },
+        { label: "Compliance", value: "CPCB IV+" },
+      ],
+      highlight: [
+        { value: 15, suffix: " kVA", label: "Power" },
+        { value: 70, suffix: " L", label: "Day fuel tank" },
+        { value: 27, suffix: "+ yrs", label: "Heritage" },
+      ],
+    },
+    {
+      id: "engine",
+      number: "02",
+      title: "Engine",
+      tagline: "Escorts G15-IV ΓÇö 2-cylinder, naturally aspirated, 1500 RPM, built for reliability.",
+      image: escort15KVA2,
+      alt: "Escorts 2-cylinder diesel engine",
+      specs: [
+        { label: "Make", value: "Escorts" },
+        { label: "Model", value: "G15-IV" },
+        { label: "Distribution", value: "4 Strokes" },
+        { label: "Aspiration", value: "Natural Aspiration" },
+        { label: "Configuration", value: "2-cylinder In-line" },
+        { label: "Displacement", value: "1.56 L" },
+        { label: "Bore ├ù Stroke", value: "95 ├ù 110 mm" },
+        { label: "Speed", value: "1500 RPM" },
+        { label: "Gross Power (PRP)", value: "14.1 kWm / 19 hp" },
+      ],
+    },
+    {
+      id: "fuel",
+      number: "03",
+      title: "Fuel, Lube & Cooling",
+      tagline: "Mechanical fuel injection ┬╖ 15W40 CI4 lube ┬╖ Radiator cooled at 75┬░C thermostat.",
+      image: escort20KVA1,
+      alt: "Fuel and cooling system of EKL 15",
+      specs: [
+        { label: "Governor", value: "Mechanical" },
+        { label: "Air Filter", value: "Dry type" },
+        { label: "Lube Oil", value: "15W40 CI4, 5.5 L" },
+        { label: "Cooling", value: "Radiator / Water cooled" },
+        { label: "Fuel (100% Load)", value: "3.78 L/hr" },
+        { label: "Fuel (75% Load)", value: "2.98 L/hr" },
+        { label: "Fuel (50% Load)", value: "2.28 L/hr" },
+        { label: "Exhaust Outlet", value: "40 mm min. pipe" },
+        { label: "Silencer", value: "Residential type (qty: 1)" },
+      ],
+    },
+    {
+      id: "alternator",
+      number: "04",
+      title: "Alternator & Electrical",
+      tagline: "Stamford S0L1-P1 ΓÇö brushless, self-excited, AS540 AVR, ┬▒1% regulation, full reactance data.",
+      image: escort15KVA,
+      alt: "Stamford brushless alternator and electrical wiring",
+      specs: [
+        { label: "Make / Frame", value: "Stamford S0L1-P1 (CG/Leroy opt)" },
+        { label: "Phases / Current", value: "1 or 3 Phase / 62.50A or 20.88A" },
+        { label: "Insulation / Pitch", value: "H Class / 2/3 Double layer concentric" },
+        { label: "AVR / Voltage Reg", value: "AS540 / ┬▒1%" },
+        { label: "Efficiency (75% / 100%)", value: "86.4% / 83.5%" },
+        { label: "Waveform Distortion", value: "NL < 2.5%, NDBLL < 5%" },
+        { label: "Short Circuit Ratio", value: "0.515" },
+        { label: "Starter / Battery", value: "12V DC / 2.5kW / 60Ah" },
+        { label: "Protection", value: "IP23" },
+      ],
+    },
+    {
+      id: "enclosure",
+      number: "05",
+      title: "Enclosure",
+      tagline: "CPCB IV+ compliant. Acoustic: 1760 ├ù 950 ├ù 1495 mm ┬╖ 70 L day tank.",
+      image: ekl15Enclosure,
+      alt: "EKL 15 acoustic enclosure side profile",
+      specs: [
+        { label: "Acoustic L", value: "1760 mm" },
+        { label: "Acoustic W", value: "950 mm" },
+        { label: "Acoustic H", value: "1495 mm" },
+        { label: "Day Fuel Tank", value: "70 L" },
+        { label: "Protection", value: "IP23" },
+        { label: "Design Ambient", value: "40┬░C" },
+        { label: "Altitude Rating", value: "Up to 1000 m" },
+        { label: "Cooling Airflow", value: "0.58 m┬│/sec" },
+        { label: "CPCB", value: "IV+ Compliant" },
+      ],
+    },
+    {
+      id: "control",
+      number: "06",
+      title: "Control Panel",
+      tagline: "DEIF SGC 120 ΓÇö advanced AMF controller with CANbus and 100-event log.",
+      image: escort15KVA2,
+      alt: "DEIF SGC 120 digital genset controller",
+      specs: [
+        { label: "Controller", value: "DEIF SGC 120" },
+        { label: "Display", value: "LCD backlit, full graphics" },
+        { label: "Operation", value: "Auto / Manual / Remote / AMF" },
+        { label: "Metering", value: "V, A, kW, kVA, Hz, Temp, Oil" },
+        { label: "Vibration / Shock", value: "2G / 15g" },
+        { label: "Operating Temp", value: "-20┬░C to 65┬░C" },
+        { label: "Event Log", value: "100 events" },
+      ],
+    },
+    {
+      id: "protection",
+      number: "07",
+      title: "Protection & Approvals",
+      tagline: "Full ANSI protection suite ΓÇö engine & electrical shutdowns, CE compliant.",
+      image: escort30KVA,
+      alt: "DEIF protection relay and ANSI protection indicators",
+      specs: [
+        { label: "Engine Protections", value: "5 shutdown/alarm triggers" },
+        { label: "Electrical Protections", value: "ANSI 27, 59, 51, 81L, 81H + Phase Reversal" },
+        { label: "CE Compliant", value: "Yes" },
+        { label: "Low Voltage Directive", value: "EN 61010-1" },
+        { label: "EMC Immunity", value: "EN 61000-6-2" },
+        { label: "EMC Emissions", value: "EN 61000-6-4" },
+      ],
+    },
+    {
+      id: "supply",
+      number: "08",
+      title: "Standard Supply & Extras",
+      tagline: "17 standard inclusions. Optional extras: PMG, ATS, sync module and more.",
+      image: escort40KVA2,
+      alt: "EKL 15 open set showing standard scope of supply",
+      specs: [
+        { label: "Standard Items", value: "17 (complete turnkey)" },
+        { label: "Optional Groups", value: "Engine / Alternator / Cooling / General" },
+        { label: "Documentation", value: "Full set ΓÇö operation, maintenance & wiring" },
+        { label: "Warranty", value: "Refer warranty policy" },
+      ],
+    },
+    {
+      id: "dimensions",
+      number: "09",
+      title: "Dimensions & Weight",
+      tagline: "Acoustic: 1760 ├ù 950 ├ù 1495 mm ┬╖ Open set: NA (site-specific) ┬╖ Day tank: 70 L.",
+      image: escort40KVA,
+      alt: "EKL 15 generator dimensions diagram",
+      specs: [
+        { label: "Acoustic L", value: "1760 mm" },
+        { label: "Acoustic W", value: "950 mm" },
+        { label: "Acoustic H", value: "1495 mm" },
+        { label: "Day Fuel Tank", value: "70 L" },
+        { label: "Open Set", value: "Dimensions: Site specific" },
+        { label: "Rating", value: "15 kVA / 12 kWe @ 415V, 50Hz, 0.8 p.f." },
+        { label: "Warranty", value: "Refer warranty policy" },
+      ],
+    },
+    {
+      id: "video",
+      number: "10",
+      title: "Product Video",
+      tagline: "Escort DG Set ΓÇö Multiple views and 360┬░ product showcase.",
+      image: escortVideoThumb,
+      videoUrl: escortVideo,
+      alt: "Escort DG set 360 degree showcase",
+      specs: [
+        { label: "Duration", value: "8 sec" },
+        { label: "Format", value: "MP4" },
+        { label: "Source", value: "360┬░ View" },
+      ],
+    },
+  ],
+};
+
+// ΓöÇΓöÇ EKL 20 (3 Cyl)-IV Showcase ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
+export const EKL20_SHOWCASE: ShowcaseProduct = {
+  slug: "ekl-20-3cyl",
+  name: "EKL20(3cyl)-IV",
+  kva: 20,
+  range: "15-62.5",
+  status: "active",
+  engineBrand: "Escorts",
+  thumbnail: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
+  hero: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
+  hotspots: [
+    {
+      id: "overview",
+      x: 50, y: 50,
+      title: "EKL20(3cyl)-IV",
+      description: "Escorts-powered 20 kVA silent generator. Features the G20-IV 3-cylinder engine for superior performance.",
+      subImage: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
+      zoom: 1, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Model", value: "EKL20(3cyl)-IV" },
+        { label: "Rating", value: "20 kVA / 16 kWe" },
+        { label: "Compliance", value: "CPCB IV+" },
+      ]
+    },
+    {
+      id: "engine",
+      x: 42, y: 55,
+      title: "Escorts G20-IV Engine",
+      description: "3-cylinder, naturally aspirated engine delivering 24.2 hp. High carbon steel forged crankshaft.",
+      subImage: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva.jpg",
+      zoom: 1.8, offsetX: 8, offsetY: 2,
+      specs: [
+        { label: "Make", value: "Escorts" },
+        { label: "Model", value: "G20-IV" },
+        { label: "Cylinders", value: "3" },
+      ]
+    },
+    {
+      id: "fuel",
+      x: 58, y: 65,
+      title: "Fuel, Lube & Cooling",
+      description: "Optimized for efficiency. Fuel consumption: 4.17 L/hr at 100% load.",
+      subImage: escort20KVA1,
+      zoom: 1.4, offsetX: -5, offsetY: -5,
+      specs: [
+        { label: "Fuel (100%)", value: "4.17 L/hr" },
+        { label: "Tank", value: "75 L" },
+        { label: "Lube Oil", value: "6.5 L" },
+      ]
+    },
+    {
+      id: "alternator",
+      x: 25, y: 48,
+      title: "Alternator & Electrical",
+      description: "Stamford S0L2-G1 alternator. H Class insulation and ┬▒1% voltage regulation.",
+      subImage: ekl15Alternator,
+      zoom: 1.6, offsetX: 15, offsetY: -5,
+      specs: [
+        { label: "Make", value: "Stamford" },
+        { label: "Frame", value: "S0L2-G1" },
+        { label: "Regulation", value: "┬▒1%" },
+      ]
+    },
+    {
+      id: "enclosure",
+      x: 85, y: 58,
+      title: "Enclosure & Sound",
+      description: "Acoustic enclosure designed for 20 kVA requirements. CPCB IV compliant.",
+      subImage: ekl15Enclosure,
+      zoom: 1.5, offsetX: -15, offsetY: 5,
+      specs: [
+        { label: "Length", value: "1950 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1555 mm" },
+      ]
+    },
+    {
+      id: "control",
+      x: 75, y: 35,
+      title: "Control Panel",
+      description: "DEIF SGC 120 controller. Digital metering and comprehensive protection suite.",
+      subImage: ekl15Control,
+      zoom: 2.0, offsetX: -20, offsetY: 15,
+      specs: [
+        { label: "Controller", value: "DEIF SGC 120" },
+        { label: "Display", value: "LCD" },
+        { label: "Log", value: "100 events" },
+      ]
+    },
+    {
+      id: "protection",
+      x: 70, y: 38,
+      title: "Protection & Approvals",
+      description: "CE compliant with full engine and electrical shutdown protection.",
+      subImage: ekl15Protection,
+      zoom: 2.2, offsetX: -15, offsetY: 12,
+      specs: [
+        { label: "Compliance", value: "CE / ISO" },
+        { label: "Engine", value: "Shutdowns" },
+        { label: "Electrical", value: "ANSI suite" },
+      ]
+    },
+    {
+      id: "supply",
+      x: 50, y: 50,
+      title: "Standard Supply",
+      description: "Complete turnkey package including first fill lube oil and coolant.",
+      subImage: escort20KVA1,
+      zoom: 1.2, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Standard items", value: "17" },
+        { label: "Warranty", value: "Available" },
+      ]
+    },
+    {
+      id: "dimensions",
+      x: 50, y: 78,
+      title: "Dimensions & Weight",
+      description: "Compact design: 1950 ├ù 1050 ├ù 1555 mm.",
+      subImage: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
+      zoom: 1.2, offsetX: 0, offsetY: -10,
+      specs: [
+        { label: "Length", value: "1950 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1555 mm" },
+      ]
+    },
+    {
+      id: "video",
+      x: 50, y: 50,
+      title: "Product Video",
+      description: "Experience the EKL 20 kVA silent power in action.",
+      subImage: escortVideoThumb,
+      zoom: 1, offsetX: 0, offsetY: 0,
+      specs: [
+        { label: "Showcase", value: "360┬░ View" },
+      ]
+    }
+  ],
+  sections: [
+    {
+      id: "overview",
+      number: "01",
+      title: "EKL 20 kVA Silent DG Set",
+      tagline: "Escorts G20-IV powered 3-cylinder engine.",
+      image: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva_2.jpg",
+      alt: "ATM EKL 20 kVA 3-cylinder silent diesel generator",
+      specs: [
+        { label: "Model", value: "EKL20(3cyl)-IV" },
+        { label: "Rating", value: "20 kVA / 16 kWe" },
+        { label: "Compliance", value: "CPCB IV+" },
+      ],
+      highlight: [
+        { value: 20, suffix: " kVA", label: "Power" },
+        { value: 75, suffix: " L", label: "Fuel tank" },
+        { value: 27, suffix: "+ yrs", label: "Heritage" },
+      ],
+    },
+    {
+      id: "engine",
+      number: "02",
+      title: "Engine",
+      tagline: "Escorts G20-IV ΓÇö 3-cylinder performance.",
+      image: "https://vbbeibweeavuksmvkbnb.supabase.co/storage/v1/object/public/product-assets/escort_20kva.jpg",
+      alt: "Escorts 3-cylinder engine",
+      specs: [
+        { label: "Make", value: "Escorts" },
+        { label: "Model", value: "G20-IV" },
+        { label: "Cylinders", value: "3" },
+        { label: "Power", value: "24.2 hp" },
+      ],
+    },
+    {
+      id: "fuel",
+      number: "03",
+      title: "Fuel, Lube & Cooling",
+      tagline: "High efficiency fuel consumption.",
+      image: escort40KVA2,
+      alt: "Fuel and cooling",
+      specs: [
+        { label: "Fuel (100%)", value: "4.17 L/hr" },
+        { label: "Lube Oil", value: "6.5 L" },
+      ],
+    },
+    {
+      id: "alternator",
+      number: "04",
+      title: "Alternator & Electrical",
+      tagline: "Stamford S0L2-G1 reliability.",
+      image: ekl15Alternator,
+      alt: "Alternator",
+      specs: [
+        { label: "Make", value: "Stamford" },
+        { label: "Regulation", value: "┬▒1%" },
+      ],
+    },
+    {
+      id: "enclosure",
+      number: "05",
+      title: "Enclosure",
+      tagline: "Compact silent canopy.",
+      image: ekl15Enclosure,
+      alt: "Acoustic enclosure",
+      specs: [
+        { label: "Length", value: "1950 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1555 mm" },
+      ],
+    },
+    {
+      id: "control",
+      number: "06",
+      title: "Control Panel",
+      tagline: "DEIF SGC 120 microprocessor based digital controller.",
+      image: ekl15Control,
+      alt: "Control panel",
+      specs: [
+        { label: "Controller", value: "DEIF SGC 120" },
+      ],
+    },
+    {
+      id: "protection",
+      number: "07",
+      title: "Protection & Approvals",
+      tagline: "Full safety suite.",
+      image: ekl15Protection,
+      alt: "Safety systems",
+      specs: [
+        { label: "CE Compliant", value: "Yes" },
+      ],
+    },
+    {
+      id: "supply",
+      number: "08",
+      title: "Standard Supply & Extras",
+      tagline: "Complete turnkey package.",
+      image: escort40KVA2,
+      alt: "Scope of supply",
+      specs: [
+        { label: "Standard Items", value: "17" },
+      ],
+    },
+    {
+      id: "dimensions",
+      number: "09",
+      title: "Dimensions & Weight",
+      tagline: "Compact: 1950 ├ù 1050 ├ù 1555 mm.",
+      image: escort40KVA,
+      alt: "Dimensions diagram",
+      specs: [
+        { label: "Length", value: "1950 mm" },
+        { label: "Width", value: "1050 mm" },
+        { label: "Height", value: "1555 mm" },
+      ],
+    },
+    {
+      id: "electrical",
+      number: "10",
+      title: "Electrical Performance",
+      tagline: "Comprehensive electrical specifications and reactance data.",
+      image: ekl15Electrical,
+      alt: "Electrical performance",
+      specs: [
+        { label: "Short Circuit Ratio", value: "0.410" },
+        { label: "Voltage Regulation", value: "┬▒1%" },
+        { label: "Battery", value: "60 Ah" },
+      ],
+    },
+    {
+      id: "video",
+      number: "11",
+      title: "Product Video",
+      tagline: "Escort DG Set ΓÇö Multiple views and 360┬░ product showcase.",
+      image: escortVideoThumb,
+      videoUrl: escortVideo,
+      alt: "Escort DG set 360 degree showcase",
+      specs: [
+        { label: "Duration", value: "8 sec" },
+        { label: "Format", value: "MP4" },
+        { label: "Source", value: "360┬░ View" },
+      ],
+    },
+  ],
+};
+
+export const getDynamicSummaries = (): ProductSummary[] => {
+  const stored = localStorage.getItem("dynamic_summaries");
+  return stored ? JSON.parse(stored) : [];
+};
+
+export const getDynamicProduct = (slug: string): ShowcaseProduct | null => {
+  const stored = localStorage.getItem("dynamic_products");
+  if (!stored) return null;
+  const products = JSON.parse(stored);
+  return products[slug] || null;
+};
+
+export const getAllProducts = (): ProductSummary[] => {
+  return [...PRODUCTS, ...getDynamicSummaries()];
+};
+
+export const getProductBySlug = (slug: string): ShowcaseProduct | null => {
+  if (slug === SHOWCASE.slug) return SHOWCASE;
+  if (slug === EKL15_SHOWCASE.slug) return EKL15_SHOWCASE;
+  if (slug === EKL20_SHOWCASE.slug) return EKL20_SHOWCASE;
+  return getDynamicProduct(slug);
+};
+/**
+ * ekl15Data.ts
+ * All interactive data for the EKL 15 kVA (2 Cyl) DG Set showcase.
+ * 10 chapters, ~130 data points, 100% PDF coverage.
+ */
+
+export interface DimEntry { label: string; value: string; }
+export interface ReactanceRow { symbol: string; description: string; value: string; }
+export interface OptionalGroup { label: string; items: string[]; }
+
+export interface EKL15ChapterData {
+  // common
+  specs?: { label: string; value: string }[];
+  features?: string[];
+  badges?: string[];
+  tagline?: string;
+  description?: string;
+  aboutSpecs?: { label: string; value: string }[];
+
+  // engine fuel/lube/cooling
+  lubeSpecs?: { label: string; value: string }[];
+  coolingSpecs?: { label: string; value: string }[];
+
+  // alternator
+  perfSpecs?: { label: string; value: string }[];
+
+  // electrical
+  reactanceData?: ReactanceRow[];
+
+  // enclosure / dimensions
+  acousticDims?: DimEntry[];
+  openDims?: DimEntry[];
+  envSpecs?: { label: string; value: string }[];
+
+  // control
+  engineParams?: string[];
+  electricalParams?: string[];
+  electricalSpecs?: { label: string; value: string }[];
+
+  // protection
+  engineProtections?: string[];
+  electricalProtections?: string[];
+  approvals?: string[];
+
+  // supply
+  standardItems?: string[];
+  optionalItems?: string[];
+  optionalGroups?: OptionalGroup[];
+}
+
+export const EKL15_CHAPTER_DATA: Record<string, EKL15ChapterData> = {
+
+  // â”€â”€ 01 Overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  overview: {
+    badges: ["CPCB IV+ Compliant", "ISO 8528", "Silent Operation", "Industrial Grade", "ISO 9001:2015"],
+    specs: [
+      { label: "Model", value: "EKL15-IV (2 Cyl)" },
+      { label: "Rating", value: "15 kVA / 12 kWe" },
+      { label: "Voltage", value: "415 V, 3-Phase" },
+      { label: "Frequency", value: "50 Hz" },
+      { label: "Speed", value: "1500 RPM" },
+      { label: "Compliance", value: "CPCB IV+" },
+    ],
+    description:
+      "The EKL15-IV (2 Cyl) is an Escorts-powered 15 kVA silent diesel generator set, designed to comply with ISO 8528. It delivers excellent performance under the most demanding environmental conditions with near-zero downtime for continuous power supply. Comes with a sturdy base frame, efficient anti-vibration mounts, and undergoes stringent shop floor testing.",
+    aboutSpecs: [
+      { label: "Doc No.", value: "TDS-EKL15-IV(2 cyl) ATM" },
+      { label: "ISO Compliance", value: "ISO 8528" },
+      { label: "Factory", value: "Plot 29A/B, Survey 208, Silvassa-396230" },
+      { label: "Power Factor", value: "0.8 lagging" },
+      { label: "Overload Capability", value: "10% per ISO 3046" },
+    ],
+  },
+
+  // â”€â”€ 02 Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  engine: {
+    specs: [
+      { label: "Make", value: "Escorts" },
+      { label: "Model", value: "G15-IV" },
+      { label: "No. of Cylinders", value: "2" },
+      { label: "Distribution", value: "4 Strokes" },
+      { label: "Aspiration", value: "Natural Aspiration" },
+      { label: "Type of Construction", value: "In-line" },
+      { label: "Displacement", value: "1.56 L" },
+      { label: "Bore / Stroke", value: "95 Ã— 110 mm" },
+      { label: "Compression Ratio", value: "â€”" },
+      { label: "Gross Engine Power (PRP)", value: "14.1 kWm / 19 hp" },
+      { label: "Gross Power @ 110%", value: "15.5 kWm (est.)" },
+      { label: "Speed", value: "1500 RPM" },
+      { label: "Frequency", value: "50 Hz" },
+    ],
+    features: [
+      "Cast iron cylinder block with rugged body construction designed to minimize vibration & noise level",
+      "High carbon steel forged crankshaft with induction hardening",
+      "Full flow oil filter along with lube oil cooling to maintain optimum temperature",
+      "Cast iron dry liners, lube oil cooled aluminium alloy piston with high performance piston rings",
+      "Electronic governing for fast load response and stable frequency",
+      "Excellent fuel and lube oil consumption",
+      "Engine complying to ISO 3046-1/1, ISO 15550 standard reference conditions",
+      "High power to weight ratio with low life cycle cost",
+    ],
+  },
+
+  // â”€â”€ 03 Fuel, Lube & Cooling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  fuel: {
+    specs: [
+      { label: "Recommended Fuel", value: "High Speed Diesel" },
+      { label: "Governor", value: "Mechanical" },
+      { label: "Governing Class", value: "Mechanical" },
+      { label: "Fuel Injection Pump", value: "Mechanical" },
+      { label: "Air Filter Type", value: "Dry" },
+    ],
+    lubeSpecs: [
+      { label: "Recommended Lube Oil", value: "15W40 CI4" },
+      { label: "Lube Oil Capacity", value: "5.5 L" },
+      { label: "Lube Oil Consumption", value: "< Normal limits" },
+      { label: "Full Flow Filter", value: "Yes, with lube oil cooling" },
+    ],
+    coolingSpecs: [
+      { label: "Method of Cooling", value: "Radiator (Water Cooled)" },
+      { label: "Coolant Capacity", value: "â€”" },
+      { label: "Radiator Fan Power", value: "â€”" },
+      { label: "Thermostat Operating Range", value: "75Â°C" },
+      { label: "Coolant Alarm (Shutdown)", value: "100Â°C" },
+      { label: "Silencer Type", value: "Residential" },
+      { label: "Number of Silencers", value: "1" },
+      { label: "Max Back Pressure", value: "â€”" },
+      { label: "Exhaust Outlet Pipe Size", value: "40 mm (min.)" },
+    ],
+  },
+
+  // â”€â”€ 04 Alternator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  alternator: {
+    specs: [
+      { label: "Make", value: "Stamford*" },
+      { label: "Frame", value: "S0L1-P1" },
+      { label: "Power Factor", value: "0.8" },
+      { label: "No. of Phases", value: "3-Phase, 1/3" },
+      { label: "Frequency", value: "50 Hz" },
+      { label: "Rated Voltage (L-L)", value: "240V / 415V" },
+      { label: "Rated Current", value: "62.50 / 20.88 A" },
+      { label: "Voltage Regulation", value: "Â±1%" },
+      { label: "Insulation System", value: "H Class" },
+      { label: "Temperature Rise Limit", value: "H Class" },
+      { label: "Winding Pitch", value: "Double layer concentric" },
+      { label: "AVR Model", value: "AS540" },
+      { label: "Protection", value: "IP23" },
+      { label: "Coupling", value: "Single bearing" },
+    ],
+    perfSpecs: [
+      { label: "Excitation", value: "Self excited" },
+      { label: "Control System", value: "Analogue" },
+      { label: "AVR Type", value: "AS540" },
+      { label: "Max Over Speed", value: "â€”" },
+      { label: "Waveform Distortion (No Load)", value: "< 2.5% (NDBLL < 5%)" },
+    ],
+    features: [
+      "Brushless type, screen protected, self-excited alternator complying to BS:5000/IEC 60034-1",
+      "Excellent motor start capability",
+      "Excellent alternator efficiency across the load range",
+      "Compact design with sealed bearings for longer life and lower maintenance",
+      "Testing carried out using state-of-the-art PLC based, resistive load bank",
+      "Optimised engine compatibility",
+    ],
+  },
+
+  // â”€â”€ 05 Electrical Performance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  electrical: {
+    specs: [
+      { label: "Short Circuit Ratio", value: "0.515" },
+      { label: "Waveform Distortion (NDBLL)", value: "< 5%" },
+      { label: "Voltage Regulation", value: "Â±1%" },
+      { label: "AVR Type", value: "AS540 (Analogue)" },
+      { label: "Battery Size", value: "60 Ah" },
+      { label: "Starter Motor", value: "2.5 kW" },
+      { label: "Electrical System Voltage", value: "12 V DC" },
+    ],
+    reactanceData: [
+      { symbol: "Xd",   description: "Direct Axis Synchronous Reactance",     value: "1.942" },
+      { symbol: "X'd",  description: "Direct Axis Transient Reactance",        value: "0.109" },
+      { symbol: "X''d", description: "Direct Axis Sub-Transient Reactance",    value: "0.100" },
+      { symbol: "Xq",   description: "Quadrature Axis Reactance",              value: "1.265" },
+      { symbol: "X''q", description: "Quad Axis Sub-Transient Reactance",      value: "0.172" },
+      { symbol: "Xl",   description: "Leakage Reactance",                      value: "0.064" },
+      { symbol: "X2",   description: "Negative Sequence Reactance",            value: "0.197" },
+      { symbol: "X0",   description: "Zero Sequence Reactance",                value: "0.012" },
+    ],
+  },
+
+  // â”€â”€ 06 Enclosure & Sound â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  enclosure: {
+    acousticDims: [
+      { label: "Length", value: "1760 mm" },
+      { label: "Width",  value: "950 mm" },
+      { label: "Height", value: "1495 mm" },
+      { label: "Fuel Tank", value: "70 L" },
+    ],
+    openDims: [
+      { label: "Length", value: "NA" },
+      { label: "Width",  value: "NA" },
+      { label: "Height", value: "NA" },
+      { label: "Fuel Tank", value: "â€”" },
+    ],
+    envSpecs: [
+      { label: "Protection",     value: "IP23" },
+      { label: "Design Ambient", value: "40Â°C" },
+      { label: "Altitude",       value: "Up to 1000 m" },
+      { label: "Cooling Airflow", value: "0.58 mÂ³/sec" },
+      { label: "CPCB",           value: "IV+ Compliant" },
+    ],
+  },
+
+  // â”€â”€ 07 Control Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  control: {
+    specs: [
+      { label: "Controller Make", value: "DEIF, Denmark" },
+      { label: "Model", value: "SGC 120" },
+      { label: "Display", value: "Backlit full graphics LCD" },
+      { label: "Operation Modes", value: "Auto / Manual / Remote" },
+      { label: "AMF Function", value: "Supported (Mains Fail Signal)" },
+      { label: "Communication", value: "USB, RS-485, CANbus" },
+      { label: "Protection Class", value: "IP65 with gasket" },
+      { label: "Operating Temp", value: "-20 to 65Â°C" },
+      { label: "Event Log", value: "100 events with date/time" },
+    ],
+    features: [
+      "Microprocessor based digital controller",
+      "Accurate LCD display with backlit full graphics",
+      "Local and Remote Start/Stop",
+      "Generator breaker control",
+      "Flexibility for Manual & Auto operations",
+      "Easily convertible to AMF by giving Mains Fail Signal",
+      "Battery voltage monitoring & reverse protection",
+      "7/9 configurable analogue/digital inputs",
+      "Island Operation support",
+      "Automatic Mains Failure function",
+      "CANbus engine interface for communication",
+      "7 configurable digital outputs",
+      "Power save mode",
+    ],
+    engineParams: [
+      "Engine Speed",
+      "Lube Oil Pressure",
+      "Coolant Temperature",
+      "Engine Running Hours",
+      "Engine Battery Voltage",
+      "Running Status",
+      "Fuel Level in Percentage",
+      "Event Log with date and time",
+    ],
+    electricalParams: [
+      "Generator Voltage (Ph-Ph)",
+      "Generator Voltage (Ph-N)",
+      "Generator Current (R, Y, B)",
+      "Generator Apparent Power (kVA)",
+      "Generator Active Power (kW)",
+      "Generator Reactive Power (kVAr)",
+      "Generator Power Factor",
+      "Generator Frequency (Hz)",
+      "Cumulative Energy (kWh)",
+      "Cumulative Energy (kVAh)",
+      "Cumulative Energy (kVArh)",
+      "Control Supply Voltage",
+    ],
+    electricalSpecs: [
+      { label: "Supply Voltage (Nominal)", value: "12 / 24 V DC" },
+      { label: "Cranking Dropout Period", value: "50 ms" },
+      { label: "Max Reverse Voltage Protection", value: "-32 V DC" },
+      { label: "Measurement Accuracy (Battery V)", value: "Â±1% Full Scale" },
+      { label: "Resolution", value: "0.1 V" },
+      { label: "Max Current Consumption", value: "~200 mA" },
+      { label: "Deep Sleep Current", value: "20 mA, 12/24 V DC" },
+    ],
+  },
+
+  // â”€â”€ 08 Protection & Approvals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  protection: {
+    engineProtections: [
+      "High Water Temperature â€” Shutdown",
+      "Low Oil Pressure â€” Shutdown",
+      "Low Fuel Level â€” Alert",
+      "Over Speed â€” Shutdown",
+      "Engine Fails to Start â€” Alarm",
+    ],
+    electricalProtections: [
+      "Generator Under Voltage (ANSI-27)",
+      "Generator Over Voltage (ANSI-59)",
+      "Generator Under Frequency (ANSI-81L)",
+      "Generator Over Frequency (ANSI-81H)",
+      "Generator Over Current (ANSI-51)",
+      "Control Supply Under Voltage",
+      "Control Supply Over Voltage",
+      "Phase Reversal Protection",
+      "Unbalanced Load Protection",
+    ],
+    approvals: [
+      "CE Compliant",
+      "EN 61010-1 (Low Voltage Directive)",
+      "EN 61000-6-2 (EMC Immunity)",
+      "EN 61000-6-4 (EMC Emissions)",
+    ],
+  },
+
+  // â”€â”€ 09 Standard Supply & Optional Extras â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  supply: {
+    standardItems: [
+      "Water-cooled diesel engine",
+      "Engine-driven radiator",
+      "Electric starter & charging alternator",
+      "Electronic governor",
+      "Microprocessor-based genset controller",
+      "Dry type air filter",
+      "Single bearing IP23 alternator",
+      "Base frame with anti-vibration mounts",
+      "Flexible fuel lines & lube oil drain pump",
+      "Fuel water separator filter (engine mounted)",
+      "Exhaust outlet with flexible and flanges",
+      "DG control panel",
+      "Battery, battery lead & battery stand",
+      "Day fuel tank with High / Low level switch",
+      "First fill lube oil",
+      "First fill coolant",
+      "1 set of documents",
+    ],
+    optionalItems: [
+      "Coolant heater", "Oversize batteries", "Extra fuel pre-filter",
+      "PMG", "Space heater / RTD / BTD", "3-phase sensing AVR",
+      "Heat exchanger", "Remote radiator",
+      "Sync module", "Isolator panel", "ATS", "Fuel transfer pump",
+    ],
+    optionalGroups: [
+      {
+        label: "Engine",
+        items: ["Coolant heater", "Oversize batteries", "Extra fuel pre-filter water separator"],
+      },
+      {
+        label: "Alternator",
+        items: ["Permanent Magnet Generator (PMG)", "Space Heater, RTD & BTD sensor", "Upgrade to 3-phase sensing AVR", "Air inlet filters"],
+      },
+      {
+        label: "Cooling System",
+        items: ["Heat exchanger", "Remote radiator"],
+      },
+      {
+        label: "General",
+        items: ["Synchronisation module", "Isolator panel", "Automatic transfer switch", "Fuel transfer pump (Auto / Manual)"],
+      },
+    ],
+  },
+
+  // â”€â”€ 10 Dimensions & Weights â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  dimensions: {
+    acousticDims: [
+      { label: "Length", value: "1760 mm" },
+      { label: "Width",  value: "950 mm" },
+      { label: "Height", value: "1495 mm" },
+      { label: "Fuel Tank", value: "70 L" },
+    ],
+    openDims: [
+      { label: "Length", value: "NA" },
+      { label: "Width",  value: "NA" },
+      { label: "Height", value: "NA" },
+      { label: "Fuel Tank", value: "â€”" },
+    ],
+    specs: [
+      { label: "Rating", value: "15 kVA / 12 kWe @ 415V, 50Hz" },
+      { label: "Power Factor", value: "0.8" },
+      { label: "Warranty", value: "Refer warranty policy" },
+      { label: "Documentation", value: "Full operation, maintenance & wiring manuals" },
+      { label: "Factory", value: "Aditya Tech Mech, Silvassa-396230" },
+    ],
+  },
+};
+/**
+ * ekl20_3cyl_Data.ts
+ * All interactive data for the EKL20 (3 Cyl) kVA DG Set showcase.
+ * 11 chapters, 100% PDF coverage â€” TDS-EKL20 (3ycl)-IVATM
+ */
+
+export interface DimEntry       { label: string; value: string; }
+export interface ReactanceRow   { symbol: string; description: string; value: string; }
+export interface OptionalGroup  { label: string; items: string[]; }
+
+export interface EKL20ChapterData {
+  specs?:               { label: string; value: string }[];
+  features?:            string[];
+  badges?:              string[];
+  description?:         string;
+  aboutSpecs?:          { label: string; value: string }[];
+  lubeSpecs?:           { label: string; value: string }[];
+  coolingSpecs?:        { label: string; value: string }[];
+  perfSpecs?:           { label: string; value: string }[];
+  reactanceData?:       ReactanceRow[];
+  acousticDims?:        DimEntry[];
+  openDims?:            DimEntry[];
+  envSpecs?:            { label: string; value: string }[];
+  engineParams?:        string[];
+  electricalParams?:    string[];
+  electricalSpecs?:     { label: string; value: string }[];
+  engineProtections?:   string[];
+  electricalProtections?: string[];
+  approvals?:           string[];
+  standardItems?:       string[];
+  optionalItems?:       string[];
+  optionalGroups?:      OptionalGroup[];
+}
+
+export const EKL20_3CYL_CHAPTER_DATA: Record<string, EKL20ChapterData> = {
+
+  // â”€â”€ 01 Overview â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  overview: {
+    badges: [
+      "CPCB IV+ Compliant",
+      "ISO 8528",
+      "Silent Operation",
+      "Industrial Grade",
+      "ISO 9001:2015",
+    ],
+    specs: [
+      { label: "Model",       value: "EKL20(3cyl)-IV" },
+      { label: "Rating",      value: "20 kVA / 16 kWe" },
+      { label: "Voltage",     value: "415 V, 3-Phase" },
+      { label: "Frequency",   value: "50 Hz" },
+      { label: "Speed",       value: "1500 RPM" },
+      { label: "Compliance",  value: "CPCB IV+" },
+    ],
+    description:
+      "The EKL20(3cyl)-IV is an Escorts-powered 20 kVA silent diesel generator set, designed to comply with ISO 8528. It delivers excellent performance under the most demanding environmental conditions with near-zero downtime for continuous power supply. Comes with a sturdy base frame, efficient anti-vibration mounts, and undergoes stringent shop floor testing using state-of-the-art PLC based resistive load bank.",
+    aboutSpecs: [
+      { label: "Doc No.",             value: "TDS-EKL20 (3ycl)-IVATM" },
+      { label: "ISO Compliance",      value: "ISO 8528, ISO 3046-1/1, ISO 15550" },
+      { label: "Factory",             value: "Plot 29A/B, Survey 208, Silvassa-396230, UT of D&N Haveli and Daman & Diu" },
+      { label: "Power Factor",        value: "0.8 lagging" },
+      { label: "Overload Capability", value: "10% per ISO 3046" },
+      { label: "Output Rating",       value: "20 kVA / 16 kWe @ 415V, 50Hz" },
+    ],
+  },
+
+  // â”€â”€ 02 Engine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  engine: {
+    specs: [
+      { label: "Make",                        value: "Escorts" },
+      { label: "Model",                       value: "G20-IV" },
+      { label: "No. of Cylinders",            value: "3" },
+      { label: "Distribution",                value: "4 Strokes" },
+      { label: "Aspiration",                  value: "Natural Aspiration" },
+      { label: "Type of Construction",        value: "In-line" },
+      { label: "Displacement",                value: "2.34 L" },
+      { label: "Bore / Stroke",               value: "95 Ã— 110 mm" },
+      { label: "Mean Piston Speed",           value: "â€”" },
+      { label: "Compression Ratio",           value: "â€”" },
+      { label: "Gross Engine Power (PRP)",    value: "18 kWm / 24.2 hp" },
+      { label: "Gross Engine Power @ 110%",   value: "â€”" },
+      { label: "Speed",                       value: "1500 RPM" },
+      { label: "Frequency",                   value: "50 Hz" },
+    ],
+    features: [
+      "Cast iron cylinder block with rugged body construction designed to minimize vibration & noise level",
+      "High carbon steel forged crankshaft with induction hardening",
+      "Full flow oil filter along with lube oil cooling to maintain optimum temperature",
+      "Cast iron dry liners, lube oil cooled aluminium alloy piston with high performance piston rings",
+      "Electronic governing for fast load response and stable frequency",
+      "Excellent fuel and lube oil consumption",
+      "Engine complying to ISO 3046-1/1, ISO 15550 standard reference conditions",
+      "High power to weight ratio with low life cycle cost",
+    ],
+  },
+
+  // â”€â”€ 03 Fuel, Lube & Cooling â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  fuel: {
+    specs: [
+      { label: "Recommended Fuel",                    value: "High Speed Diesel" },
+      { label: "Governor",                            value: "Mechanical" },
+      { label: "Governing Class",                     value: "â€”" },
+      { label: "Fuel Injection Pump",                 value: "Mechanical" },
+      { label: "Air Filter Type",                     value: "Dry" },
+      { label: "Air Intake Restriction (Dirty)",      value: "â€”" },
+      { label: "Fuel Consumption (110% Load)",        value: "4.66 L/hr" },
+      { label: "Fuel Consumption (100% Load)",        value: "4.17 L/hr" },
+      { label: "Fuel Consumption (75% Load)",         value: "3.31 L/hr" },
+      { label: "Fuel Consumption (50% Load)",         value: "2.46 L/hr" },
+      { label: "Fuel Consumption (25% Load)",         value: "1.77 L/hr" },
+      { label: "Specific Gravity Reference",          value: "850 gms/Litre" },
+    ],
+    lubeSpecs: [
+      { label: "Recommended Lube Oil",    value: "15W 40 CI4" },
+      { label: "Lube Oil System Capacity",value: "6.5 L" },
+      { label: "Lube Oil Consumption",    value: "< Normal limits" },
+      { label: "Full Flow Filter",        value: "Yes, with lube oil cooling" },
+    ],
+    coolingSpecs: [
+      { label: "Method of Cooling",               value: "Radiator (Water Cooled)" },
+      { label: "Coolant Capacity",                value: "â€”" },
+      { label: "Radiator Fan Power",              value: "â€”" },
+      { label: "Thermostat Operating Range",      value: "75Â°C" },
+      { label: "Coolant Alarm (Shutdown) Temp",   value: "100Â°C" },
+      { label: "Silencer Type",                   value: "Residential" },
+      { label: "Number of Silencers",             value: "1" },
+      { label: "Max Back Pressure Total System",  value: "â€”" },
+      { label: "Exhaust Outlet Pipe Size (min)",  value: "40 mm" },
+      { label: "Exhaust Gas Temperature",         value: "â€”" },
+    ],
+  },
+
+  // â”€â”€ 04 Alternator â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  alternator: {
+    specs: [
+      { label: "Make",                    value: "Stamford (CG / Leroy Somer options available)" },
+      { label: "Frame",                   value: "S0L2-G1" },
+      { label: "Power Factor",            value: "0.8" },
+      { label: "No. of Phases",           value: "3-Phase, 1/3" },
+      { label: "Frequency",               value: "50 Hz" },
+      { label: "Rated Voltage (L-L)",     value: "240V / 415V" },
+      { label: "Rated Current",           value: "83.33 / 27.84 Amps" },
+      { label: "Voltage Regulation",      value: "Â±1%" },
+      { label: "Insulation System",       value: "H Class" },
+      { label: "Temperature Rise Limit",  value: "H Class" },
+      { label: "Winding Pitch",           value: "2/3 Double layer concentric" },
+      { label: "Over Load",               value: "â€”" },
+      { label: "AVR Model",               value: "AS540" },
+      { label: "Protection",              value: "IP23" },
+      { label: "Coupling",                value: "Single bearing" },
+    ],
+    perfSpecs: [
+      { label: "Excitation System",                   value: "Self excited" },
+      { label: "Control System",                      value: "Analogue" },
+      { label: "AVR Type",                            value: "AS540" },
+      { label: "Maximum Over Speed",                  value: "â€”" },
+      { label: "Cooling",                             value: "Air Cooled" },
+      { label: "Air Flow",                            value: "0.105 mÂ³/sec" },
+      { label: "Stator Winding",                      value: "Double layer concentric" },
+      { label: "Waveform Distortion (No Load)",       value: "< 2.5% (NDBLL < 5%)" },
+      { label: "Design Ambient for Alternator",       value: "40Â°C" },
+      { label: "Altitude",                            value: "1000 m" },
+      { label: "Efficiency @ 100% Load (0.8 p.f.)",  value: "85.5%" },
+      { label: "Efficiency @ 75% Load (0.8 p.f.)",   value: "88.0%" },
+    ],
+    features: [
+      "Brushless type, screen protected, self-excited alternator complying to BS:5000/IEC 60034-1",
+      "Excellent motor start capability",
+      "Excellent alternator efficiency across the load range",
+      "Compact design with sealed bearings for longer life and lower maintenance",
+      "Testing carried out using state-of-the-art PLC based, resistive load bank",
+      "Optimised engine compatibility",
+    ],
+  },
+
+  // â”€â”€ 05 Electrical Performance â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  electrical: {
+    specs: [
+      { label: "Short Circuit Ratio",           value: "0.410" },
+      { label: "Waveform Distortion (NDBLL)",   value: "< 5%" },
+      { label: "Voltage Regulation",            value: "Â±1%" },
+      { label: "AVR Type",                      value: "AS540 (Analogue)" },
+      { label: "Battery Size",                  value: "60 Ah" },
+      { label: "Starter Motor Power",           value: "2.5 kW" },
+      { label: "Electrical System Voltage",     value: "12 V DC" },
+    ],
+    reactanceData: [
+      { symbol: "Xd",    description: "Direct Axis Synchronous Reactance",      value: "2.437" },
+      { symbol: "X'd",   description: "Direct Axis Transient Reactance",         value: "0.129" },
+      { symbol: "X''d",  description: "Direct Axis Sub-Transient Reactance",     value: "0.126" },
+      { symbol: "Xq",    description: "Quadrature Axis Reactance",               value: "1.406" },
+      { symbol: "X''q",  description: "Quad Axis Sub-Transient Reactance",       value: "0.175" },
+      { symbol: "Xl",    description: "Leakage Reactance",                       value: "0.089" },
+      { symbol: "X2",    description: "Negative Sequence Reactance",             value: "0.211" },
+      { symbol: "X0",    description: "Zero Sequence Reactance",                 value: "0.021" },
+    ],
+  },
+
+  // â”€â”€ 06 Enclosure & Sound â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  enclosure: {
+    acousticDims: [
+      { label: "Length",     value: "1950 mm" },
+      { label: "Width",      value: "1050 mm" },
+      { label: "Height",     value: "1555 mm" },
+      { label: "Weight Dry", value: "â€”" },
+      { label: "Fuel Tank",  value: "75 L" },
+    ],
+    openDims: [
+      { label: "Length",     value: "NA" },
+      { label: "Width",      value: "NA" },
+      { label: "Height",     value: "NA" },
+      { label: "Weight Dry", value: "â€”" },
+      { label: "Fuel Tank",  value: "â€”" },
+    ],
+    envSpecs: [
+      { label: "Protection",      value: "IP23" },
+      { label: "Design Ambient",  value: "40Â°C" },
+      { label: "Altitude",        value: "Up to 1000 m" },
+      { label: "Cooling Airflow", value: "0.105 mÂ³/sec" },
+      { label: "CPCB",            value: "IV+ Compliant" },
+    ],
+  },
+
+  // â”€â”€ 07 Control Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  control: {
+    specs: [
+      { label: "Controller Make",   value: "DEIF, Denmark" },
+      { label: "Model",             value: "SGC 120" },
+      { label: "Display",           value: "Backlit full graphics LCD" },
+      { label: "Operation Modes",   value: "Auto / Manual / Remote" },
+      { label: "AMF Function",      value: "Supported (Mains Fail Signal)" },
+      { label: "Communication",     value: "USB, RS-485, CANbus" },
+      { label: "Protection Class",  value: "IP65 with gasket" },
+      { label: "Operating Temp",    value: "-20 to 65Â°C" },
+      { label: "Event Log",         value: "100 events with date/time" },
+    ],
+    features: [
+      "Microprocessor based digital controller",
+      "Accurate LCD display with backlit full graphics",
+      "Local and Remote Start/Stop",
+      "Generator breaker control",
+      "Easily accessible through fascia",
+      "Flexibility for selecting Manual & Auto operations",
+      "Easily convertible to AMF by giving Mains Fail Signal",
+      "Battery voltage monitoring & reverse protection to auxiliary supply",
+      "7/9 configurable analogue/digital inputs",
+      "Island Operation support",
+      "Automatic Mains Failure function",
+      "CANbus engine interface for communication",
+      "Log with latest 100 events",
+      "Fully configurable via PC using USB, RS485 communication",
+      "DC battery supply voltage range 8 to 28V",
+      "-20 to 65Â°C operating temperature range",
+      "IP65 Protection class with gasket",
+      "LCD alarm indication",
+      "Power save mode",
+      "7 configurable digital outputs",
+    ],
+    engineParams: [
+      "Engine Speed",
+      "Lube Oil Pressure",
+      "Coolant Temperature",
+      "Engine Running Hours",
+      "Engine Battery Voltage",
+      "Running Status",
+      "Fuel Level in Percentage",
+      "Event Log with date and time",
+    ],
+    electricalParams: [
+      "Generator Voltage (Ph-Ph)",
+      "Generator Voltage (Ph-N)",
+      "Generator Current (R, Y, B)",
+      "Generator Apparent Power (kVA)",
+      "Generator Active Power (kW)",
+      "Generator Reactive Power (kVAr)",
+      "Generator Power Factor",
+      "Generator Frequency (Hz)",
+      "Cumulative Energy (kWh)",
+      "Cumulative Energy (kVAh)",
+      "Cumulative Energy (kVArh)",
+      "Control Supply Voltage",
+    ],
+    electricalSpecs: [
+      { label: "Supply Voltage (Nominal)",              value: "12 / 24 V DC" },
+      { label: "Cranking Dropout Period",               value: "50 ms" },
+      { label: "Max Reverse Voltage Protection",        value: "-32 V DC" },
+      { label: "Measurement Accuracy (Battery V)",      value: "Â±1% Full Scale" },
+      { label: "Resolution",                            value: "0.1 V" },
+      { label: "Max Current Consumption",               value: "~200 mA" },
+      { label: "Deep Sleep Current",                    value: "20 mA, 12/24 V DC" },
+      { label: "Vibration",                             value: "2G in X, Y, Z axes for 8â€“500 Hz (IEC 60068-2-6)" },
+      { label: "Shock",                                 value: "15 g for 11 ms (IEC 60068-2-27)" },
+      { label: "Humidity",                              value: "0â€“95% RH (IEC 60068-2-78)" },
+      { label: "EMI/EMC",                               value: "IEC 61000-6-2, 4" },
+    ],
+  },
+
+  // â”€â”€ 08 Protection & Approvals â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  protection: {
+    engineProtections: [
+      "High Water Temperature â€” Shutdown",
+      "Low Oil Pressure â€” Shutdown",
+      "Low Fuel Level â€” Alert",
+      "Over Speed â€” Shutdown",
+      "Engine Fails to Start â€” Alarm",
+    ],
+    electricalProtections: [
+      "Generator Under Voltage (ANSI-27)",
+      "Generator Over Voltage (ANSI-59)",
+      "Generator Under Frequency (ANSI-81L)",
+      "Generator Over Frequency (ANSI-81H)",
+      "Generator Over Current (ANSI-51)",
+      "Control Supply Under Voltage",
+      "Control Supply Over Voltage",
+      "Phase Reversal Protection",
+      "Unbalanced Load Protection",
+    ],
+    approvals: [
+      "CE Compliant",
+      "EN 61010-1 (EU Low Voltage Directive)",
+      "EN 61000-6-2 (EMC Immunity)",
+      "EN 61000-6-4 (EMC Emissions)",
+      "IEC 60068 (Environmental compliance)",
+      "IEC 60529 (IP65 enclosure)",
+    ],
+  },
+
+  // â”€â”€ 09 Standard Supply & Optional Extras â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  supply: {
+    standardItems: [
+      "Water-cooled diesel engine",
+      "Engine-driven radiator",
+      "Electric starter & charging alternator",
+      "Electronic governor",
+      "Microprocessor-based genset controller",
+      "Dry type air filter",
+      "Single bearing IP23 alternator",
+      "Base frame with anti-vibration mounts",
+      "Flexible fuel lines & lube oil drain pump",
+      "Fuel water separator filter (engine mounted)",
+      "Exhaust outlet with flexible and flanges",
+      "DG control panel",
+      "Battery, battery lead & battery stand",
+      "Day fuel tank with High / Low level switch",
+      "First fill lube oil",
+      "First fill coolant",
+      "1 set of documents",
+    ],
+    optionalItems: [
+      "Coolant heater",
+      "Oversize batteries",
+      "Extra fuel pre-filter water separator",
+      "Permanent Magnet Generator (PMG)",
+      "Space Heater, RTD & BTD sensor",
+      "Upgrade to 3-phase sensing AVR",
+      "Air inlet filters",
+      "Heat exchanger",
+      "Remote radiator",
+      "Synchronisation module",
+      "Isolator panel",
+      "Automatic transfer switch",
+      "Fuel transfer pump (Automatic / Manual)",
+    ],
+    optionalGroups: [
+      {
+        label: "Engine",
+        items: [
+          "Coolant heater",
+          "Oversize batteries",
+          "Extra fuel pre-filter water separator",
+        ],
+      },
+      {
+        label: "Alternator",
+        items: [
+          "Permanent Magnet Generator (PMG)",
+          "Space Heater, RTD & BTD sensor",
+          "Upgrade to 3-phase sensing AVR",
+          "Air inlet filters",
+        ],
+      },
+      {
+        label: "Cooling System",
+        items: ["Heat exchanger", "Remote radiator"],
+      },
+      {
+        label: "General",
+        items: [
+          "Synchronisation module",
+          "Isolator panel",
+          "Automatic transfer switch",
+          "Fuel transfer pump (Automatic / Manual)",
+        ],
+      },
+    ],
+  },
+
+  // â”€â”€ 10 Dimensions & Weights â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  dimensions: {
+    acousticDims: [
+      { label: "Length",     value: "1950 mm" },
+      { label: "Width",      value: "1050 mm" },
+      { label: "Height",     value: "1555 mm" },
+      { label: "Weight Dry", value: "â€”" },
+      { label: "Fuel Tank",  value: "75 L" },
+    ],
+    openDims: [
+      { label: "Length",     value: "NA" },
+      { label: "Width",      value: "NA" },
+      { label: "Height",     value: "NA" },
+      { label: "Weight Dry", value: "â€”" },
+      { label: "Fuel Tank",  value: "â€”" },
+    ],
+    specs: [
+      { label: "Rating",           value: "20 kVA / 16 kWe @ 415V, 50Hz" },
+      { label: "Power Factor",     value: "0.8" },
+      { label: "Warranty",         value: "Refer warranty policy" },
+      { label: "Documentation",    value: "Full operation, maintenance & wiring manuals" },
+      { label: "Factory",          value: "Aditya Tech Mech, Plot 29A/B, Survey 208, Silvassa-396230" },
+      { label: "Special Condition",value: "For specific site conditions, refer to application engineering" },
+    ],
+  },
+
+  // â”€â”€ 11 Product Video â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  video: {
+    specs: [
+      { label: "Duration", value: "8 sec" },
+      { label: "Format", value: "MP4" },
+      { label: "Source", value: "360Â° View" },
+    ],
+  },
+};

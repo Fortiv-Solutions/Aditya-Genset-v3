@@ -4,10 +4,11 @@ import {
   LayoutDashboard, Package, FileText,
   ShieldCheck, BarChart2,
   Settings, ChevronRight, Bell, Search, Plus, LogOut,
-  Menu, X, Zap, Globe
+  Menu, X, Globe
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/components/auth/AuthContext";
+import logo from "@/assets/brand/logo.png";
 
 interface NavItem {
   label: string;
@@ -113,16 +114,14 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-border">
-        <div className="flex-shrink-0 w-9 h-9 rounded-md bg-accent flex items-center justify-center shadow-sm shadow-accent/20">
-          <Zap size={16} className="text-accent-foreground fill-accent-foreground" />
-        </div>
-        {sidebarOpen && (
-          <div className="min-w-0">
-            <p className="text-sm font-bold text-foreground leading-none">Aditya Tech Mech</p>
-            <p className="text-[10px] text-accent font-semibold tracking-[0.18em] uppercase mt-1">Admin Portal</p>
-          </div>
-        )}
+      <div className={`flex items-center border-b border-border ${sidebarOpen ? "px-5 py-4" : "justify-center px-2 py-5"}`}>
+        <Link to="/" className="flex min-w-0 items-center">
+          <img
+            src={logo}
+            alt="Aditya"
+            className={`${sidebarOpen ? "h-12 max-w-[185px]" : "h-8 max-w-10"} w-auto object-contain mix-blend-multiply`}
+          />
+        </Link>
       </div>
 
       {/* Navigation */}
