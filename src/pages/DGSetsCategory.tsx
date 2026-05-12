@@ -1,4 +1,5 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { SEO } from "@/components/site/SEO";
 import { fetchPublishedProducts } from "@/lib/api/products";
@@ -44,48 +45,38 @@ export default function DGSetsCategory() {
   const [selectedKvaRange, setSelectedKvaRange] = useState(kvaRanges[0]);
   const [selectedApplication, setSelectedApplication] = useState("All");
   
-  const [sets, setSets] = useState<DGSet[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadSets() {
-      setLoading(true);
-      try {
-        const products = await fetchPublishedProducts();
+  const { data: sets = [], isLoading: loading } = useQuery({
+    queryKey: ['dg-sets-published'],
+    queryFn: async () => {
+      const products = await fetchPublishedProducts();
+      
+      const mapped: DGSet[] = products.map(p => {
+        const primaryMedia = p.product_media?.find(m => m.kind === 'primary' || m.kind === 'card');
+        const specs = p.product_specs || [];
+        const engineBrand = String(p.engine_brand || "").toLowerCase();
         
-        const mapped: DGSet[] = products.map(p => {
-          const primaryMedia = p.product_media?.find(m => m.kind === 'primary' || m.kind === 'card');
-          const specs = p.product_specs || [];
-          const engineBrand = String(p.engine_brand || "").toLowerCase();
-          
-          let image = primaryMedia?.public_url;
-          if (!image || image.startsWith('/assets/') || image.startsWith('/src/assets/')) {
-            image = gensetFallback;
-          }
+        let image = primaryMedia?.public_url;
+        if (!image || image.startsWith('/assets/') || image.startsWith('/src/assets/')) {
+          image = gensetFallback;
+        }
 
-          return {
-            id: p.id,
-            slug: p.slug,
-            model: p.model || p.name,
-            kva: p.kva,
-            engine: ((engineBrand.includes("escort") || engineBrand.includes("kubota")) ? 'Escorts' : 'Baudouin') as any,
-            application: specs.find(s => s.label.toLowerCase().includes('application'))?.value || 'Prime',
-            fuel: specs.find(s => s.label.toLowerCase().includes('fuel consumption'))?.value || 'Variable',
-            noise: specs.find(s => s.label.toLowerCase().includes('noise'))?.value || '70 dB(A)',
-            image: image,
-            compliance: specs.find(s => s.label.toLowerCase().includes('compliance'))?.value || 'CPCB IV+',
-            isHidden: p.status !== 'published'
-          };
-        });
-        setSets(mapped);
-      } catch (err) {
-        console.error("❌ DGSetsCategory: Failed to load DG sets:", err);
-      } finally {
-        setLoading(false);
-      }
+        return {
+          id: p.id,
+          slug: p.slug,
+          model: p.model || p.name,
+          kva: p.kva,
+          engine: ((engineBrand.includes("escort") || engineBrand.includes("kubota")) ? 'Escorts' : 'Baudouin') as any,
+          application: specs.find(s => s.label.toLowerCase().includes('application'))?.value || 'Prime',
+          fuel: specs.find(s => s.label.toLowerCase().includes('fuel consumption'))?.value || 'Variable',
+          noise: specs.find(s => s.label.toLowerCase().includes('noise'))?.value || '70 dB(A)',
+          image: image,
+          compliance: specs.find(s => s.label.toLowerCase().includes('compliance'))?.value || 'CPCB IV+',
+          isHidden: p.status !== 'published'
+        };
+      });
+      return mapped;
     }
-    loadSets();
-  }, []);
+  });
 
   // Filter logic
   const filteredSets = sets.filter((set) => {

@@ -40,3 +40,7 @@ Desktop.ini
 
 # Raw unoptimized asset folders to prevent repo bloat
 "DG set ESCORTS/"
+
+# Electron Build output
+release/
+release_build/

@@ -1,0 +1,76 @@
+appId: com.adityagenset.app
+productName: Adityagenset
+copyright: Copyright © 2025 Adityagenset. All rights reserved.
+
+# ─── Directories ──────────────────────────────────────────────────────────────
+directories:
+  output: release_build
+  buildResources: public
+
+# ─── Files to Package ─────────────────────────────────────────────────────────
+# We only package the Vite-built dist/ and the Electron process files.
+# The renderer (React) is fully bundled in dist/ — no node_modules needed.
+files:
+  - dist/**/*
+  - electron/**/*
+
+# ─── ASAR Packaging ───────────────────────────────────────────────────────────
+asar: true
+
+# ─── Windows ──────────────────────────────────────────────────────────────────
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+    - target: portable
+      arch:
+        - x64
+  icon: public/aditya-logo.png
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Adityagenset
+
+# ─── macOS ────────────────────────────────────────────────────────────────────
+mac:
+  target:
+    - target: dmg
+      arch:
+        - x64
+        - arm64
+  icon: public/aditya-logo.png
+  category: public.app-category.business
+  darkModeSupport: true
+
+dmg:
+  title: Adityagenset
+  background: public/aditya-logo.png
+  contents:
+    - x: 130
+      y: 220
+    - x: 410
+      y: 220
+      type: link
+      path: /Applications
+
+# ─── Linux ────────────────────────────────────────────────────────────────────
+linux:
+  target:
+    - target: AppImage
+      arch:
+        - x64
+    - target: deb
+      arch:
+        - x64
+  icon: public/aditya-logo.png
+  category: Office
+  description: Silent DG Set Catalog & Sales Tool by Adityagenset
+
+# ─── Auto Update (GitHub Releases) ────────────────────────────────────────────
+publish:
+  provider: github
+  releaseType: release

@@ -13,14 +13,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const loadProfile = useCallback(async (userId: string) => {
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("user_id, role, full_name, phone")
-      .eq("user_id", userId)
-      .maybeSingle();
+    if (!navigator.onLine) {
+      console.log("Offline mode: using cached profile");
+      const cached = localStorage.getItem("cached_profile_" + userId);
+      return cached ? JSON.parse(cached) : null;
+    }
 
-    if (error) throw error;
-    return data as UserProfile | null;
+    try {
+      const fetchPromise = supabase
+        .from("profiles")
+        .select("user_id, role, full_name, phone")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Timeout fetching profile")), 5000)
+      );
+
+      const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+
+      if (error) throw error;
+      
+      if (data) {
+        localStorage.setItem("cached_profile_" + userId, JSON.stringify(data));
+      }
+      
+      return data as UserProfile | null;
+    } catch (e) {
+      console.warn("Failed to fetch profile:", e);
+      const cached = localStorage.getItem("cached_profile_" + userId);
+      return cached ? JSON.parse(cached) : null;
+    }
   }, []);
 
   const applySession = useCallback(
@@ -45,6 +68,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error("Unable to load authenticated profile:", error);
         setState({ session: data.session, user: data.session?.user ?? null, profile: null, loading: false });
       });
+    }).catch((error) => {
+      console.error("Critical error in getSession:", error);
+      if (!active) return;
+      setState({ session: null, user: null, profile: null, loading: false });
     });
 
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {

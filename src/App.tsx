@@ -1,5 +1,5 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { BrowserRouter, HashRouter, Navigate, Route, Routes } from "react-router-dom";
+import { isElectron } from "@/lib/platform";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +16,7 @@ import { ADMIN_ROLES } from "@/lib/auth";
 import { CMSEditorProvider } from "./components/cms/CMSEditorProvider";
 import { CompareProvider } from "./context/CompareContext";
 import { QuoteProvider } from "./context/QuoteContext";
+import { OfflineBanner } from "./components/ui/OfflineBanner";
 
 // Site Pages
 import Home from "./pages/Home";
@@ -43,7 +44,11 @@ import AdminComingSoon from "./pages/admin/AdminComingSoon";
 import ProductDiagnostic from "./pages/admin/ProductDiagnostic";
 // import SoftwareRoadmap from "./pages/admin/SoftwareRoadmap";
 
-const queryClient = new QueryClient();
+// ─── Adaptive Router ─────────────────────────────────────────────────────────
+// Electron loads app via file:// protocol — BrowserRouter breaks under file://
+// because pushState paths like /products resolve to the filesystem, not the SPA.
+// HashRouter (e.g. /#/products) works correctly in both file:// and http:// contexts.
+const Router = isElectron() ? HashRouter : BrowserRouter;
 
 // ─── Protected Route ────────────────────────────────────────────────────────
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
@@ -77,15 +82,15 @@ const AdminRouteNoLayout = ({ children }: { children: React.ReactNode }) => {
 
 const App = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <TooltipProvider>
         <AuthProvider>
+          <OfflineBanner />
           <Toaster />
           <Sonner />
           <CMSEditorProvider>
             <CompareProvider>
               <QuoteProvider>
-                <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+                <Router>
                   <Routes>
                     {/* ── Public ─────────────────────────────────── */}
                     <Route path="/login" element={<LoginRedirect><Login /></LoginRedirect>} />
@@ -150,13 +155,12 @@ const App = () => {
                       }
                     />
                   </Routes>
-                </BrowserRouter>
+                </Router>
               </QuoteProvider>
             </CompareProvider>
           </CMSEditorProvider>
         </AuthProvider>
       </TooltipProvider>
-    </QueryClientProvider>
   );
 };
 
