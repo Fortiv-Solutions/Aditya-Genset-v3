@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useCompare } from "@/context/CompareContext";
@@ -178,24 +178,16 @@ export default function CompareProducts() {
   const { selectedIds, removeFromCompare, clearCompare } = useCompare();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [products, setProducts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
   const tableRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    async function loadProducts() {
-      if (selectedIds.length === 0) {
-        setProducts([]);
-        setLoading(false);
-        return;
-      }
+  const { data: products = [], isLoading: loading } = useQuery({
+    queryKey: ['compare-products', selectedIds],
+    queryFn: async () => {
+      if (selectedIds.length === 0) return [];
       const all = await fetchPublishedProducts();
-      const filtered = all.filter((p: any) => selectedIds.includes(p.id));
-      setProducts(filtered);
-      setLoading(false);
+      return all.filter((p: any) => selectedIds.includes(p.id));
     }
-    loadProducts();
-  }, [selectedIds]);
+  });
 
   const exportToCSV = () => {
     if (products.length === 0) return;

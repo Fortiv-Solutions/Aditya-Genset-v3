@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { fetchPublishedProducts } from "@/lib/api/products";
 import { createQuote, createQuoteItems, generateQuoteNumber } from "@/lib/api/quotes";
@@ -183,34 +184,20 @@ export default function QuoteBuilder() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
-  const [products, setProducts] = useState<any[]>([]);
   const [quoteItems, setQuoteItems] = useState<QuoteItem[]>([]);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo>(emptyCustomerInfo);
   const [quoteNotes, setQuoteNotes] = useState("");
   const [validityDays, setValidityDays] = useState(30);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function loadProducts() {
-      try {
-        console.log('🔍 Quote Builder: Loading products...');
-        const data = await fetchPublishedProducts();
-        console.log('✅ Quote Builder: Loaded products:', data);
-        console.log('📊 Quote Builder: Product count:', data.length);
-        setProducts(data);
-      } catch (error) {
-        console.error('❌ Quote Builder: Error loading products:', error);
-        toast({
-          title: "Error loading products",
-          description: "Could not load products from database. Please refresh the page.",
-          variant: "destructive",
-        });
-      } finally {
-        setLoading(false);
-      }
+  const { data: products = [], isLoading: loading } = useQuery({
+    queryKey: ['published-products'],
+    queryFn: async () => {
+      console.log('🔍 Quote Builder: Loading products...');
+      const data = await fetchPublishedProducts();
+      console.log('✅ Quote Builder: Loaded products:', data.length);
+      return data;
     }
-    loadProducts();
-  }, []);
+  });
 
   const addQuoteItem = (productId: string) => {
     const product = products.find((p) => p.id === productId);
